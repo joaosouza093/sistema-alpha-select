@@ -52,24 +52,34 @@ export type Config = z.infer<typeof schema> & {
   mailMode: 'smtp' | 'manual' | 'dev';
 };
 
+/** Erro de configuração: lista apenas NOMES de variáveis (nunca valores). */
+export class ConfigError extends Error {
+  constructor(
+    readonly fields: string[],
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   // Variáveis definidas mas vazias (ex.: "MAIL_MODE=" no .env) contam como não definidas.
   const cleaned = Object.fromEntries(Object.entries(env).filter(([, v]) => v !== undefined && v.trim() !== ''));
   const parsed = schema.safeParse(cleaned);
   if (!parsed.success) {
-    const fields = parsed.error.issues.map((i) => i.path.join('.')).join(', ');
-    throw new Error(`Configuração inválida ou ausente: ${fields}`);
+    const fields = [...new Set(parsed.error.issues.map((i) => i.path.join('.')))];
+    throw new ConfigError(fields, `Configuração inválida ou ausente: ${fields.join(', ')}`);
   }
   const c = parsed.data;
   const isProd = c.APP_ENV === 'production' || c.APP_ENV === 'staging';
   const mailMode = c.MAIL_MODE ?? (c.SMTP_URL ? 'smtp' : isProd ? undefined : 'dev');
   if (!mailMode) {
-    throw new Error('Em homologação/produção defina SMTP_URL ou MAIL_MODE=manual (links entregues pelo administrador).');
+    throw new ConfigError(['MAIL_MODE'], 'Em homologação/produção defina SMTP_URL ou MAIL_MODE=manual (links entregues pelo administrador).');
   }
-  if (mailMode === 'smtp' && !c.SMTP_URL) throw new Error('MAIL_MODE=smtp exige SMTP_URL.');
-  if (isProd && !c.APP_URL.startsWith('https://')) throw new Error('APP_URL deve usar https em homologação/produção.');
+  if (mailMode === 'smtp' && !c.SMTP_URL) throw new ConfigError(['SMTP_URL'], 'MAIL_MODE=smtp exige SMTP_URL.');
+  if (isProd && !c.APP_URL.startsWith('https://')) throw new ConfigError(['APP_URL'], 'APP_URL deve usar https em homologação/produção.');
   if (c.STORAGE_DRIVER === 'supabase' && (!c.SUPABASE_URL || !c.SUPABASE_SERVICE_ROLE_KEY)) {
-    throw new Error('STORAGE_DRIVER=supabase exige SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
+    throw new ConfigError(['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'], 'STORAGE_DRIVER=supabase exige SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
   }
   return {
     ...c,

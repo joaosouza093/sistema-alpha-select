@@ -4,7 +4,7 @@
  * autenticação, CSRF e RLS) — apenas troca o transporte HTTP.
  */
 import type { FastifyInstance } from 'fastify';
-import { loadConfig } from './config.js';
+import { ConfigError, loadConfig } from './config.js';
 import { createDeps } from './deps.js';
 import { buildApp } from './app.js';
 import { runMaintenance } from './maintenance.js';
@@ -38,8 +38,14 @@ export async function handleWebRequest(request: Request, clientIp: string): Prom
     ({ app } = await init());
   } catch (err) {
     console.error('Falha ao iniciar a API:', (err as Error).message);
+    // Para configuração, informa só os NOMES das variáveis (públicos no repositório), nunca valores.
+    const message =
+      err instanceof ConfigError
+        ? `Serviço indisponível: configuração ausente ou inválida no servidor (${err.fields.join(', ')}). ` +
+          'Confira as variáveis de ambiente das funções e publique novamente.'
+        : 'Serviço temporariamente indisponível.';
     return Response.json(
-      { error: { code: 'unavailable', message: 'Serviço temporariamente indisponível.' } },
+      { error: { code: 'unavailable', message } },
       { status: 503, headers: { 'Cache-Control': 'no-store' } },
     );
   }

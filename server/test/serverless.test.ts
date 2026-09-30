@@ -166,5 +166,38 @@ describe('configuração', () => {
     const cfg = loadConfig({ ...TEST_ENV, APP_ENV: 'development', MAIL_MODE: '', SMTP_URL: '', SUPABASE_URL: '', DATABASE_SSL_CA: '' });
     expect(cfg.mailMode).toBe('dev');
     expect(() => loadConfig({ ...TEST_ENV, APP_ENV: 'production', APP_URL: 'https://x.example', MAIL_MODE: '' })).toThrow(/SMTP_URL ou MAIL_MODE/);
+    // Erro de configuração lista só os nomes das variáveis, nunca valores.
+    try {
+      loadConfig({ APP_ENV: 'staging', APP_URL: 'https://x.example', DATABASE_URL: 'postgres://u:SEGREDO@h/db' });
+      throw new Error('deveria falhar');
+    } catch (e) {
+      const err = e as { fields?: string[]; message: string };
+      expect(err.fields).toEqual(expect.arrayContaining(['DATABASE_OWNER_URL', 'STORAGE_DIR']));
+      expect(err.message).not.toContain('SEGREDO');
+    }
+  });
+});
+
+describe('diagnóstico de saúde', () => {
+  it('/api/health confirma o banco e, em falha, informa só a categoria', async () => {
+    const ok = await new WebAgent('198.51.100.30').call('GET', '/api/health');
+    expect(ok.status).toBe(200);
+    expect(ok.json()).toEqual({ ok: true, banco: 'ok' });
+
+    const { loadConfig } = await import('../src/config.js');
+    const { createDeps } = await import('../src/deps.js');
+    const { buildApp } = await import('../src/app.js');
+    const wrong = new URL(TEST_ENV.DATABASE_OWNER_URL);
+    wrong.password = 'senha-errada';
+    const bad = loadConfig({ ...TEST_ENV, DATABASE_OWNER_URL: wrong.toString() });
+    const deps = await createDeps(bad);
+    const app = await buildApp(deps);
+    const r = await app.inject({ method: 'GET', url: '/api/health' });
+    expect(r.statusCode).toBe(503);
+    expect(r.json()).toEqual({ ok: false, banco: 'senha do banco recusada' });
+    expect(r.body).not.toMatch(/senha-errada|alpha_owner|127\.0\.0\.1/);
+    await app.close();
+    await deps.pools.app.end();
+    await deps.pools.owner.end();
   });
 });

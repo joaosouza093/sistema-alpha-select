@@ -30,6 +30,10 @@ declare module 'fastify' {
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
+function logHealthFailure(app: FastifyInstance, e: { code?: string; message?: string }) {
+  app.log.error({ code: e.code }, 'health: falha no banco');
+}
+
 export async function buildApp(deps: Deps): Promise<FastifyInstance> {
   const { config } = deps;
   const app = Fastify({
@@ -145,7 +149,29 @@ export async function buildApp(deps: Deps): Promise<FastifyInstance> {
   registerDashboardRoutes(app, deps);
   registerAuditRoutes(app, deps);
 
-  app.get('/api/health', { config: { public: true } }, async () => ({ ok: true }));
+  /**
+   * Saúde da API e da conexão com o banco. Em caso de falha, informa apenas a
+   * CATEGORIA do problema (sem mensagens internas, hosts ou credenciais).
+   */
+  app.get('/api/health', { config: { public: true } }, async (_req, reply) => {
+    try {
+      await deps.pools.owner.query('select 1');
+      return { ok: true, banco: 'ok' };
+    } catch (err) {
+      const e = err as { code?: string; message?: string };
+      const msg = (e.message ?? '').toLowerCase();
+      let banco = 'falha de conexão com o banco';
+      if (e.code === '28P01' || msg.includes('password authentication')) banco = 'senha do banco recusada';
+      else if (msg.includes('tenant or user not found')) banco = 'usuário ou host do pooler do Supabase incorreto';
+      else if (msg.includes('certificate') || msg.includes('self-signed') || msg.includes('ssl') || msg.includes('tls'))
+        banco = 'falha no certificado TLS (confira DATABASE_SSL_CA)';
+      else if (['ENOTFOUND', 'EAI_AGAIN'].includes(e.code ?? '')) banco = 'host do banco não encontrado';
+      else if (['ECONNREFUSED', 'ETIMEDOUT', 'ECONNRESET'].includes(e.code ?? '')) banco = 'banco inacessível (host ou porta)';
+      logHealthFailure(app, e);
+      reply.code(503);
+      return { ok: false, banco };
+    }
+  });
 
   // Frontend compilado (homologação/produção).
   const webDir = config.WEB_DIST_DIR ? path.resolve(config.WEB_DIST_DIR) : null;

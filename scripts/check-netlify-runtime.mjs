@@ -23,7 +23,8 @@ Object.assign(process.env, {
 const { default: handler } = await import('./api.mjs');
 const call = async (path, init = {}) => handler(new Request('https://exemplo.netlify.app' + path, init), { ip: '203.0.113.1' });
 const checks = [
-  ['GET /api/health', await call('/api/health'), 200],
+  // Sem banco neste teste: a API sobe e informa só a categoria da falha.
+  ['GET /api/health (sem banco)', await call('/api/health'), 503],
   ['GET /api/auth/me sem sessão', await call('/api/auth/me'), 401],
   ['POST login inválido (validação)', await call('/api/auth/login', { method: 'POST', headers: { 'content-type': 'application/json', origin: 'https://exemplo.netlify.app' }, body: '{"email":"x"}' }), 422],
 ];
