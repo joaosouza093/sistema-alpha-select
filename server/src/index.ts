@@ -1,0 +1,33 @@
+import { loadConfig } from './config.js';
+import { createDeps } from './deps.js';
+import { buildApp } from './app.js';
+
+const config = loadConfig();
+const deps = await createDeps(config);
+const app = await buildApp(deps);
+
+// Limpeza periódica de sessões expiradas e tokens vencidos.
+const cleanup = setInterval(
+  () => {
+    deps.pools.owner
+      .query(
+        `delete from sessions where expires_at < now();
+         delete from password_resets where expires_at < now() - interval '7 days';
+         delete from invites where expires_at < now() - interval '30 days' and used_at is null;`,
+      )
+      .catch(() => undefined);
+  },
+  60 * 60 * 1000,
+);
+cleanup.unref();
+
+const shutdown = async () => {
+  await app.close();
+  await deps.pools.app.end();
+  await deps.pools.owner.end();
+  process.exit(0);
+};
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
+
+await app.listen({ port: config.PORT, host: config.HOST });
