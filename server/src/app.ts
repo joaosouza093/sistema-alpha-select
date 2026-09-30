@@ -153,8 +153,9 @@ export async function buildApp(deps: Deps): Promise<FastifyInstance> {
   if (webDir && existsSync(webDir)) {
     await app.register(fastifyStatic, {
       root: webDir,
-      wildcard: false,
+      wildcard: true,
       setHeaders: (res, filePath) => {
+        res.header('X-Robots-Tag', 'noindex, nofollow');
         if (filePath.includes(`${path.sep}assets${path.sep}`)) {
           res.header('Cache-Control', 'public, max-age=31536000, immutable');
         } else {
@@ -163,10 +164,11 @@ export async function buildApp(deps: Deps): Promise<FastifyInstance> {
       },
     });
     app.setNotFoundHandler((req, reply) => {
-      if (req.url.startsWith('/api/') || req.method !== 'GET') {
+      if (req.url.startsWith('/api/') || (req.method !== 'GET' && req.method !== 'HEAD')) {
         return reply.code(404).send({ error: { code: 'not_found', message: 'Recurso não encontrado.' } });
       }
       reply.header('Cache-Control', 'no-cache');
+      reply.header('X-Robots-Tag', 'noindex, nofollow');
       return reply.sendFile('index.html');
     });
   } else {

@@ -1,4 +1,4 @@
-import { loadDotEnv } from './env.js';
+import { loadDotEnv } from '../src/lib/dotenv.js';
 import { migrate } from './migrate-lib.js';
 
 loadDotEnv();

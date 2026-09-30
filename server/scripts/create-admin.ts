@@ -10,7 +10,7 @@
  */
 import { parseArgs } from 'node:util';
 import pg from 'pg';
-import { loadDotEnv } from './env.js';
+import { loadDotEnv } from '../src/lib/dotenv.js';
 import { newToken, sha256 } from '../src/lib/crypto.js';
 import { normalizeEmail } from '../src/lib/normalize.js';
 

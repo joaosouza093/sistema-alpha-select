@@ -1,4 +1,7 @@
+import { loadDotEnv } from './lib/dotenv.js';
 import { loadConfig } from './config.js';
+
+loadDotEnv();
 import { createDeps } from './deps.js';
 import { buildApp } from './app.js';
 

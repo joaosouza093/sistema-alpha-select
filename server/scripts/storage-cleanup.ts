@@ -10,7 +10,7 @@
 import { readdir, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import pg from 'pg';
-import { loadDotEnv } from './env.js';
+import { loadDotEnv } from '../src/lib/dotenv.js';
 
 loadDotEnv();
 const apply = process.argv.includes('--apply');

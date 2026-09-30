@@ -1,10 +1,12 @@
 import { createHash } from 'node:crypto';
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 
-const dir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'migrations');
+const here = path.dirname(fileURLToPath(import.meta.url));
+// Funciona tanto em server/scripts (tsx) quanto em server/dist/scripts (build).
+const dir = [path.resolve(here, '..', 'migrations'), path.resolve(here, '..', '..', 'migrations')].find(existsSync)!;
 
 /** Aplica migrações versionadas em ordem, cada uma em transação, com checksum. */
 export async function migrate(connectionString: string, log: (m: string) => void = console.log) {
