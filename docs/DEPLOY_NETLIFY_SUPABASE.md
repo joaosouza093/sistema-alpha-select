@@ -11,6 +11,33 @@
 > A API automática do Supabase (PostgREST) **não é usada**. A migração `0006` retira qualquer
 > privilégio dos papéis `anon`/`authenticated` sobre os objetos da aplicação.
 
+## Estado do ambiente de homologação (30/09/2026)
+
+Projeto Supabase **`alpha-select-homologacao`** (ref `nobrlidvvbbkgjqztesd`, região **sa-east-1 / São Paulo**),
+URL `https://nobrlidvvbbkgjqztesd.supabase.co`. Já feito a partir da sessão de desenvolvimento:
+
+- [x] Extensões `citext` e `pg_trgm` (esquema `extensions`).
+- [x] Papéis `alpha_owner` e `alpha_app` criados **sem senha** (ninguém entra até você definir as senhas).
+- [x] Migrações 0001–0007 aplicadas como `alpha_owner` e registradas em `schema_migrations`.
+- [x] Bucket `documentos-candidatos` **privado**, limite de 4 MB e tipos permitidos, sem políticas públicas.
+- [x] Verificado: o papel `anon` (API pública do Supabase) tem acesso **negado** a todas as tabelas, à visão e às funções.
+- [x] Security Advisor: só resta o aviso INFO “RLS habilitada sem políticas” em sessões, credenciais,
+      convites, redefinições, contadores e migrações. É **intencional**: nenhum papel da API acessa essas
+      tabelas, apenas o servidor (`alpha_owner`).
+
+Falta fazer por você (envolve segredos, que não devem passar por conversas):
+1. Definir as senhas dos papéis (item 1.3 abaixo, só o `alter role`).
+2. Baixar o certificado, copiar a chave `service_role` e as strings do pooler (itens 1.4, 1.6 e 1.7).
+3. Configurar e publicar o site no Netlify (seção 3).
+4. Criar o primeiro administrador (seção 2).
+
+Para definir as senhas, no **SQL Editor** do projeto, troque pelos valores fortes que você gerar:
+
+```sql
+alter role alpha_owner password 'SENHA_FORTE_OWNER';
+alter role alpha_app   password 'SENHA_FORTE_APP';
+```
+
 ## 1. Supabase
 
 1. Crie o projeto. Anote a **senha do banco** (usuário `postgres`).
@@ -18,7 +45,7 @@
      dados fora do Brasil é uma **decisão da Alpha Select** (transferência internacional, LGPD).
 2. **Database → Extensions**: habilite `citext` e `pg_trgm`.
 3. **SQL Editor**: execute `server/scripts/sql/supabase-setup.sql` com duas senhas fortes novas.
-   Esse script cria os papéis `alpha_owner` e `alpha_app`.
+   Esse script cria os papéis `alpha_owner` e `alpha_app`. (No projeto de homologação isso já foi feito; falta só definir as senhas.)
 4. **Database → Settings → SSL Configuration**: baixe o certificado (CA). Ele será o `DATABASE_SSL_CA`.
 5. **Storage → New bucket**: crie `documentos-candidatos` com **Public = desligado**.
    - Não crie políticas de acesso para esse bucket: só a API, com a chave de serviço, acessa.

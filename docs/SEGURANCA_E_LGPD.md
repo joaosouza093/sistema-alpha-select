@@ -23,6 +23,14 @@
 | Auditoria | Login/logout/falhas, usuários, empresas, processos, vínculos, candidatos (inclui visualização), participações, documentos (envio, visualização, download, remoção, compartilhamento), comentários; somente inserção |
 | Indexação | `robots.txt` Disallow, `noindex` em meta e cabeçalho; títulos de página sem dados pessoais |
 
+## Supabase
+
+- A API automática do Supabase não é usada: `anon`/`authenticated` não têm privilégios nos objetos da aplicação (migração 0006, verificado no projeto).
+- Documentos em bucket privado; a chave `service_role` fica só nas variáveis das Netlify Functions.
+- Aviso INFO do Security Advisor “RLS habilitada sem políticas” é intencional (tabelas acessíveis só pelo servidor).
+- Criptografia em repouso e backups diários são recursos do Supabase; confirme o plano e a retenção de backups no painel
+  (o plano gratuito tem retenção curta e não oferece restauração pontual — PITR).
+
 ## Limitações conhecidas (reais)
 
 - **Sem antivírus**: a validação de extensão/MIME/assinatura **não** equivale a análise

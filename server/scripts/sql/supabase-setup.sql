@@ -15,6 +15,8 @@ create role alpha_app login password 'TROQUE_SENHA_APP_FORTE' nosuperuser nobypa
 -- alpha_owner cria o esquema "app" e as tabelas em "public".
 grant create on database postgres to alpha_owner;
 grant usage, create on schema public to alpha_owner;
+-- No Supabase o esquema public não pertence a alpha_owner: o uso pelo papel da aplicação é concedido aqui.
+grant usage on schema public to alpha_app;
 -- Tipos citext / pg_trgm ficam no esquema "extensions" no Supabase.
 grant usage on schema extensions to alpha_owner, alpha_app;
 alter role alpha_owner set search_path = public, extensions;

@@ -17,6 +17,7 @@ export async function migrate(connectionString: string, log: (m: string) => void
     await client.query(`create table if not exists schema_migrations (
       name text primary key, checksum text not null, applied_at timestamptz not null default now())`);
     await client.query('revoke all on schema_migrations from public');
+    await client.query('alter table schema_migrations enable row level security');
     const applied = new Map(
       (await client.query<{ name: string; checksum: string }>('select name, checksum from schema_migrations')).rows.map(
         (r) => [r.name, r.checksum],
