@@ -99,6 +99,9 @@ O último comando mostra **uma vez** o link de convite do primeiro administrador
 | `MAX_UPLOAD_MB` | `4` | Functions |
 | `LOG_LEVEL` | `warn` | Functions |
 
+- Só `DATABASE_URL`, `DATABASE_OWNER_URL` e `SUPABASE_SERVICE_ROLE_KEY` precisam ser marcadas como
+  **secretas** no Netlify. As demais não são segredo; o `netlify.toml` as exclui do scanner de segredos
+  (`SECRETS_SCAN_OMIT_KEYS`), que senão bloqueia o build ao achar valores comuns como "warn" no código.
 - Nenhuma dessas variáveis começa com `VITE_`: o build do frontend **não** as inclui no navegador.
 - O AWS Lambda, que roda as funções, limita o total de variáveis a cerca de 4 KB. A configuração
   acima fica bem abaixo disso.

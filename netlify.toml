@@ -17,6 +17,11 @@
   NODE_VERSION = "22"
   # Versão do Node nas funções (padrão do Netlify pode ser mais antigo).
   AWS_LAMBDA_JS_RUNTIME = "nodejs22.x"
+  # O scanner de segredos do Netlify continua ativo para os segredos reais
+  # (DATABASE_URL, DATABASE_OWNER_URL, SUPABASE_SERVICE_ROLE_KEY). As variáveis
+  # abaixo NÃO são segredos (valores públicos como "warn", "manual", "supabase")
+  # e aparecem naturalmente no código e na documentação.
+  SECRETS_SCAN_OMIT_KEYS = "APP_ENV,APP_URL,LOG_LEVEL,MAIL_MODE,RATE_LIMIT_STORE,STORAGE_DIR,STORAGE_DRIVER,SUPABASE_BUCKET,SUPABASE_URL,DB_POOL_MAX,MAX_UPLOAD_MB,DATABASE_SSL,DATABASE_SSL_CA,AWS_LAMBDA_JS_RUNTIME,NODE_VERSION"
 
 [functions]
   node_bundler = "esbuild"
