@@ -1,19 +1,37 @@
 import type { ReactNode } from 'react';
-import { Brand, Footer } from '../../layout/AppLayout';
+import { brand } from '../../brand';
+import { BrandLogo, Footer } from '../../layout/AppLayout';
 
+/**
+ * Estrutura das telas públicas (login, recuperação de senha, convite):
+ * painel institucional azul-marinho com a marca e formulário em cartão claro.
+ * O monograma grande é decorativo e fica só no painel, nunca atrás dos campos.
+ */
 export function AuthShell({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="auth-page">
-      <main className="auth-center">
-        <div className="auth-card">
-          <div className="brand">
-            <Brand />
+      <aside className="auth-brand" aria-label="Alpha Select RH">
+        <BrandLogo variant="horizontal" className="auth-logo" />
+        <p className="auth-tagline">{brand.product}</p>
+        <img
+          src={brand.monogramInstitutional.src}
+          width={brand.monogramInstitutional.width}
+          height={brand.monogramInstitutional.height}
+          alt=""
+          aria-hidden="true"
+          className="auth-watermark"
+          decoding="async"
+        />
+      </aside>
+      <div className="auth-main">
+        <main className="auth-center">
+          <div className="auth-card">
+            <h1>{title}</h1>
+            {children}
           </div>
-          <h1 style={{ marginBottom: 16 }}>{title}</h1>
-          {children}
-        </div>
-      </main>
-      <Footer className="auth-footer" />
+        </main>
+        <Footer className="auth-footer" />
+      </div>
     </div>
   );
 }

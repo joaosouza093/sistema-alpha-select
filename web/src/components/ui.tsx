@@ -15,6 +15,7 @@ import {
 import { ApiError } from '../api/client';
 import type { Decision, ProcessStatus } from '../api/types';
 import { decisionLabel, statusLabel } from '../lib/format';
+import { appTitle } from '../brand';
 
 // ----------------------------------------------------------------- Button
 
@@ -137,7 +138,10 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
     <div className="empty" role="alert">
       <h3>{notFound ? 'Conteúdo indisponível' : 'Algo deu errado'}</h3>
       <p>{notFound ? 'O registro não existe ou você não tem acesso a ele.' : msg}</p>
-      {onRetry && !notFound && <Button onClick={onRetry}>Tentar novamente</Button>}
+      <div className="row" style={{ justifyContent: 'center' }}>
+        {onRetry && !notFound && <Button onClick={onRetry}>Tentar novamente</Button>}
+        <a href="/" className="btn">Voltar ao painel</a>
+      </div>
     </div>
   );
 }
@@ -436,6 +440,6 @@ export function fieldErrors(e: unknown): Record<string, string> {
 /** Define o título da aba sem dados pessoais. */
 export function usePageTitle(title: string) {
   useEffect(() => {
-    document.title = `${title} · Alpha Select`;
+    document.title = `${title} — ${appTitle}`;
   }, [title]);
 }

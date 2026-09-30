@@ -6,7 +6,8 @@
    (`ESCOPO_E_CRITERIOS.md`) contra o contrato quando for enviado.
 2. **Material/PDF complementar de referência** citado no contrato — não disponível;
    nada do seu conteúdo foi presumido.
-3. **Logo e identidade visual oficiais** — marca provisória em uso (`IDENTIDADE_VISUAL.md`).
+3. **Arquivos vetoriais da marca** — a identidade oficial foi aplicada a partir do JPEG de referência
+   (recortes provisórios); falta o SVG ou PNG transparente oficial (`IDENTIDADE_VISUAL.md`).
 
 ## Configurações externas necessárias para publicar
 

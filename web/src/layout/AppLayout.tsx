@@ -3,23 +3,27 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { kindLabel } from '../lib/format';
 import { Button } from '../components/ui';
+import { brand } from '../brand';
 
 export function Footer({ className = 'footer' }: { className?: string }) {
   return <footer className={className}>Tecnologia desenvolvida pela PMG Code</footer>;
 }
 
-export function Brand() {
+/**
+ * Logotipo oficial (arquivos de imagem — nunca recriado com fonte parecida).
+ * "horizontal": Alpha Select RH · "monogram": AS.
+ */
+export function BrandLogo({ variant, className }: { variant: 'horizontal' | 'monogram'; className?: string }) {
+  const img = variant === 'horizontal' ? brand.logoHorizontal : brand.monogram;
   return (
-    <>
-      {/* Marca provisória — substituir pela logo oficial da Alpha Select quando fornecida. */}
-      <span className="brand-mark" aria-hidden>
-        AS
-      </span>
-      <span>
-        <span className="brand-name">Alpha Select</span>
-        <span className="brand-sub">Processos seletivos</span>
-      </span>
-    </>
+    <img
+      src={img.src}
+      width={img.width}
+      height={img.height}
+      alt={variant === 'horizontal' ? 'Alpha Select RH' : 'Alpha Select'}
+      className={`brand-logo brand-logo-${variant} ${className ?? ''}`}
+      decoding="async"
+    />
   );
 }
 
@@ -37,9 +41,9 @@ export function AppLayout() {
       {open && <div className="backdrop" onClick={() => setOpen(false)} aria-hidden />}
       <aside className={`sidebar ${open ? 'open' : ''}`} aria-label="Menu principal">
         <NavLink to="/" className="brand" aria-label="Alpha Select — página inicial">
-          <Brand />
+          <BrandLogo variant="horizontal" />
         </NavLink>
-        <nav className="nav">
+        <nav className="nav" aria-label="Navegação principal">
           <NavLink to="/" end>
             Painel
           </NavLink>
@@ -68,10 +72,10 @@ export function AppLayout() {
       </aside>
       <div className="main">
         <header className="topbar">
-          <NavLink to="/" className="brand" aria-label="Alpha Select — página inicial">
-            <Brand />
+          <NavLink to="/" className="brand brand-compact" aria-label="Alpha Select — página inicial">
+            <BrandLogo variant="monogram" />
           </NavLink>
-          <Button size="sm" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label="Abrir menu">
+          <Button size="sm" className="btn-on-dark" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label="Abrir menu">
             Menu
           </Button>
         </header>

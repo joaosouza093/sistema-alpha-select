@@ -10,7 +10,8 @@ test.describe('fluxos principais no navegador', () => {
     await expect(page.getByRole('alert')).toHaveText('E-mail ou senha inválidos.');
     await expect(page.getByRole('link', { name: /cadastr/i })).toHaveCount(0);
     await expect(page.getByText('Tecnologia desenvolvida pela PMG Code')).toBeVisible();
-    await expect(page).toHaveTitle('Entrar · Alpha Select');
+    await expect(page).toHaveTitle('Entrar — Alpha Select | Gestão de Processos Seletivos');
+    await expect(page.getByRole('img', { name: 'Alpha Select RH' })).toBeVisible();
   });
 
   test('administrador: painel com dados reais, processo, quadro e movimentação acessível', async ({ page }) => {
@@ -37,7 +38,7 @@ test.describe('fluxos principais no navegador', () => {
     await page.locator('.column').nth(1).getByRole('link', { name }).click();
     await page.getByRole('tab', { name: 'Histórico' }).click();
     await expect(page.getByText(/Etapa: RH Externo → RH Interno/).first()).toBeVisible();
-    await expect(page).toHaveTitle('Participação · Alpha Select'); // sem dado pessoal no título
+    await expect(page).toHaveTitle('Participação — Alpha Select | Gestão de Processos Seletivos'); // sem dado pessoal no título
   });
 
   test('cliente A não vê processo da empresa B, nem comentários internos', async ({ page }) => {

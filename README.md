@@ -54,4 +54,4 @@ npm run dev:web                      # interface em http://localhost:5173
 - [Roteiro de homologação](docs/HOMOLOGACAO.md)
 - [Testes executados](docs/TESTES.md)
 - [Pendências, premissas e limitações](docs/PENDENCIAS.md)
-- [Identidade visual (substituição da marca provisória)](docs/IDENTIDADE_VISUAL.md)
+- [Identidade visual oficial (arquivos, paleta, contraste e substituição)](docs/IDENTIDADE_VISUAL.md)

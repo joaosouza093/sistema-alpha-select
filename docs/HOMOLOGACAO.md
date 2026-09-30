@@ -54,6 +54,9 @@ Executar em ambiente de **homologação** com dados fictícios, usando **contas 
 - [ ] Celular: menu, quadro (colunas empilhadas, botões de mover), formulários sem rolagem horizontal.
 - [ ] Teclado: Tab mostra foco visível; “Pular para o conteúdo”; abas com setas; diálogos fecham com Esc.
 - [ ] Rodapé “Tecnologia desenvolvida pela PMG Code” em todas as telas.
+- [ ] Marca: logo horizontal no login e no menu; monograma no topo do celular e no favicon; nada esticado ou cortado.
+- [ ] Título da aba: “Alpha Select | Gestão de Processos Seletivos” (com o nome da seção à frente).
+- [ ] Dourado apenas em detalhes; nenhum texto pequeno dourado sobre fundo branco.
 - [ ] Título da aba nunca contém nome de candidato.
 
 ## Operação
