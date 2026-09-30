@@ -236,12 +236,11 @@ export function registerProcessRoutes(app: FastifyInstance, deps: Deps) {
       const stages = await db.query('select id, key, name, position from stages order by position');
       const { rows } = await db.query(
         `select a.id, a.stage_id as "stageId", a.decision, a.version, a.stage_changed_at as "stageChangedAt",
-                a.owner_id as "ownerId", o.full_name as "ownerName", s.full_name as "candidateName",
+                a.owner_id as "ownerId", app.person_label(a.owner_id) as "ownerName", s.full_name as "candidateName",
                 (select count(*)::int from application_documents ad where ad.application_id = a.id) as "documentCount",
                 (select count(*)::int from comments cm where cm.application_id = a.id) as "commentCount"
            from applications a
            join shared_application_candidates s on s.application_id = a.id
-           left join users o on o.id = a.owner_id
           where a.process_id = $1
           order by a.stage_changed_at`,
         [id],

@@ -38,7 +38,7 @@ npm run dev:web                      # interface em http://localhost:5173
 | --- | --- |
 | `npm run typecheck` | Verificação de tipos (servidor e web) |
 | `npm run build` | Build de produção (servidor e web) |
-| `npm test` | 70 testes de integração do backend (recria o banco `alpha_test`) |
+| `npm test` | 73 testes de integração do backend (recria o banco `alpha_test`) |
 | `npm run test:e2e` | 8 testes no navegador (requer servidor em `localhost:3000`) |
 | `npm run db:migrate` | Aplica migrações pendentes |
 | `npm run admin:create -- --email ... --name "..."` | Provisiona o primeiro administrador (convite) |

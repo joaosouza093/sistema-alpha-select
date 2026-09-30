@@ -227,6 +227,67 @@ export function registerCandidateRoutes(app: FastifyInstance, deps: Deps) {
   });
 
   /**
+   * Exportação dos dados do titular (portabilidade/acesso), somente administrador.
+   * Inclui cadastro, participações, comentários, histórico e metadados dos
+   * documentos. Os arquivos são baixados individualmente pela tela.
+   */
+  app.get('/api/candidates/:id/export', async (req, reply) => {
+    if (!isAdmin(requireUser(req))) throw forbidden();
+    const { id } = parse(z.object({ id: zUuid }), req.params);
+    const data = await asUser(deps, req, async (db) => {
+      const cand = await db.query(
+        `select full_name as "nome", email, phone as "telefone", salary_expectation as "pretensaoSalarial",
+                notes as "observacoesInternas", created_at as "cadastradoEm", updated_at as "atualizadoEm",
+                archived_at as "arquivadoEm"
+           from candidates where id = $1`,
+        [id],
+      );
+      if (!cand.rows[0]) throw notFound('Candidato não encontrado.');
+      const apps = await db.query(
+        `select a.id, p.title as "processo", co.name as "empresa", st.name as "etapa", a.decision as "decisao",
+                a.share_email as "compartilhaEmail", a.share_phone as "compartilhaTelefone",
+                a.share_salary as "compartilhaPretensao", a.shared_summary as "resumoCompartilhado",
+                a.created_at as "incluidoEm", a.updated_at as "atualizadoEm",
+                coalesce((select json_agg(json_build_object(
+                    'visibilidade', c.visibility, 'autor', app.person_label(c.author_id),
+                    'texto', c.body, 'em', c.created_at) order by c.created_at)
+                  from comments c where c.application_id = a.id), '[]') as "comentarios",
+                coalesce((select json_agg(json_build_object(
+                    'deEtapa', fs.name, 'paraEtapa', ts.name, 'deDecisao', h.from_decision,
+                    'paraDecisao', h.to_decision, 'por', app.person_label(h.actor_id), 'em', h.created_at)
+                    order by h.created_at)
+                  from application_history h
+                  left join stages fs on fs.id = h.from_stage_id
+                  left join stages ts on ts.id = h.to_stage_id
+                  where h.application_id = a.id), '[]') as "historico"
+           from applications a
+           join processes p on p.id = a.process_id
+           join companies co on co.id = p.company_id
+           join stages st on st.id = a.stage_id
+          where a.candidate_id = $1 order by a.created_at`,
+        [id],
+      );
+      const docs = await db.query(
+        `select d.original_name as "nome", d.kind as "tipo", d.mime_type as "formato", d.size_bytes as "tamanhoBytes",
+                d.sha256, d.created_at as "enviadoEm"
+           from documents d where d.candidate_id = $1 order by d.created_at`,
+        [id],
+      );
+      await audit(db, req, 'candidate.exported', 'candidate', id);
+      return {
+        geradoEm: new Date().toISOString(),
+        candidato: cand.rows[0],
+        participacoes: apps.rows,
+        documentos: docs.rows,
+      };
+    });
+    reply
+      .header('Content-Type', 'application/json; charset=utf-8')
+      .header('Content-Disposition', `attachment; filename="dados-candidato-${id.slice(0, 8)}.json"`);
+    return JSON.stringify(data, null, 2);
+  });
+
+  /**
    * Eliminação definitiva (atendimento a solicitação do titular), somente administrador.
    * Remove participações, comentários, histórico, documentos e arquivos físicos.
    * Registros de auditoria mantêm apenas identificadores, sem dados pessoais.

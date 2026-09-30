@@ -87,8 +87,11 @@ export function BoardView({ board }: { board: Board }) {
                       </div>
                       <div className="kcard-meta">
                         <span>Na etapa {daysSince(c.stageChangedAt)}</span>
-                        <span>{c.documentCount} doc.</span>
-                        <span>{c.commentCount} coment.</span>
+                      </div>
+                      <div className="kcard-meta">
+                        <span>{c.documentCount} {c.documentCount === 1 ? 'documento' : 'documentos'}</span>
+                        <span aria-hidden>·</span>
+                        <span>{c.commentCount} {c.commentCount === 1 ? 'comentário' : 'comentários'}</span>
                       </div>
                       {canMove && !locked && (
                         <div className="kcard-actions">

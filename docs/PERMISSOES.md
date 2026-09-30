@@ -33,6 +33,7 @@ Legenda: ✅ permitido · ❌ negado · 🔸 somente com vínculo ao processo ·
 | Ver/baixar documento | ✅ | candidatos no seu escopo | 🔸 somente compartilhados na participação | 🔸 somente compartilhados na participação |
 | Remover documento | ✅ | somente os que enviou | ❌ | ❌ |
 | Arquivar candidato | ✅ | ✅ (no seu escopo) | ❌ | ❌ |
+| Exportar dados do titular (JSON) | ✅ | ❌ | ❌ | ❌ |
 | Eliminar candidato definitivamente | ✅ | ❌ | ❌ | ❌ |
 | Consultar auditoria | ✅ | ❌ | ❌ | ❌ |
 
@@ -44,10 +45,13 @@ Legenda: ✅ permitido · ❌ negado · 🔸 somente com vínculo ao processo ·
   (sessões abertas incluídas); desativação também apaga as sessões.
 - Responsável precisa ser administrador ou participante ativo do processo; ao remover o vínculo,
   o usuário deixa de ser responsável nas participações daquele processo.
-- Processos concluídos ou arquivados ficam somente para consulta.
+- Em processos concluídos ou arquivados, etapa, decisão, responsável e compartilhamento ficam
+  bloqueados e não se incluem candidatos; comentários continuam permitidos para registro.
 - “Aprovado” só pode ser registrado na etapa **Aprovação**. Com decisão registrada, a etapa não
   muda até a decisão ser reaberta (“Em avaliação”).
 - Sempre deve existir ao menos um administrador ativo.
+- Nomes exibidos a clientes: participantes dos mesmos processos aparecem pelo nome; demais pessoas
+  da Alpha Select aparecem como “Equipe Alpha Select” (função `app.person_label`).
 
 ## Premissas a validar com a Alpha Select
 

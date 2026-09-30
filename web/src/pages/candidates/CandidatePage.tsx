@@ -95,9 +95,15 @@ function DataTab({ c }: { c: Candidate }) {
           <p className="muted small">
             Arquivar oculta o cadastro das listagens, mas <strong>não elimina</strong> os dados. A eliminação definitiva (atendimento a solicitação do titular)
             é exclusiva de administradores e remove participações, comentários, histórico, documentos e arquivos.
+            A exportação (administradores) gera um arquivo com cadastro, participações, comentários, histórico e a lista de documentos.
           </p>
           <div className="row">
             <Button onClick={toggleArchive}>{c.archivedAt ? 'Reativar cadastro' : 'Arquivar cadastro'}</Button>
+            {isAdmin && (
+              <a className="btn" href={`/api/candidates/${c.id}/export`} download>
+                Exportar dados do titular (JSON)
+              </a>
+            )}
             {isAdmin && <Button variant="danger" onClick={() => setErase(true)}>Eliminar definitivamente</Button>}
           </div>
         </div>

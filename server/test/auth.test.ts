@@ -111,6 +111,17 @@ describe('cadastro somente por convite', () => {
     expect(res.statusCode).toBe(400);
   });
 
+  it('convite de usuário de empresa desativada é recusado', async () => {
+    const companyId = await createCompany(admin);
+    const email = `${uniq('empdesat')}@example.test`;
+    await admin.post('/api/users', { email, fullName: 'Cliente Empresa Inativa', kind: 'client_user', companyId });
+    const token = tokenFromMail(ctx.mailer, email);
+    await admin.patch(`/api/companies/${companyId}`, { isActive: false });
+    const a = new Agent(ctx);
+    expect((await a.post('/api/auth/invite/inspect', { token })).statusCode).toBe(400);
+    expect((await a.post('/api/auth/invite/accept', { token, password: PASSWORD })).statusCode).toBe(400);
+  });
+
   it('reenvio de convite invalida o convite anterior', async () => {
     const email = `${uniq('reenvio')}@example.test`;
     const r = await admin.post('/api/users', { email, fullName: 'Reenvio', kind: 'alpha_staff' });

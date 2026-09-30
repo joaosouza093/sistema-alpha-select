@@ -40,14 +40,13 @@ export function registerDashboardRoutes(app: FastifyInstance, deps: Deps) {
         `select h.id, h.application_id as "applicationId", h.event, h.created_at as "createdAt",
                 fs.name as "fromStage", ts.name as "toStage", h.from_decision as "fromDecision",
                 h.to_decision as "toDecision", s.full_name as "candidateName", p.title as "processTitle",
-                ac.full_name as "actorName"
+                app.person_label(h.actor_id) as "actorName"
            from application_history h
            join applications a on a.id = h.application_id
            join processes p on p.id = a.process_id
            join shared_application_candidates s on s.application_id = a.id
            left join stages fs on fs.id = h.from_stage_id
            left join stages ts on ts.id = h.to_stage_id
-           left join users ac on ac.id = h.actor_id
           order by h.created_at desc, h.id desc limit 12`,
       );
       return { totals: totals.rows[0], byStage: byStage.rows, myPending: mine.rows, recent: recent.rows };

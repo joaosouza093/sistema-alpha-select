@@ -232,7 +232,7 @@ table.table { width: 100%; border-collapse: collapse; }
 .kcard.dragging { opacity: .5; }
 .kcard-title { font-weight: 650; color: var(--text); text-decoration: none; }
 .kcard-title:hover { text-decoration: underline; }
-.kcard-meta { display: flex; gap: 10px; flex-wrap: wrap; font-size: .8rem; color: var(--text-muted); }
+.kcard-meta { display: flex; gap: 6px; flex-wrap: wrap; font-size: .8rem; color: var(--text-muted); }
 .kcard-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 @media (max-width: 900px) { .board { grid-template-columns: 1fr; overflow: visible; } }
 

@@ -50,7 +50,7 @@
 | Pedido | Procedimento |
 | --- | --- |
 | Correção | Equipe edita o cadastro (tela Candidatos → Editar). Fica na auditoria. |
-| Acesso/exportação | Administrador consulta o cadastro, participações e baixa os documentos; para exportação estruturada, executar consulta SQL como `alpha_owner` sobre `candidates`, `applications`, `comments`, `documents` do candidato e entregar por canal seguro. |
+| Acesso/exportação | Administrador: Candidatos → Dados → **Exportar dados do titular (JSON)** — cadastro, participações, comentários, histórico e lista de documentos (registrado na auditoria). Os arquivos são baixados individualmente na aba Documentos. Entregar ao titular por canal seguro. |
 | Eliminação | Administrador: Candidatos → Dados → **Eliminar definitivamente** (digitar ELIMINAR). Remove participações, comentários, histórico, documentos e arquivos físicos. A auditoria guarda só identificadores. |
 
 **Arquivar ≠ eliminar**: arquivar só oculta das listagens. Eliminação no sistema não

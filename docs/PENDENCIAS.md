@@ -37,7 +37,6 @@
 - Limitador de tentativas em memória (uma instância).
 - Sem notificações por e-mail de movimentações e sem atualização em tempo real.
 - Sem MFA.
-- Sem exportação estruturada em tela para titulares (procedimento administrativo documentado).
 - Imagem Docker não foi construída neste ambiente (sem daemon).
 
 ## Situação

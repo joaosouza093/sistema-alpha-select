@@ -6,7 +6,7 @@ Execução em 30/09/2026, PostgreSQL 16 local, Node.js 22, Chromium (Playwright 
 | --- | --- | --- |
 | Tipos (servidor e web) | `npm run typecheck` | ✅ sem erros |
 | Build de produção | `npm run build` | ✅ |
-| Integração do backend | `npm test` | ✅ **70/70** |
+| Integração do backend | `npm test` | ✅ **73/73** |
 | Navegador (desktop + celular) | `npm run test:e2e` | ✅ **8/8** |
 | Dependências de produção | `npm audit --omit=dev` | ✅ 0 vulnerabilidades |
 | Servidor compilado em modo `staging` | manual | ✅ HSTS, CSP, `noindex`; recusa sem https/SMTP; recusa origem externa |
@@ -38,11 +38,17 @@ para provar que a RLS bloqueia mesmo sem o backend.
 | 14 | Fluxo cliente → processo → candidato → documento → etapas → decisão | `workflow.test.ts` |
 | 15 | Responsividade e teclado | E2E (Pixel 7 sem rolagem horizontal; foco, link de pular, abas com setas, login só por teclado) |
 
-Também testados: CSRF ausente/errado, origem externa, expiração por inatividade,
+Também testados: exportação de dados do titular (somente administrador, auditada), rótulos de nomes exibidos a clientes, convite de empresa desativada recusado, CSRF ausente/errado, origem externa, expiração por inatividade,
 limite de tentativas e bloqueio de conta, campos extras recusados, transições inválidas,
 decisão sem permissão, aprovação fora da etapa, responsável sem acesso, processo arquivado
 congelado, duplicidade com dados fora do escopo, eliminação definitiva com remoção física,
 auditoria imutável e sem segredos, XSS armazenado exibido como texto.
+
+## Integração contínua
+
+`.github/workflows/ci.yml` executa, a cada push/PR, verificação de tipos, build, os testes de
+integração com PostgreSQL 16 e `npm audit`. Os testes de navegador não estão no CI (exigem
+servidor e dados de desenvolvimento) e são executados localmente com `npm run test:e2e`.
 
 ## Não executado
 

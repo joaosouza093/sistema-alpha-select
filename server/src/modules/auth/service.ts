@@ -191,8 +191,9 @@ async function findValidInvite(db: Db, token: string) {
   const { rows } = await db.query<{ id: string; user_id: string; email: string; full_name: string }>(
     `select i.id, i.user_id, u.email, u.full_name
        from invites i join users u on u.id = i.user_id
+       left join companies c on c.id = u.company_id
       where i.token_hash = $1 and i.used_at is null and i.revoked_at is null
-        and i.expires_at > now() and u.is_active
+        and i.expires_at > now() and u.is_active and (u.company_id is null or c.is_active)
       for update of i`,
     [sha256(token)],
   );

@@ -73,7 +73,7 @@ export function registerApplicationRoutes(app: FastifyInstance, deps: Deps) {
       const alpha = isAlpha(user);
       const { rows } = await db.query(
         `select a.id, a.stage_id as "stageId", st.name as "stageName", a.decision, a.version,
-                a.owner_id as "ownerId", o.full_name as "ownerName", a.stage_changed_at as "stageChangedAt",
+                a.owner_id as "ownerId", app.person_label(a.owner_id) as "ownerName", a.stage_changed_at as "stageChangedAt",
                 a.created_at as "createdAt", a.updated_at as "updatedAt", a.shared_summary as "sharedSummary",
                 a.share_email as "shareEmail", a.share_phone as "sharePhone", a.share_salary as "shareSalary",
                 s.candidate_id as "candidateId", s.full_name as "candidateName", s.email as "candidateEmail",
@@ -81,7 +81,6 @@ export function registerApplicationRoutes(app: FastifyInstance, deps: Deps) {
            from applications a
            join stages st on st.id = a.stage_id
            join shared_application_candidates s on s.application_id = a.id
-           left join users o on o.id = a.owner_id
           where a.id = $1`,
         [id],
       );
@@ -93,7 +92,6 @@ export function registerApplicationRoutes(app: FastifyInstance, deps: Deps) {
         delete row.sharePhone;
         delete row.shareSalary;
       }
-      if (row.ownerId && !row.ownerName) row.ownerName = 'Equipe Alpha Select';
       const process = await loadProcess(db, a.process_id);
       const permissions = await processPermissions(db, user, a.process_id);
       await audit(db, req, 'application.viewed', 'application', id, a.company_id);
@@ -216,12 +214,9 @@ export function registerApplicationRoutes(app: FastifyInstance, deps: Deps) {
         `select h.id, h.event, h.from_stage_id as "fromStageId", h.to_stage_id as "toStageId",
                 h.from_decision as "fromDecision", h.to_decision as "toDecision",
                 h.from_owner_id as "fromOwnerId", h.to_owner_id as "toOwnerId",
-                fo.full_name as "fromOwnerName", tow.full_name as "toOwnerName",
-                ac.full_name as "actorName", h.created_at as "createdAt"
+                app.person_label(h.from_owner_id) as "fromOwnerName", app.person_label(h.to_owner_id) as "toOwnerName",
+                app.person_label(h.actor_id) as "actorName", h.created_at as "createdAt"
            from application_history h
-           left join users fo on fo.id = h.from_owner_id
-           left join users tow on tow.id = h.to_owner_id
-           left join users ac on ac.id = h.actor_id
           where h.application_id = $1 order by h.created_at desc, h.id desc`,
         [id],
       );
@@ -237,8 +232,8 @@ export function registerApplicationRoutes(app: FastifyInstance, deps: Deps) {
       await loadApp(db, id);
       const { rows } = await db.query(
         `select c.id, c.visibility, c.body, c.created_at as "createdAt", c.updated_at as "updatedAt", c.edited,
-                c.author_id as "authorId", u.full_name as "authorName"
-           from comments c left join users u on u.id = c.author_id
+                c.author_id as "authorId", app.person_label(c.author_id) as "authorName"
+           from comments c
           where c.application_id = $1 order by c.created_at`,
         [id],
       );
@@ -300,11 +295,10 @@ export function registerApplicationRoutes(app: FastifyInstance, deps: Deps) {
       await loadApp(db, id);
       const { rows } = await db.query(
         `select d.id, d.kind, d.original_name as "name", d.mime_type as "mimeType", d.size_bytes as "size",
-                d.created_at as "createdAt", u.full_name as "uploadedByName",
+                d.created_at as "createdAt", app.person_label(d.uploaded_by) as "uploadedByName",
                 ad.shared_with_client as "sharedWithClient"
            from application_documents ad
            join documents d on d.id = ad.document_id
-           left join users u on u.id = d.uploaded_by
           where ad.application_id = $1 order by d.created_at desc`,
         [id],
       );

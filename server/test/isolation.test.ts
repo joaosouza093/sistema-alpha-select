@@ -298,3 +298,43 @@ describe('defesa em profundidade: RLS diretamente no banco', () => {
     ).rejects.toThrow();
   });
 });
+
+describe('nomes exibidos a clientes', () => {
+  it('administrador não vinculado aparece como "Equipe Alpha Select"; participantes pelo nome', async () => {
+    const adminMe = json(await admin.get('/api/auth/me')).user;
+    const d = json(await admin.get(`/api/applications/${appA}`));
+    await admin.post(`/api/applications/${appA}/owner`, { ownerId: adminMe.id, expectedVersion: d.version });
+    const seen = json(await clientA.agent.get(`/api/applications/${appA}`));
+    expect(seen.ownerName).toBe('Equipe Alpha Select');
+    const board = json(await clientA.agent.get(`/api/processes/${processA}/board`));
+    expect(board.cards[0].ownerName).toBe('Equipe Alpha Select');
+    const hist = json(await clientA.agent.get(`/api/applications/${appA}/history`)).items;
+    expect(hist[0].actorName).toBe('Equipe Alpha Select');
+    expect(JSON.stringify(hist)).not.toContain('Admin Teste');
+    // Equipe vinculada ao processo é visível pelo nome, como na aba de participantes.
+    const created = hist[hist.length - 1];
+    expect(created.actorName).toBe('Usuário alpha_staff');
+    // A equipe Alpha vê o nome real do administrador.
+    expect(json(await staff.agent.get(`/api/applications/${appA}`)).ownerName).toBe('Admin Teste');
+  });
+});
+
+describe('exportação de dados do titular', () => {
+  it('administrador exporta JSON completo; equipe e cliente não podem', async () => {
+    const r = await admin.get(`/api/candidates/${candidate}/export`);
+    expect(r.statusCode).toBe(200);
+    expect(r.headers['content-disposition']).toMatch(/^attachment;/);
+    const data = json(r);
+    expect(data.candidato.nome).toBe('Maria Exemplo');
+    expect(data.candidato.observacoesInternas).toBe('OBSERVACAO-INTERNA-SIGILOSA');
+    expect(data.participacoes).toHaveLength(2);
+    const textos = data.participacoes.flatMap((p: any) => p.comentarios.map((c: any) => c.texto));
+    expect(textos).toEqual(expect.arrayContaining(['INTERNO-A', 'COMPARTILHADO-A', 'COMPARTILHADO-B']));
+    expect(data.documentos.length).toBeGreaterThanOrEqual(2);
+    expect(JSON.stringify(data)).not.toMatch(/storage_key|[0-9a-f]{2}\/[0-9a-f-]{36}/);
+    expect((await staff.agent.get(`/api/candidates/${candidate}/export`)).statusCode).toBe(403);
+    expect((await clientA.agent.get(`/api/candidates/${candidate}/export`)).statusCode).toBe(403);
+    const audit = json(await admin.get(`/api/audit?action=candidate.exported&entityId=${candidate}`)).items;
+    expect(audit).toHaveLength(1);
+  });
+});
