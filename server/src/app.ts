@@ -160,16 +160,24 @@ export async function buildApp(deps: Deps): Promise<FastifyInstance> {
     } catch (err) {
       const e = err as { code?: string; message?: string };
       const msg = (e.message ?? '').toLowerCase();
+      const code = e.code ?? '';
       let banco = 'falha de conexão com o banco';
-      if (e.code === '28P01' || msg.includes('password authentication')) banco = 'senha do banco recusada';
+      if (code === '28P01' || msg.includes('password authentication')) banco = 'senha do banco recusada';
       else if (msg.includes('tenant or user not found')) banco = 'usuário ou host do pooler do Supabase incorreto';
-      else if (msg.includes('certificate') || msg.includes('self-signed') || msg.includes('ssl') || msg.includes('tls'))
+      else if (code === 'ERR_INVALID_URL' || msg.includes('invalid url'))
+        banco = 'endereço do banco malformado (confira DATABASE_URL e DATABASE_OWNER_URL; sem >>> <<< nem espaços)';
+      else if (msg.includes('certificate') || msg.includes('self-signed') || msg.includes('ssl') || msg.includes('tls') || code.startsWith('ERR_OSSL'))
         banco = 'falha no certificado TLS (confira DATABASE_SSL_CA)';
-      else if (['ENOTFOUND', 'EAI_AGAIN'].includes(e.code ?? '')) banco = 'host do banco não encontrado';
-      else if (['ECONNREFUSED', 'ETIMEDOUT', 'ECONNRESET'].includes(e.code ?? '')) banco = 'banco inacessível (host ou porta)';
+      else if (['ENOTFOUND', 'EAI_AGAIN'].includes(code)) banco = 'host do banco não encontrado';
+      else if (['ENETUNREACH', 'EHOSTUNREACH', 'EADDRNOTAVAIL'].includes(code))
+        banco = 'sem rota até o banco: use o host do pooler (aws-...pooler.supabase.com), não db.<ref>.supabase.co (só IPv6)';
+      else if (['ECONNREFUSED', 'ETIMEDOUT', 'ECONNRESET'].includes(code) || msg.includes('timeout'))
+        banco = 'banco inacessível ou tempo esgotado (host ou porta)';
+      else if (msg.includes('terminated') || msg.includes('closed')) banco = 'conexão encerrada pelo banco/pooler';
       logHealthFailure(app, e);
       reply.code(503);
-      return { ok: false, banco };
+      // Código técnico (ex.: ERR_INVALID_URL, ENETUNREACH, 28P01) ajuda o diagnóstico e não contém dados.
+      return { ok: false, banco, codigo: /^[A-Z0-9_]{2,40}$/.test(code) ? code : undefined };
     }
   });
 

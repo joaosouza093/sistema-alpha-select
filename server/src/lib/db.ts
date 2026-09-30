@@ -31,8 +31,8 @@ export function sslFromEnv(env: NodeJS.ProcessEnv = process.env) {
 export function createPools(config: Config): Pools {
   const ssl = sslOptions(config.DATABASE_SSL, config.DATABASE_SSL_CA);
   return {
-    app: new pg.Pool({ connectionString: config.DATABASE_URL, max: config.DB_POOL_MAX, ssl }),
-    owner: new pg.Pool({ connectionString: config.DATABASE_OWNER_URL, max: Math.min(5, config.DB_POOL_MAX), ssl }),
+    app: new pg.Pool({ connectionString: config.DATABASE_URL, max: config.DB_POOL_MAX, ssl, connectionTimeoutMillis: 8000 }),
+    owner: new pg.Pool({ connectionString: config.DATABASE_OWNER_URL, max: Math.min(5, config.DB_POOL_MAX), ssl, connectionTimeoutMillis: 8000 }),
   };
 }
 

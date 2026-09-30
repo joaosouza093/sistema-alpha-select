@@ -194,10 +194,22 @@ describe('diagnóstico de saúde', () => {
     const app = await buildApp(deps);
     const r = await app.inject({ method: 'GET', url: '/api/health' });
     expect(r.statusCode).toBe(503);
-    expect(r.json()).toEqual({ ok: false, banco: 'senha do banco recusada' });
+    expect(r.json()).toEqual({ ok: false, banco: 'senha do banco recusada', codigo: '28P01' });
     expect(r.body).not.toMatch(/senha-errada|alpha_owner|127\.0\.0\.1/);
     await app.close();
     await deps.pools.app.end();
     await deps.pools.owner.end();
+
+    // Endereço malformado (ex.: marcador >>> <<< não substituído).
+    const malformed = loadConfig({ ...TEST_ENV, DATABASE_OWNER_URL: 'postgres://u:p@>>>HOST_DO_POOLER<<<:6543/postgres' });
+    const deps2 = await createDeps(malformed);
+    const app2 = await buildApp(deps2);
+    const r2 = await app2.inject({ method: 'GET', url: '/api/health' });
+    expect(r2.statusCode).toBe(503);
+    expect(r2.json()).toMatchObject({ ok: false, codigo: 'ERR_INVALID_URL' });
+    expect(r2.json().banco).toMatch(/malformado/);
+    await app2.close();
+    await deps2.pools.app.end();
+    await deps2.pools.owner.end();
   });
 });
