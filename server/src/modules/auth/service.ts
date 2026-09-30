@@ -60,8 +60,8 @@ export async function login(
   meta: { ip: string; userAgent: string | undefined },
 ): Promise<{ token: string; user: AuthUser }> {
   const { pools, limiters, config } = deps;
-  limiters.loginIp.consume(`ip:${meta.ip}`);
-  limiters.loginAccount.consume(`acc:${email}`);
+  await limiters.loginIp.consume(`ip:${meta.ip}`);
+  await limiters.loginAccount.consume(`acc:${email}`);
 
   const { rows } = await pools.owner.query<{
     id: string;
@@ -109,7 +109,7 @@ export async function login(
     throw new AppError(403, 'inactive', 'Seu acesso está desativado. Procure o administrador da Alpha Select.');
   }
 
-  limiters.loginAccount.reset(`acc:${email}`);
+  await limiters.loginAccount.reset(`acc:${email}`);
   const token = newToken();
   const csrf = newToken();
   const session = await withTx(pools.owner, async (db) => {
@@ -203,7 +203,7 @@ async function findValidInvite(db: Db, token: string) {
 const INVALID_INVITE = badRequest('Convite inválido, expirado ou já utilizado. Solicite um novo convite.');
 
 export async function inspectInvite(deps: Deps, token: string, ip: string) {
-  deps.limiters.tokenIp.consume(`ip:${ip}`);
+  await deps.limiters.tokenIp.consume(`ip:${ip}`);
   return withTx(deps.pools.owner, async (db) => {
     const inv = await findValidInvite(db, token);
     if (!inv) throw INVALID_INVITE;
@@ -212,7 +212,7 @@ export async function inspectInvite(deps: Deps, token: string, ip: string) {
 }
 
 export async function acceptInvite(deps: Deps, token: string, password: string, ip: string) {
-  deps.limiters.tokenIp.consume(`ip:${ip}`);
+  await deps.limiters.tokenIp.consume(`ip:${ip}`);
   const hash = await hashPassword(password);
   await withTx(deps.pools.owner, async (db) => {
     const inv = await findValidInvite(db, token);
@@ -229,14 +229,37 @@ export async function acceptInvite(deps: Deps, token: string, password: string, 
 // Recuperação e troca de senha
 // ---------------------------------------------------------------------------
 
+export function resetLink(deps: Deps, token: string) {
+  return `${deps.config.APP_URL.replace(/\/$/, '')}/redefinir-senha#token=${token}`;
+}
+
+/** Cria token de redefinição de uso único (invalida os anteriores). */
+export async function createResetToken(db: Db, userId: string, ttlMinutes: number) {
+  const token = newToken();
+  await db.query('update password_resets set used_at = now() where user_id = $1 and used_at is null', [userId]);
+  await db.query(
+    `insert into password_resets (token_hash, user_id, expires_at)
+     values ($1, $2, now() + make_interval(mins => $3))`,
+    [sha256(token), userId, ttlMinutes],
+  );
+  return token;
+}
+
+export const ADMIN_RESET_TTL_MINUTES = 24 * 60;
+
+/**
+ * Pedido de recuperação feito pela própria pessoa. No modo manual (sem SMTP)
+ * nenhum token é criado: a redefinição é gerada por um administrador.
+ */
 export async function requestPasswordReset(deps: Deps, email: string, ip: string) {
-  deps.limiters.resetIp.consume(`ip:${ip}`);
+  await deps.limiters.resetIp.consume(`ip:${ip}`);
+  if (deps.config.mailMode === 'manual') return;
   try {
-    deps.limiters.resetAccount.consume(`acc:${email}`);
+    await deps.limiters.resetAccount.consume(`acc:${email}`);
   } catch {
     return; // resposta idêntica para não revelar existência da conta
   }
-  const token = newToken();
+  let token = '';
   const target = await withTx(deps.pools.owner, async (db) => {
     const { rows } = await db.query<{ id: string; full_name: string }>(
       `select u.id, u.full_name from users u
@@ -247,17 +270,12 @@ export async function requestPasswordReset(deps: Deps, email: string, ip: string
     );
     const u = rows[0];
     if (!u) return null;
-    await db.query('update password_resets set used_at = now() where user_id = $1 and used_at is null', [u.id]);
-    await db.query(
-      `insert into password_resets (token_hash, user_id, expires_at)
-       values ($1, $2, now() + make_interval(mins => $3))`,
-      [sha256(token), u.id, RESET_TTL_MINUTES],
-    );
+    token = await createResetToken(db, u.id, RESET_TTL_MINUTES);
     await insertAudit(db, u.id, 'auth.password_reset_requested', 'user', u.id, ip);
     return u;
   });
   if (!target) return;
-  const link = `${deps.config.APP_URL.replace(/\/$/, '')}/redefinir-senha#token=${token}`;
+  const link = resetLink(deps, token);
   await deps.mailer.send({
     to: email,
     subject: 'Redefinição de senha — Alpha Select',
@@ -269,7 +287,7 @@ export async function requestPasswordReset(deps: Deps, email: string, ip: string
 }
 
 export async function confirmPasswordReset(deps: Deps, token: string, password: string, ip: string) {
-  deps.limiters.tokenIp.consume(`ip:${ip}`);
+  await deps.limiters.tokenIp.consume(`ip:${ip}`);
   const hash = await hashPassword(password);
   await withTx(deps.pools.owner, async (db) => {
     const { rows } = await db.query<{ id: string; user_id: string }>(
@@ -292,7 +310,7 @@ export async function confirmPasswordReset(deps: Deps, token: string, password: 
 }
 
 export async function changePassword(deps: Deps, user: AuthUser, current: string, next: string, ip: string) {
-  deps.limiters.loginAccount.consume(`chg:${user.id}`);
+  await deps.limiters.loginAccount.consume(`chg:${user.id}`);
   const { rows } = await deps.pools.owner.query<{ password_hash: string }>(
     'select password_hash from user_credentials where user_id = $1',
     [user.id],

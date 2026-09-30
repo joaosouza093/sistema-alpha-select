@@ -4,24 +4,14 @@ import { loadConfig } from './config.js';
 loadDotEnv();
 import { createDeps } from './deps.js';
 import { buildApp } from './app.js';
+import { runMaintenance } from './maintenance.js';
 
 const config = loadConfig();
 const deps = await createDeps(config);
 const app = await buildApp(deps);
 
-// Limpeza periódica de sessões expiradas e tokens vencidos.
-const cleanup = setInterval(
-  () => {
-    deps.pools.owner
-      .query(
-        `delete from sessions where expires_at < now();
-         delete from password_resets where expires_at < now() - interval '7 days';
-         delete from invites where expires_at < now() - interval '30 days' and used_at is null;`,
-      )
-      .catch(() => undefined);
-  },
-  60 * 60 * 1000,
-);
+// Limpeza periódica de sessões expiradas, tokens vencidos e contadores antigos.
+const cleanup = setInterval(() => void runMaintenance(deps.pools).catch(() => undefined), 60 * 60 * 1000);
 cleanup.unref();
 
 const shutdown = async () => {

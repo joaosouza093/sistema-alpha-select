@@ -32,6 +32,12 @@
 - Sessão: 12 h absolutas, 2 h de inatividade; convite 72 h; recuperação 60 min.
 - Base legal do tratamento e **prazo de retenção** (não implementado prazo automático).
 
+## Hospedagem Netlify + Supabase
+
+- Upload limitado a 4 MB por arquivo nessa hospedagem (limite das funções).
+- Sem SMTP: convites e redefinições por link entregue pelo administrador (`MAIL_MODE=manual`).
+- Região do banco (Brasil × exterior) é decisão da Alpha Select.
+
 ## Limitações técnicas atuais
 
 - Sem análise antivírus dos uploads.

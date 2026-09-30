@@ -3,7 +3,7 @@ import type { Config } from '../config.js';
 import type { Pools, Db } from './db.js';
 import { withUser } from './db.js';
 import type { Mailer } from './mailer.js';
-import type { DiskStorage } from './storage.js';
+import type { FileStorage } from './storage.js';
 import type { Limiters } from './rate-limit.js';
 import { unauthorized } from './errors.js';
 
@@ -23,7 +23,7 @@ export interface Deps {
   config: Config;
   pools: Pools;
   mailer: Mailer;
-  storage: DiskStorage;
+  storage: FileStorage;
   limiters: Limiters;
 }
 

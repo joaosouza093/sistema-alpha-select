@@ -9,6 +9,7 @@ import { randomBytes, createHash, randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import pg from 'pg';
+import { sslFromEnv } from '../src/lib/db.js';
 import { loadDotEnv } from '../src/lib/dotenv.js';
 import { hashPassword } from '../src/lib/crypto.js';
 
@@ -19,7 +20,7 @@ if (process.env.APP_ENV !== 'development') {
 }
 const url = process.env.DATABASE_OWNER_URL!;
 const storageDir = process.env.STORAGE_DIR!;
-const client = new pg.Client({ connectionString: url });
+const client = new pg.Client({ connectionString: url, ssl: sslFromEnv() });
 await client.connect();
 
 const existing = await client.query('select count(*)::int as n from users');

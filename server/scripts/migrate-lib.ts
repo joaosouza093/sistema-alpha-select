@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
+import { sslFromEnv } from '../src/lib/db.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 // Funciona tanto em server/scripts (tsx) quanto em server/dist/scripts (build).
@@ -10,7 +11,7 @@ const dir = [path.resolve(here, '..', 'migrations'), path.resolve(here, '..', '.
 
 /** Aplica migrações versionadas em ordem, cada uma em transação, com checksum. */
 export async function migrate(connectionString: string, log: (m: string) => void = console.log) {
-  const client = new pg.Client({ connectionString });
+  const client = new pg.Client({ connectionString, ssl: sslFromEnv() });
   await client.connect();
   try {
     await client.query(`create table if not exists schema_migrations (

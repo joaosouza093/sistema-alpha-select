@@ -52,6 +52,12 @@ export function registerAuthRoutes(app: FastifyInstance, deps: Deps) {
   app.post('/api/auth/password-reset/request', { config: { public: true } }, async (req) => {
     const body = parse(z.object({ email: zEmail }).strict(), req.body);
     await auth.requestPasswordReset(deps, body.email, req.ip);
+    if (deps.config.mailMode === 'manual') {
+      return {
+        ok: true,
+        message: 'A redefinição de senha é feita pela administração da Alpha Select. Solicite o link a um administrador.',
+      };
+    }
     return { ok: true, message: 'Se o e-mail estiver cadastrado e ativo, você receberá as instruções em instantes.' };
   });
 

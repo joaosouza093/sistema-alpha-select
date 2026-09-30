@@ -6,7 +6,9 @@ Execução em 30/09/2026, PostgreSQL 16 local, Node.js 22, Chromium (Playwright 
 | --- | --- | --- |
 | Tipos (servidor e web) | `npm run typecheck` | ✅ sem erros |
 | Build de produção | `npm run build` | ✅ |
-| Integração do backend | `npm test` | ✅ **73/73** |
+| Integração do backend | `npm test` | ✅ **78/78** |
+| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **78/78** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
+| Empacotamento Netlify Functions | `npm run check:netlify` | ✅ |
 | Navegador (desktop + celular) | `npm run test:e2e` | ✅ **8/8** |
 | Dependências de produção | `npm audit --omit=dev` | ✅ 0 vulnerabilidades |
 | Servidor compilado em modo `staging` | manual | ✅ HSTS, CSP, `noindex`; recusa sem https/SMTP; recusa origem externa |
@@ -43,6 +45,14 @@ limite de tentativas e bloqueio de conta, campos extras recusados, transições 
 decisão sem permissão, aprovação fora da etapa, responsável sem acesso, processo arquivado
 congelado, duplicidade com dados fora do escopo, eliminação definitiva com remoção física,
 auditoria imutável e sem segredos, XSS armazenado exibido como texto.
+
+## Netlify + Supabase
+
+`serverless.test.ts` exercita o adaptador das Netlify Functions em modo de produção: cookie `__Host-`,
+CSRF, origem, convites e redefinição sem SMTP, documentos no Supabase Storage (servidor que imita a
+API REST do Storage) e limites de tentativa no PostgreSQL. O pacote gerado pelo esbuild também foi
+executado localmente com as mesmas verificações. **Não testado contra um projeto Supabase real nem
+no Netlify real** (sem acesso a esses ambientes a partir daqui).
 
 ## Integração contínua
 

@@ -14,11 +14,25 @@ export interface Pools {
   owner: pg.Pool;
 }
 
+/**
+ * TLS com verificação do certificado. Para o Supabase, informe o CA (PEM) em
+ * DATABASE_SSL_CA — aceita quebras de linha reais ou "\n".
+ */
+export function sslOptions(enabled: boolean, ca?: string) {
+  if (!enabled) return undefined;
+  return { rejectUnauthorized: true, ...(ca ? { ca: ca.replace(/\\n/g, '\n') } : {}) };
+}
+
+/** Mesma configuração TLS para scripts de linha de comando (lê o ambiente). */
+export function sslFromEnv(env: NodeJS.ProcessEnv = process.env) {
+  return sslOptions(env.DATABASE_SSL === 'true' || env.DATABASE_SSL === '1', env.DATABASE_SSL_CA);
+}
+
 export function createPools(config: Config): Pools {
-  const ssl = config.DATABASE_SSL ? { rejectUnauthorized: true } : undefined;
+  const ssl = sslOptions(config.DATABASE_SSL, config.DATABASE_SSL_CA);
   return {
-    app: new pg.Pool({ connectionString: config.DATABASE_URL, max: 15, ssl }),
-    owner: new pg.Pool({ connectionString: config.DATABASE_OWNER_URL, max: 5, ssl }),
+    app: new pg.Pool({ connectionString: config.DATABASE_URL, max: config.DB_POOL_MAX, ssl }),
+    owner: new pg.Pool({ connectionString: config.DATABASE_OWNER_URL, max: Math.min(5, config.DB_POOL_MAX), ssl }),
   };
 }
 

@@ -15,7 +15,22 @@ const schema = z.object({
   /** Conexão com o papel proprietário. Usada apenas em autenticação, migrações e scripts. */
   DATABASE_OWNER_URL: z.string().min(1),
   DATABASE_SSL: bool.default(false),
+  /** Conexões por instância. Em funções serverless use 1–2 com o pooler do Supabase. */
+  DB_POOL_MAX: z.coerce.number().int().min(1).max(50).default(15),
+  /** Certificado da autoridade do banco (PEM). No Supabase: Database → SSL Configuration. */
+  DATABASE_SSL_CA: z.string().optional(),
+  /** disk = disco local/volume; supabase = Supabase Storage (bucket privado). */
+  STORAGE_DRIVER: z.enum(['disk', 'supabase']).default('disk'),
+  /** Diretório de arquivos (disk) ou apenas de temporários (supabase). */
   STORAGE_DIR: z.string().min(1),
+  SUPABASE_URL: z.string().url().optional(),
+  /** Chave service_role: SOMENTE no servidor. Nunca no frontend. */
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  SUPABASE_BUCKET: z.string().regex(/^[a-z0-9-]{3,63}$/).default('documentos-candidatos'),
+  /** smtp = envia e-mails; manual = o administrador copia o link e envia por canal seguro. */
+  MAIL_MODE: z.enum(['smtp', 'manual']).optional(),
+  /** limites de tentativas: memory (uma instância) ou postgres (serverless / várias instâncias). */
+  RATE_LIMIT_STORE: z.enum(['memory', 'postgres']).default('memory'),
   MAX_UPLOAD_MB: z.coerce.number().positive().max(50).default(10),
   /** Origens adicionais permitidas (CORS). Vazio = somente a mesma origem. */
   CORS_ORIGINS: z.string().default(''),
@@ -34,19 +49,27 @@ export type Config = z.infer<typeof schema> & {
   secureCookies: boolean;
   corsOrigins: string[];
   maxUploadBytes: number;
+  mailMode: 'smtp' | 'manual' | 'dev';
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-  const parsed = schema.safeParse(env);
+  // Variáveis definidas mas vazias (ex.: "MAIL_MODE=" no .env) contam como não definidas.
+  const cleaned = Object.fromEntries(Object.entries(env).filter(([, v]) => v !== undefined && v.trim() !== ''));
+  const parsed = schema.safeParse(cleaned);
   if (!parsed.success) {
     const fields = parsed.error.issues.map((i) => i.path.join('.')).join(', ');
     throw new Error(`Configuração inválida ou ausente: ${fields}`);
   }
   const c = parsed.data;
   const isProd = c.APP_ENV === 'production' || c.APP_ENV === 'staging';
-  if (isProd) {
-    if (!c.SMTP_URL) throw new Error('SMTP_URL é obrigatório em homologação/produção.');
-    if (!c.APP_URL.startsWith('https://')) throw new Error('APP_URL deve usar https em homologação/produção.');
+  const mailMode = c.MAIL_MODE ?? (c.SMTP_URL ? 'smtp' : isProd ? undefined : 'dev');
+  if (!mailMode) {
+    throw new Error('Em homologação/produção defina SMTP_URL ou MAIL_MODE=manual (links entregues pelo administrador).');
+  }
+  if (mailMode === 'smtp' && !c.SMTP_URL) throw new Error('MAIL_MODE=smtp exige SMTP_URL.');
+  if (isProd && !c.APP_URL.startsWith('https://')) throw new Error('APP_URL deve usar https em homologação/produção.');
+  if (c.STORAGE_DRIVER === 'supabase' && (!c.SUPABASE_URL || !c.SUPABASE_SERVICE_ROLE_KEY)) {
+    throw new Error('STORAGE_DRIVER=supabase exige SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
   }
   return {
     ...c,
@@ -54,5 +77,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     secureCookies: c.APP_URL.startsWith('https://'),
     corsOrigins: c.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean),
     maxUploadBytes: Math.floor(c.MAX_UPLOAD_MB * 1024 * 1024),
+    mailMode,
   };
 }

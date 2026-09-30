@@ -119,10 +119,11 @@ portanto **não houve publicação**. Para publicar é necessário:
 4. Conta SMTP transacional (remetente do domínio da Alpha Select, com SPF/DKIM).
 5. Execução dos passos 1–4 acima e do roteiro de homologação.
 
-### Sobre Lovable / Supabase
+### Netlify + Supabase
 
-O projeto não usa Lovable nem Supabase; por isso não há selo “Edit with Lovable”.
-A conta Supabase conectada não possuía projeto, e a criação de serviços pagos não foi
-autorizada. A arquitetura atual aplica controles equivalentes (RLS no PostgreSQL,
-armazenamento privado com autorização no servidor). Uma migração futura para Supabase
-exigiria adaptar autenticação (Supabase Auth), políticas do Storage e funções de servidor.
+Há suporte completo a essa hospedagem (API em Netlify Functions, banco e documentos no Supabase):
+ver [DEPLOY_NETLIFY_SUPABASE.md](DEPLOY_NETLIFY_SUPABASE.md).
+
+### Sobre Lovable
+
+O projeto não usa Lovable; por isso não há selo “Edit with Lovable”.

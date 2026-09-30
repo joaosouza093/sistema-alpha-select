@@ -22,7 +22,9 @@ language sql stable security definer set search_path = public, pg_temp as $$
   select case when not app.is_alpha() then 0 else (
     select count(*)::int from candidates c
      where (p_exclude is null or c.id <> p_exclude)
-       and ((p_email is not null and c.email = p_email::citext)
+       -- comparação sem referenciar o tipo citext pelo nome (no Supabase ele fica
+       -- no esquema "extensions", fora do search_path fixo desta função)
+       and ((p_email is not null and lower(c.email::text) = lower(p_email))
             or (p_phone is not null and c.phone = p_phone))
   ) end
 $$;

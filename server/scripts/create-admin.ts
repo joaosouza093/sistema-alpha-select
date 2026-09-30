@@ -10,6 +10,7 @@
  */
 import { parseArgs } from 'node:util';
 import pg from 'pg';
+import { sslFromEnv } from '../src/lib/db.js';
 import { loadDotEnv } from '../src/lib/dotenv.js';
 import { newToken, sha256 } from '../src/lib/crypto.js';
 import { normalizeEmail } from '../src/lib/normalize.js';
@@ -36,7 +37,7 @@ if (!url || !appUrl) {
   process.exit(1);
 }
 
-const client = new pg.Client({ connectionString: url });
+const client = new pg.Client({ connectionString: url, ssl: sslFromEnv() });
 await client.connect();
 try {
   await client.query('begin');

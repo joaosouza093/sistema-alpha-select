@@ -32,15 +32,27 @@ export function UsersPage() {
     placeholderData: (p) => p,
   });
 
+  const [shared, setShared] = useState<SharedLink | null>(null);
+
   const resend = async (u: UserRow) => {
     try {
-      await api.post(`/api/users/${u.id}/invite`);
-      toast.success('Novo convite enviado. O convite anterior foi invalidado.');
+      const r = await api.post<{ inviteLink?: string; validHours?: number }>(`/api/users/${u.id}/invite`);
+      if (r.inviteLink) setShared({ kind: 'convite', name: u.fullName, link: r.inviteLink, validHours: r.validHours ?? 72 });
+      else toast.success('Novo convite enviado. O convite anterior foi invalidado.');
       await qc.invalidateQueries({ queryKey: ['users'] });
     } catch (e) {
       toast.error(e);
     }
   };
+  const resetLink = async (u: UserRow) => {
+    try {
+      const r = await api.post<{ link: string; validHours: number }>(`/api/users/${u.id}/password-reset-link`);
+      setShared({ kind: 'redefinicao', name: u.fullName, link: r.link, validHours: r.validHours });
+    } catch (e) {
+      toast.error(e);
+    }
+  };
+
   const toggle = async () => {
     if (!toggling) return;
     try {
@@ -92,6 +104,7 @@ export function UsersPage() {
                       <td className="actions">
                         <Button size="sm" onClick={() => setEditing(u)}>Editar</Button>
                         {u.isActive && u.accessStatus !== 'senha_definida' && <>{' '}<Button size="sm" onClick={() => resend(u)}>Reenviar convite</Button></>}
+                        {u.isActive && u.accessStatus === 'senha_definida' && u.id !== me?.id && <>{' '}<Button size="sm" onClick={() => resetLink(u)}>Link de redefinição</Button></>}
                         {u.id !== me?.id && <>{' '}<Button size="sm" variant={u.isActive ? 'danger' : 'default'} onClick={() => setToggling(u)}>{u.isActive ? 'Desativar' : 'Reativar'}</Button></>}
                       </td>
                     </tr>
@@ -103,7 +116,8 @@ export function UsersPage() {
           </>
         )}
       </section>
-      {editing && <UserModal user={editing === 'new' ? null : editing} companies={companies.data?.items.filter((c) => c.isActive) ?? []} onClose={() => setEditing(null)} isSelf={editing !== 'new' && editing.id === me?.id} />}
+      {shared && <SharedLinkModal data={shared} onClose={() => setShared(null)} />}
+      {editing && <UserModal onLink={setShared} user={editing === 'new' ? null : editing} companies={companies.data?.items.filter((c) => c.isActive) ?? []} onClose={() => setEditing(null)} isSelf={editing !== 'new' && editing.id === me?.id} />}
       {toggling && (
         <ConfirmDialog title={toggling.isActive ? 'Desativar usuário' : 'Reativar usuário'} danger={toggling.isActive}
           message={toggling.isActive ? <>Desativar <strong>{toggling.fullName}</strong>? O acesso é bloqueado imediatamente, inclusive em sessões abertas.</> : <>Reativar <strong>{toggling.fullName}</strong>?</>}
@@ -113,7 +127,7 @@ export function UsersPage() {
   );
 }
 
-function UserModal({ user, companies, onClose, isSelf }: { user: UserRow | null; companies: Company[]; onClose: () => void; isSelf: boolean }) {
+function UserModal({ user, companies, onClose, isSelf, onLink }: { user: UserRow | null; companies: Company[]; onClose: () => void; isSelf: boolean; onLink: (l: SharedLink) => void }) {
   const qc = useQueryClient();
   const toast = useToast();
   const [email, setEmail] = useState(user?.email ?? '');
@@ -134,8 +148,9 @@ function UserModal({ user, companies, onClose, isSelf }: { user: UserRow | null;
         await api.patch(`/api/users/${user.id}`, body);
         toast.success('Usuário atualizado.');
       } else {
-        await api.post('/api/users', { email, fullName, kind, companyId: isClient ? companyId : null });
-        toast.success('Convite enviado por e-mail (válido por 72 horas, uso único).');
+        const r = await api.post<{ inviteLink?: string; validHours?: number }>('/api/users', { email, fullName, kind, companyId: isClient ? companyId : null });
+        if (r.inviteLink) onLink({ kind: 'convite', name: fullName, link: r.inviteLink, validHours: r.validHours ?? 72 });
+        else toast.success('Convite enviado por e-mail (válido por 72 horas, uso único).');
       }
       await qc.invalidateQueries({ queryKey: ['users'] });
       onClose();
@@ -165,6 +180,44 @@ function UserModal({ user, companies, onClose, isSelf }: { user: UserRow | null;
           </SelectField>
         )}
         {isClient && <p className="muted small">Após o convite, vincule o usuário aos processos na aba “Participantes autorizados” de cada processo.</p>}
+      </div>
+    </Modal>
+  );
+}
+
+interface SharedLink {
+  kind: 'convite' | 'redefinicao';
+  name: string;
+  link: string;
+  validHours: number;
+}
+
+/**
+ * Exibe o link UMA vez ao administrador (modo sem e-mail). O link não é
+ * guardado no sistema: se for perdido, gere outro (o anterior deixa de valer).
+ */
+function SharedLinkModal({ data, onClose }: { data: SharedLink; onClose: () => void }) {
+  const toast = useToast();
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(data.link);
+      toast.success('Link copiado.');
+    } catch {
+      toast.error('Não foi possível copiar automaticamente. Selecione o texto e copie.');
+    }
+  };
+  const title = data.kind === 'convite' ? 'Link de convite' : 'Link de redefinição de senha';
+  return (
+    <Modal title={title} onClose={onClose} footer={<><Button onClick={copy} variant="primary">Copiar link</Button><Button onClick={onClose}>Concluir</Button></>}>
+      <div className="stack">
+        <p>
+          Envie este link para <strong>{data.name}</strong> por um canal seguro e individual (por exemplo, mensagem direta),
+          nunca em grupos. Ele é de <strong>uso único</strong> e vale por <strong>{data.validHours} horas</strong>.
+        </p>
+        <TextField label="Link" value={data.link} readOnly onFocus={(e) => e.currentTarget.select()} />
+        <p className="alert alert-warning">
+          Por segurança, este link não fica salvo no sistema e não será exibido novamente. Se perdê-lo, gere um novo — o anterior deixa de funcionar.
+        </p>
       </div>
     </Modal>
   );

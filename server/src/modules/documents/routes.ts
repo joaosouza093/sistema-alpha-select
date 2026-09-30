@@ -69,7 +69,7 @@ export function registerDocumentRoutes(app: FastifyInstance, deps: Deps) {
     const user = requireUser(req);
     if (!isAlpha(user)) throw forbidden();
     const { id: candidateId } = parse(z.object({ id: zUuid }), req.params);
-    deps.limiters.upload.consume(`u:${user.id}`);
+    await deps.limiters.upload.consume(`u:${user.id}`);
 
     // Autoriza antes de receber o conteúdo.
     await asUser(deps, req, async (db) => {
@@ -165,7 +165,8 @@ export function registerDocumentRoutes(app: FastifyInstance, deps: Deps) {
       await audit(db, req, q.download === '1' ? 'document.downloaded' : 'document.viewed', 'document', id);
       return rows[0];
     });
-    if (!(await storage.exists(doc.storage_key))) throw notFound('Arquivo indisponível.');
+    const content = await storage.read(doc.storage_key);
+    if (!content) throw notFound('Arquivo indisponível.');
     const inline = q.download !== '1' && INLINE_MIMES.has(doc.mime_type);
     reply
       .header('Content-Type', doc.mime_type)
@@ -177,7 +178,7 @@ export function registerDocumentRoutes(app: FastifyInstance, deps: Deps) {
     if (!inline || doc.mime_type !== 'application/pdf') {
       reply.header('Content-Security-Policy', "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox");
     }
-    return reply.send(storage.read(doc.storage_key));
+    return reply.send(content);
   });
 
   app.delete('/api/documents/:id', async (req) => {
