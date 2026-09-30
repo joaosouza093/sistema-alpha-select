@@ -24,6 +24,7 @@ export interface Deps {
   pools: Pools;
   mailer: Mailer;
   storage: FileStorage;
+  dbInfo?: import('./db.js').DbInfo;
   limiters: Limiters;
 }
 

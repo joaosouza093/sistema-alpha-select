@@ -156,7 +156,10 @@ export async function buildApp(deps: Deps): Promise<FastifyInstance> {
   app.get('/api/health', { config: { public: true } }, async (_req, reply) => {
     try {
       await deps.pools.owner.query('select 1');
-      return { ok: true, banco: 'ok' };
+      const aviso: string[] = [];
+      if (deps.dbInfo?.tlsUnverified) aviso.push('conexão criptografada, mas sem verificação do certificado: configure DATABASE_SSL_CA');
+      if (deps.dbInfo?.auto) aviso.push('endereço do banco descoberto automaticamente (o configurado não funcionou)');
+      return { ok: true, banco: 'ok', ...(aviso.length ? { aviso } : {}) };
     } catch (err) {
       const e = err as { code?: string; message?: string };
       const msg = (e.message ?? '').toLowerCase();

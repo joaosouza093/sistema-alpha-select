@@ -1,6 +1,6 @@
 import type { Config } from './config.js';
 import type { Deps } from './lib/context.js';
-import { createPools } from './lib/db.js';
+import { createPools, createPoolsResolved } from './lib/db.js';
 import { createMailer, type Mailer } from './lib/mailer.js';
 import { createLimiters } from './lib/rate-limit.js';
 import { DiskStorage, SupabaseStorage, type FileStorage } from './lib/storage.js';
@@ -18,10 +18,14 @@ export async function createDeps(
 ): Promise<Deps> {
   const storage = overrides.storage ?? createStorage(config);
   await storage.init();
-  const pools = createPools(config);
+  // Com Supabase configurado, descobre o endereço do pooler se o informado não funcionar.
+  const { pools, info } = config.SUPABASE_URL && config.SUPABASE_REGION
+    ? await createPoolsResolved(config)
+    : { pools: createPools(config), info: { auto: false, tlsUnverified: false } };
   return {
     config,
     pools,
+    dbInfo: info,
     mailer: overrides.mailer ?? createMailer(config),
     storage,
     limiters: createLimiters(config.RATE_LIMIT_STORE, pools.owner),

@@ -26,6 +26,8 @@ const schema = z.object({
   SUPABASE_URL: z.string().url().optional(),
   /** Chave service_role: SOMENTE no servidor. Nunca no frontend. */
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  /** Região do projeto Supabase (ex.: sa-east-1), usada para descobrir o pooler automaticamente. */
+  SUPABASE_REGION: z.string().regex(/^[a-z]{2}-[a-z]+-\d$/).optional(),
   SUPABASE_BUCKET: z.string().regex(/^[a-z0-9-]{3,63}$/).default('documentos-candidatos'),
   /** smtp = envia e-mails; manual = o administrador copia o link e envia por canal seguro. */
   MAIL_MODE: z.enum(['smtp', 'manual']).optional(),
