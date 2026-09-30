@@ -4,7 +4,6 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import cookie from '@fastify/cookie';
 import helmet from '@fastify/helmet';
 import multipart from '@fastify/multipart';
-import fastifyStatic from '@fastify/static';
 import { z } from 'zod';
 import type { Deps } from './lib/context.js';
 import { AppError, forbidden, fromPgError, unauthorized } from './lib/errors.js';
@@ -151,6 +150,8 @@ export async function buildApp(deps: Deps): Promise<FastifyInstance> {
   // Frontend compilado (homologação/produção).
   const webDir = config.WEB_DIST_DIR ? path.resolve(config.WEB_DIST_DIR) : null;
   if (webDir && existsSync(webDir)) {
+    // Carregado só quando necessário: em Netlify Functions o site é servido pelo próprio Netlify.
+    const { default: fastifyStatic } = await import('@fastify/static');
     await app.register(fastifyStatic, {
       root: webDir,
       wildcard: true,

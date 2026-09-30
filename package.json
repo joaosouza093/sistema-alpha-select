@@ -17,7 +17,7 @@
     "db:seed-dev": "npm run db:seed-dev -w server",
     "admin:create": "npm run admin:create -w server",
     "start": "npm run start -w server",
-    "check:netlify": "esbuild netlify/functions/api.mts netlify/functions/manutencao.mts --bundle --platform=node --target=node22 --format=esm --external:pg-native --outdir=.netlify-check --log-level=warning && rm -rf .netlify-check"
+    "check:netlify": "esbuild netlify/functions/api.mts netlify/functions/manutencao.mts --bundle --platform=node --target=node22 --format=esm --external:pg-native --outdir=.netlify-check --log-level=warning && rm -rf .netlify-check && node scripts/check-netlify-runtime.mjs"
   },
   "engines": {
     "node": ">=20"
