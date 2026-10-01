@@ -159,7 +159,18 @@ export async function buildApp(deps: Deps): Promise<FastifyInstance> {
       const aviso: string[] = [];
       if (deps.dbInfo?.tlsUnverified) aviso.push('conexão criptografada, mas sem verificação do certificado: configure DATABASE_SSL_CA');
       if (deps.dbInfo?.auto) aviso.push('endereço do banco descoberto automaticamente (o configurado não funcionou)');
-      return { ok: true, banco: 'ok', ...(aviso.length ? { aviso } : {}) };
+      let documentos = config.STORAGE_DRIVER === 'supabase' ? 'Supabase Storage' : 'disco do servidor';
+      if (deps.dbInfo?.storageFallback) {
+        documentos = 'banco de dados (Supabase Storage sem chave service_role válida)';
+      } else if (config.STORAGE_DRIVER === 'supabase') {
+        const { probeSupabaseStorage } = await import('./lib/storage.js');
+        const status = await probeSupabaseStorage(config.SUPABASE_URL!, config.SUPABASE_SERVICE_ROLE_KEY!, config.SUPABASE_BUCKET).catch(() => 0);
+        if (status !== 200) {
+          documentos = `Supabase Storage recusou a chave ou o bucket (HTTP ${status || 'sem resposta'})`;
+          aviso.push('uploads vão falhar: confira SUPABASE_SERVICE_ROLE_KEY e o bucket documentos-candidatos');
+        }
+      }
+      return { ok: true, banco: 'ok', documentos, ...(aviso.length ? { aviso } : {}) };
     } catch (err) {
       const e = err as { code?: string; message?: string };
       const msg = (e.message ?? '').toLowerCase();

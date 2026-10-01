@@ -11,7 +11,7 @@ import { newToken, sha256 } from '../src/lib/crypto.js';
  * limites de tentativa no PostgreSQL e documentos no Supabase Storage.
  */
 const ORIGIN = 'https://alpha-homolog.netlify.app';
-const KEY = 'chave-service-role-de-teste';
+const KEY = 'sb_secret_chaveDeTesteServiceRole123';
 let fake: Awaited<ReturnType<typeof startFakeSupabase>>;
 let handle: (r: Request, ip: string) => Promise<Response>;
 let owner: pg.Pool;
@@ -149,7 +149,8 @@ describe('execução serverless (Netlify + Supabase)', () => {
   it('limite de tentativas compartilhado no PostgreSQL, sem e-mail/IP em texto', async () => {
     const a = new WebAgent('198.51.100.20');
     const codes: number[] = [];
-    for (let i = 0; i < 10; i++) {
+    // 20 tentativas (> 2 × limite de 8): mesmo que caiam em duas janelas fixas, uma delas estoura.
+    for (let i = 0; i < 20; i++) {
       codes.push((await a.call('POST', '/api/auth/login', { email: 'alvo@example.test', password: 'errada-123' })).status);
     }
     expect(codes).toContain(429);
@@ -182,7 +183,8 @@ describe('diagnóstico de saúde', () => {
   it('/api/health confirma o banco e, em falha, informa só a categoria', async () => {
     const ok = await new WebAgent('198.51.100.30').call('GET', '/api/health');
     expect(ok.status).toBe(200);
-    expect(ok.json()).toEqual({ ok: true, banco: 'ok' });
+    expect(ok.json()).toMatchObject({ ok: true, banco: 'ok', documentos: 'Supabase Storage' });
+    expect(ok.json().aviso).toBeUndefined();
 
     const { loadConfig } = await import('../src/config.js');
     const { createDeps } = await import('../src/deps.js');
@@ -211,5 +213,51 @@ describe('diagnóstico de saúde', () => {
     await app2.close();
     await deps2.pools.app.end();
     await deps2.pools.owner.end();
+  });
+});
+
+describe('documentos sem chave do Supabase Storage', () => {
+  it('guarda no banco (acesso só do servidor) e o health avisa', async () => {
+    const { loadConfig } = await import('../src/config.js');
+    const { createDeps } = await import('../src/deps.js');
+    const { buildApp } = await import('../src/app.js');
+    const cfg = loadConfig({
+      ...TEST_ENV,
+      STORAGE_DRIVER: 'supabase',
+      SUPABASE_URL: fake.url,
+      SUPABASE_SERVICE_ROLE_KEY: '>>>COLE_AQUI_A_CHAVE_SERVICE_ROLE<<<',
+    });
+    const deps = await createDeps(cfg);
+    const app = await buildApp(deps);
+    const health = (await app.inject({ method: 'GET', url: '/api/health' })).json();
+    expect(health.documentos).toMatch(/banco de dados/);
+
+    const email = `blob.${Date.now()}@alpha.test`;
+    const { rows } = await owner.query<{ id: string }>(
+      "insert into users (email, full_name, kind) values ($1, 'Admin Blob', 'alpha_admin') returning id",
+      [email],
+    );
+    const { hashPassword } = await import('../src/lib/crypto.js');
+    await owner.query('insert into user_credentials (user_id, password_hash) values ($1, $2)', [rows[0]!.id, await hashPassword('Senha-de-teste-123')]);
+    const login = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email, password: 'Senha-de-teste-123' }, remoteAddress: '198.51.100.40' });
+    const cookie = `as_session=${login.cookies.find((c) => c.name === 'as_session')!.value}`;
+    const csrf = login.json().csrfToken;
+    const cand = (await app.inject({ method: 'POST', url: '/api/candidates', headers: { cookie, 'x-csrf-token': csrf }, payload: { fullName: 'Candidato Blob', confirmDuplicate: true } })).json().id;
+    const { payload, contentType } = multipartBody('foto.pdf', 'application/pdf', PDF);
+    const up = await app.inject({ method: 'POST', url: `/api/candidates/${cand}/documents`, headers: { cookie, 'x-csrf-token': csrf, 'content-type': contentType }, payload });
+    expect(up.statusCode).toBe(201);
+    const key = (await owner.query('select storage_key from documents where id = $1', [up.json().id])).rows[0].storage_key;
+    expect((await owner.query('select count(*)::int n from document_blobs where storage_key = $1', [key])).rows[0].n).toBe(1);
+    expect(fake.objects.has(key)).toBe(false);
+    const dl = await app.inject({ method: 'GET', url: `/api/documents/${up.json().id}/content`, headers: { cookie } });
+    expect(dl.statusCode).toBe(200);
+    expect(dl.rawPayload.equals(PDF)).toBe(true);
+    // O papel da aplicação (sujeito à RLS) não lê a tabela de conteúdos.
+    const c = await deps.pools.app.connect();
+    await expect(c.query('select 1 from document_blobs')).rejects.toThrow(/permission denied/);
+    c.release();
+    await app.close();
+    await deps.pools.app.end();
+    await deps.pools.owner.end();
   });
 });

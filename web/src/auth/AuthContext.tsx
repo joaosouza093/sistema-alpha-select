@@ -10,6 +10,8 @@ interface AuthState {
   expired: boolean;
   isAdmin: boolean;
   isAlpha: boolean;
+  /** Limite de upload informado pelo servidor (MB). */
+  maxUploadMb: number;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -21,6 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [expired, setExpired] = useState(false);
+  const [maxUploadMb, setMaxUploadMb] = useState(10);
 
   const clear = useCallback(() => {
     setCsrfToken(null);
@@ -34,8 +37,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clear();
     });
     api
-      .get<{ user: SessionUser; csrfToken: string }>('/api/auth/me')
+      .get<{ user: SessionUser; csrfToken: string; limits?: { maxUploadMb: number } }>('/api/auth/me')
       .then((r) => {
+        if (r.limits) setMaxUploadMb(r.limits.maxUploadMb);
         setCsrfToken(r.csrfToken);
         setUser(r.user);
       })
@@ -48,8 +52,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string) => {
-      const r = await api.post<{ user: SessionUser; csrfToken: string }>('/api/auth/login', { email, password });
+      const r = await api.post<{ user: SessionUser; csrfToken: string; limits?: { maxUploadMb: number } }>('/api/auth/login', { email, password });
       qc.clear();
+      if (r.limits) setMaxUploadMb(r.limits.maxUploadMb);
       setCsrfToken(r.csrfToken);
       setExpired(false);
       setUser(r.user);
@@ -73,10 +78,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       expired,
       isAdmin: user?.kind === 'alpha_admin',
       isAlpha: isAlphaKind(user?.kind),
+      maxUploadMb,
       login,
       logout,
     }),
-    [user, loading, expired, login, logout],
+    [user, loading, expired, maxUploadMb, login, logout],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

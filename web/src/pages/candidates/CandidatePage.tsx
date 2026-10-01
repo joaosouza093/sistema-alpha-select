@@ -187,7 +187,7 @@ function AddToProcessModal({ c, onClose }: { c: Candidate; onClose: () => void }
 // ------------------------------------------------------------------ documentos
 
 function DocumentsTab({ c, initialApp }: { c: Candidate; initialApp: string | null }) {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, maxUploadMb } = useAuth();
   const qc = useQueryClient();
   const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -261,7 +261,7 @@ function DocumentsTab({ c, initialApp }: { c: Candidate; initialApp: string | nu
             <div className="field" style={{ gridColumn: 'span 2' }}>
               <label htmlFor="file-input">Arquivo</label>
               <input id="file-input" ref={fileRef} type="file" className="input" accept=".pdf,.doc,.docx,.odt,.png,.jpg,.jpeg" aria-describedby="file-hint" />
-              <span id="file-hint" className="hint">PDF, DOC, DOCX, ODT, PNG ou JPG, até 10 MB. O conteúdo é conferido no servidor. Não há verificação antivírus nesta versão.</span>
+              <span id="file-hint" className="hint">PDF, DOC, DOCX, ODT, PNG ou JPG, até {maxUploadMb} MB. O conteúdo é conferido no servidor. Não há verificação antivírus nesta versão.</span>
             </div>
           </div>
           {uploadError && <Alert>{uploadError}</Alert>}

@@ -34,7 +34,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: Deps) {
       userAgent: req.headers['user-agent'],
     });
     setSessionCookie(deps, reply, token);
-    return { user: publicUser(user), csrfToken: user.csrfToken };
+    return { user: publicUser(user), csrfToken: user.csrfToken, limits: { maxUploadMb: deps.config.MAX_UPLOAD_MB } };
   });
 
   app.post('/api/auth/logout', async (req, reply) => {
@@ -46,7 +46,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: Deps) {
 
   app.get('/api/auth/me', async (req) => {
     const user = requireUser(req);
-    return { user: publicUser(user), csrfToken: user.csrfToken };
+    return { user: publicUser(user), csrfToken: user.csrfToken, limits: { maxUploadMb: deps.config.MAX_UPLOAD_MB } };
   });
 
   app.post('/api/auth/password-reset/request', { config: { public: true } }, async (req) => {

@@ -40,6 +40,8 @@ export interface DbInfo {
   auto: boolean;
   /** Conexão criptografada sem verificação de certificado (falta DATABASE_SSL_CA válido). */
   tlsUnverified: boolean;
+  /** Documentos guardados no banco porque o Supabase Storage não está configurado. */
+  storageFallback?: boolean;
 }
 
 export function createPools(

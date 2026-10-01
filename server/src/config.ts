@@ -80,8 +80,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
   if (mailMode === 'smtp' && !c.SMTP_URL) throw new ConfigError(['SMTP_URL'], 'MAIL_MODE=smtp exige SMTP_URL.');
   if (isProd && !c.APP_URL.startsWith('https://')) throw new ConfigError(['APP_URL'], 'APP_URL deve usar https em homologação/produção.');
-  if (c.STORAGE_DRIVER === 'supabase' && (!c.SUPABASE_URL || !c.SUPABASE_SERVICE_ROLE_KEY)) {
-    throw new ConfigError(['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'], 'STORAGE_DRIVER=supabase exige SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.');
+  // Sem SUPABASE_SERVICE_ROLE_KEY válida, os documentos ficam no próprio banco (ver deps.ts).
+  if (c.STORAGE_DRIVER === 'supabase' && !c.SUPABASE_URL) {
+    throw new ConfigError(['SUPABASE_URL'], 'STORAGE_DRIVER=supabase exige SUPABASE_URL.');
   }
   return {
     ...c,

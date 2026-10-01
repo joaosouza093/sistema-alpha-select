@@ -3,6 +3,7 @@ import { createReadStream } from 'node:fs';
 import { mkdir, readdir, readFile, rename, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { Readable } from 'node:stream';
+import type pg from 'pg';
 
 /**
  * Armazenamento privado de documentos. Os arquivos nunca ficam em local
@@ -199,4 +200,75 @@ export class SupabaseStorage implements FileStorage {
     }
     return keys;
   }
+}
+
+// ---------------------------------------------------------------------------
+// PostgreSQL (tabela document_blobs, só o papel proprietário acessa). Usado
+// quando o Supabase Storage não está configurado — documentos até 4 MB.
+// ---------------------------------------------------------------------------
+
+export class PgStorage implements FileStorage {
+  constructor(
+    private readonly pool: pg.Pool,
+    private readonly localTmp: string,
+  ) {}
+
+  async init() {
+    await mkdir(this.localTmp, { recursive: true, mode: 0o700 });
+  }
+
+  newKey = newKey;
+
+  tmpPath() {
+    return path.join(this.localTmp, `${randomUUID()}.part`);
+  }
+
+  get tmpDir() {
+    return this.localTmp;
+  }
+
+  async commitTmp(tmp: string, key: string) {
+    assertKey(key);
+    const content = await readFile(tmp);
+    await this.pool.query('insert into document_blobs (storage_key, content) values ($1, $2)', [key, content]);
+    await rm(tmp, { force: true });
+  }
+
+  async remove(key: string) {
+    assertKey(key);
+    await this.pool.query('delete from document_blobs where storage_key = $1', [key]);
+  }
+
+  async exists(key: string) {
+    assertKey(key);
+    const r = await this.pool.query('select 1 from document_blobs where storage_key = $1', [key]);
+    return !!r.rowCount;
+  }
+
+  async read(key: string) {
+    assertKey(key);
+    const r = await this.pool.query<{ content: Buffer }>('select content from document_blobs where storage_key = $1', [key]);
+    return r.rows[0] ? Readable.from(r.rows[0].content) : null;
+  }
+
+  async listKeys() {
+    const r = await this.pool.query<{ storage_key: string }>('select storage_key from document_blobs');
+    return r.rows.map((x) => x.storage_key);
+  }
+}
+
+/** Chave do Supabase com formato plausível (JWT "eyJ..." ou "sb_secret_..."); marcadores e vazios não contam. */
+export function plausibleServiceKey(key?: string) {
+  const k = key?.trim() ?? '';
+  return /^eyJ[\w-]+\.[\w-]+\.[\w-]+$/.test(k) || /^sb_secret_[\w-]{10,}$/.test(k);
+}
+
+/** Verifica se o Storage aceita a chave (lista 1 item do bucket). Retorna o status HTTP. */
+export async function probeSupabaseStorage(url: string, key: string, bucket: string, fetchImpl: typeof fetch = fetch) {
+  const res = await fetchImpl(`${url.replace(/\/+$/, '')}/storage/v1/object/list/${encodeURIComponent(bucket)}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}`, apikey: key, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prefix: '', limit: 1 }),
+  });
+  return res.status;
 }
