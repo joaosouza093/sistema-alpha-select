@@ -225,7 +225,7 @@ describe('documentos sem chave do Supabase Storage', () => {
       ...TEST_ENV,
       STORAGE_DRIVER: 'supabase',
       SUPABASE_URL: fake.url,
-      SUPABASE_SERVICE_ROLE_KEY: '>>>COLE_AQUI_A_CHAVE_SERVICE_ROLE<<<',
+      SUPABASE_SERVICE_ROLE_KEY: 'marcador-nao-substituido', // chave inválida
     });
     const deps = await createDeps(cfg);
     const app = await buildApp(deps);
