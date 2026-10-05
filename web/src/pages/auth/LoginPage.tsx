@@ -53,7 +53,9 @@ export function LoginPage() {
         <Link to="/esqueci-senha" className="small">
           Esqueci minha senha
         </Link>
-        <p className="muted small">O acesso é concedido pela Alpha Select por convite.</p>
+        <p className="muted small">
+          Ainda não tem acesso? <Link to="/cadastro">Cadastre sua empresa</Link>
+        </p>
       </form>
     </AuthShell>
   );

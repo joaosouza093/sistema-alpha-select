@@ -38,7 +38,12 @@ const schema = z.object({
   CORS_ORIGINS: z.string().default(''),
   TRUST_PROXY: bool.default(false),
   SMTP_URL: z.string().optional(),
-  MAIL_FROM: z.string().default('Alpha Select <nao-responda@localhost>'),
+  /** Alternativa ao SMTP_URL: usuário e senha de aplicativo (ex.: Gmail). */
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  SMTP_HOST: z.string().default('smtp.gmail.com'),
+  SMTP_PORT: z.coerce.number().int().positive().default(465),
+  MAIL_FROM: z.string().optional(),
   SESSION_ABSOLUTE_HOURS: z.coerce.number().positive().default(12),
   SESSION_IDLE_MINUTES: z.coerce.number().positive().default(120),
   /** Diretório do build do frontend servido pelo backend em homologação/produção. */
@@ -52,6 +57,7 @@ export type Config = z.infer<typeof schema> & {
   corsOrigins: string[];
   maxUploadBytes: number;
   mailMode: 'smtp' | 'manual' | 'dev';
+  mailFrom: string;
 };
 
 /** Erro de configuração: lista apenas NOMES de variáveis (nunca valores). */
@@ -74,11 +80,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
   const c = parsed.data;
   const isProd = c.APP_ENV === 'production' || c.APP_ENV === 'staging';
-  const mailMode = c.MAIL_MODE ?? (c.SMTP_URL ? 'smtp' : isProd ? undefined : 'dev');
+  // Com SMTP configurado, os e-mails são enviados (mesmo que MAIL_MODE=manual tenha ficado definido).
+  const smtpConfigured = !!c.SMTP_URL || (!!c.SMTP_USER && !!c.SMTP_PASSWORD);
+  const mailMode = smtpConfigured ? 'smtp' : c.MAIL_MODE ?? (isProd ? undefined : 'dev');
   if (!mailMode) {
-    throw new ConfigError(['MAIL_MODE'], 'Em homologação/produção defina SMTP_URL ou MAIL_MODE=manual (links entregues pelo administrador).');
+    throw new ConfigError(['MAIL_MODE'], 'Em homologação/produção defina SMTP_USER e SMTP_PASSWORD (ou SMTP_URL) ou MAIL_MODE=manual.');
   }
-  if (mailMode === 'smtp' && !c.SMTP_URL) throw new ConfigError(['SMTP_URL'], 'MAIL_MODE=smtp exige SMTP_URL.');
+  if (mailMode === 'smtp' && !smtpConfigured) {
+    throw new ConfigError(['SMTP_USER', 'SMTP_PASSWORD'], 'MAIL_MODE=smtp exige SMTP_USER e SMTP_PASSWORD (ou SMTP_URL).');
+  }
+  const mailFrom = c.MAIL_FROM ?? (c.SMTP_USER ? `Alpha Select <${c.SMTP_USER.trim()}>` : 'Alpha Select <nao-responda@localhost>');
   if (isProd && !c.APP_URL.startsWith('https://')) throw new ConfigError(['APP_URL'], 'APP_URL deve usar https em homologação/produção.');
   // Sem SUPABASE_SERVICE_ROLE_KEY válida, os documentos ficam no próprio banco (ver deps.ts).
   if (c.STORAGE_DRIVER === 'supabase' && !c.SUPABASE_URL) {
@@ -91,5 +102,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     corsOrigins: c.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean),
     maxUploadBytes: Math.floor(c.MAX_UPLOAD_MB * 1024 * 1024),
     mailMode,
+    mailFrom,
   };
 }

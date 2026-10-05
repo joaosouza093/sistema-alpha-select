@@ -48,8 +48,11 @@
 - Coleta mínima: nome obrigatório; e-mail, telefone e pretensão opcionais. CPF/RG não são
   coletados. Não há campos de dados sensíveis.
 - Nenhum currículo, documento ou comentário é enviado a IA, analytics ou serviços
-  externos. O único serviço externo é o SMTP (apenas e-mails de convite/recuperação, sem
-  dados de candidatos).
+  externos. O único serviço externo é o SMTP (convites, recuperação de senha, confirmação de
+  cadastro e cobranças — sem dados de candidatos).
+- Cadastro pelo site: guarda empresa, CNPJ, responsável, e-mail, telefone, IP e data da autorização.
+  Pedidos não confirmados são apagados em ~7 dias; recusados, após 90 dias. Cobranças guardam
+  empresa, valor, vencimento e e-mail de cobrança; o texto dos e-mails não é armazenado.
 - **Base legal e prazo de retenção devem ser definidos pela Alpha Select.** O sistema não
   aplica prazo automático e nenhuma tela apresenta “aceite” como garantia de conformidade.
 

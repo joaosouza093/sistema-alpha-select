@@ -24,7 +24,7 @@ Executar em ambiente de **homologação** com dados fictícios, usando **contas 
 - [ ] Admin cria processo para Empresa A e vincula Equipe (mover), RH A (mover, comentar) e Gestor A (mover, decidir, comentar).
 - [ ] Equipe cadastra candidato (telefone com máscara, pretensão “5.000,00”), recarrega a página e confere os dados.
 - [ ] Cadastrar outro candidato com mesmo e-mail → aviso de duplicidade → “cadastrar mesmo assim”.
-- [ ] Equipe envia currículo PDF; tenta enviar `.html`, arquivo renomeado e arquivo > 10 MB → recusados.
+- [ ] Equipe envia currículo PDF; tenta enviar `.html`, arquivo renomeado e arquivo acima do limite (4 MB no Netlify) → recusados.
 - [ ] Equipe inclui o candidato no processo, compartilha o currículo e o e-mail na participação.
 - [ ] Equipe move RH Externo → RH Interno definindo RH A como responsável.
 - [ ] RH A move para CEO/Gestor e define Gestor A como responsável.
@@ -48,6 +48,13 @@ Executar em ambiente de **homologação** com dados fictícios, usando **contas 
 ## Concorrência
 
 - [ ] Abrir a mesma participação em dois navegadores; mover em um; tentar mover no outro → aviso para recarregar; nada é sobrescrito.
+
+## Cadastro e cobranças
+
+- [ ] Login → "Cadastre sua empresa" → e-mail com link → criar senha → administrador aprova em Cadastros → login funciona e não mostra processos.
+- [ ] Esqueci minha senha → e-mail chega → nova senha funciona; a antiga não.
+- [ ] Cobranças → nova cobrança para várias empresas → e-mails chegam; marcar como paga → recibo chega.
+- [ ] Usuário da equipe ou cliente não vê "Cadastros" nem "Cobranças" e recebe 403 na API.
 
 ## Interface
 

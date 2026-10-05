@@ -2,13 +2,13 @@ import { expect, test } from '@playwright/test';
 import { creds, login } from './fixtures';
 
 test.describe('fluxos principais no navegador', () => {
-  test('login inválido mostra mensagem genérica; sem cadastro público', async ({ page }) => {
+  test('login inválido mostra mensagem genérica; cadastro leva ao pedido com aprovação', async ({ page }) => {
     await page.goto('/entrar');
     await page.getByLabel('E-mail').fill('ninguem@exemplo.invalid');
     await page.getByLabel('Senha').fill('senha-errada-123');
     await page.getByRole('button', { name: 'Entrar' }).click();
     await expect(page.getByRole('alert')).toHaveText('E-mail ou senha inválidos.');
-    await expect(page.getByRole('link', { name: /cadastr/i })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Cadastre sua empresa' })).toHaveAttribute('href', '/cadastro');
     await expect(page.getByText('Tecnologia desenvolvida pela PMG Code')).toBeVisible();
     await expect(page).toHaveTitle('Entrar — Alpha Select | Gestão de Processos Seletivos');
     await expect(page.getByRole('img', { name: 'Alpha Select RH' })).toBeVisible();

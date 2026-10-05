@@ -74,5 +74,5 @@ export async function handleWebRequest(request: Request, clientIp: string): Prom
 
 export async function handleMaintenance() {
   const { deps } = await init();
-  await runMaintenance(deps.pools);
+  return runMaintenance(deps);
 }

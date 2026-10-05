@@ -10,8 +10,10 @@ contrato e o material complementar forem disponibilizados, esta lista deve ser
 conferida item a item e divergências registradas em `PENDENCIAS.md`.
 
 Fora do escopo (não implementado por não estar aprovado): WhatsApp, agentes de IA,
-avaliação automática de candidatos, cobrança, assinatura, folha de pagamento e
-integrações externas. Condições financeiras do contrato não viraram funcionalidades.
+avaliação automática de candidatos, assinatura, folha de pagamento e integrações externas.
+Em outubro/2026 a Alpha Select pediu e foram incluídos: cadastro de empresas pelo site (com
+aprovação do administrador) e cobranças com e-mails automáticos, sem gateway de pagamento
+(ver `CADASTRO_E_COBRANCAS.md`). Condições financeiras do contrato não viraram funcionalidades.
 Nenhum dado pessoal das partes do contrato está no código, nas seeds ou nas telas.
 
 ## Requisitos e critérios de aceite

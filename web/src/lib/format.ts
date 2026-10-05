@@ -48,3 +48,32 @@ export const decisionLabel: Record<Decision, string> = {
 export const docKindLabel = { curriculo: 'Currículo', documento: 'Documento', outro: 'Outro' } as const;
 
 export const isAlphaKind = (k: UserKind | undefined) => k === 'alpha_admin' || k === 'alpha_staff';
+
+export const fmtCents = (c: number | null | undefined) => (c === null || c === undefined ? '—' : brl.format(c / 100));
+
+/** "1.500,00", "1500.5", "R$ 99" → centavos; null se inválido. */
+export function parseMoneyToCents(v: string): number | null {
+  let s = v.replace(/[R$\s]/g, '');
+  if (!s) return null;
+  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  if (!/^\d+(\.\d{1,2})?$/.test(s)) return null;
+  return Math.round(Number(s) * 100);
+}
+
+/** Data "AAAA-MM-DD" (sem fuso) → "dd/mm/aaaa". */
+export const fmtDay = (iso: string | null | undefined) => (iso ? iso.split('-').reverse().join('/') : '—');
+
+export function fmtCnpj(v: string | null | undefined) {
+  if (!v || v.length !== 14) return v || '—';
+  return `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5, 8)}/${v.slice(8, 12)}-${v.slice(12)}`;
+}
+
+export const situacaoLabel = { pendente: 'A vencer', vencida: 'Vencida', pago: 'Paga', cancelado: 'Cancelada' } as const;
+export const noticeLabel = {
+  criada: 'Cobrança enviada',
+  lembrete: 'Lembrete',
+  vencimento: 'Aviso de vencimento',
+  atraso: 'Aviso de atraso',
+  pagamento: 'Recibo de pagamento',
+  manual: 'Reenvio manual',
+} as const;

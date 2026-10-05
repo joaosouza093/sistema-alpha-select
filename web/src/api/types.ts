@@ -32,6 +32,8 @@ export interface Company {
   createdAt: string;
   processCount?: number;
   activeUsers?: number;
+  cnpj?: string | null;
+  billingEmail?: string | null;
 }
 
 export interface UserRow {
@@ -239,4 +241,73 @@ export interface AuditRow {
   ip: string | null;
   actorName: string | null;
   companyName: string | null;
+}
+
+export interface SignupRow {
+  id: string;
+  companyName: string;
+  cnpj: string | null;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  status: 'pendente' | 'aprovado' | 'recusado';
+  emailVerifiedAt: string | null;
+  createdAt: string;
+  decidedAt: string | null;
+  decisionNote: string | null;
+  companyId: string | null;
+  decidedByName: string | null;
+  matchingCompanyId: string | null;
+}
+
+export type ChargeSituacao = 'pendente' | 'vencida' | 'pago' | 'cancelado';
+export type NoticeKind = 'criada' | 'lembrete' | 'vencimento' | 'atraso' | 'pagamento' | 'manual';
+
+export interface ChargeRow {
+  id: string;
+  companyId: string;
+  companyName: string;
+  description: string;
+  amountCents: number;
+  dueDate: string;
+  billingEmail: string;
+  paymentLink: string | null;
+  status: 'pendente' | 'pago' | 'cancelado';
+  situacao: ChargeSituacao;
+  paidAt: string | null;
+  paidNote: string | null;
+  canceledAt: string | null;
+  remindersPaused: boolean;
+  recurrence: 'nenhuma' | 'mensal';
+  seriesIndex: number;
+  createdAt: string;
+  version: number;
+  lastNotice: { kind: NoticeKind; sentAt: string; ok: boolean } | null;
+}
+
+export interface ChargeDetail extends ChargeRow {
+  notices: { id: string; kind: NoticeKind; sentTo: string; ok: boolean; error: string | null; sentAt: string }[];
+}
+
+export interface BillingSummary {
+  openCents: number;
+  openCount: number;
+  overdueCents: number;
+  overdueCount: number;
+  paidMonthCents: number;
+  paidMonthCount: number;
+  emailEnabled: boolean;
+  autoEmail: boolean;
+  today: string;
+}
+
+export interface BillingSettings {
+  autoEmail: boolean;
+  pixKey: string | null;
+  beneficiary: string | null;
+  instructions: string | null;
+  reminderDaysBefore: number;
+  overdueEveryDays: number;
+  overdueMaxReminders: number;
+  emailEnabled: boolean;
 }

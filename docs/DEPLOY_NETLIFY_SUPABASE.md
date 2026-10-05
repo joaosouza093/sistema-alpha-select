@@ -94,12 +94,14 @@ O último comando mostra **uma vez** o link de convite do primeiro administrador
 | `SUPABASE_URL` | Project URL | Functions |
 | `SUPABASE_SERVICE_ROLE_KEY` | chave service_role | Functions — **secreta** |
 | `SUPABASE_BUCKET` | `documentos-candidatos` | Functions |
-| `MAIL_MODE` | `manual` (sem SMTP) — ou defina `SMTP_URL` | Functions |
+| `MAIL_MODE` | `manual` (enquanto não houver e-mail configurado) | Functions |
+| `SMTP_USER` | e-mail que envia (ex.: Gmail) — ver `CADASTRO_E_COBRANCAS.md` | Functions |
+| `SMTP_PASSWORD` | senha de app desse e-mail | Functions — **secreta** |
 | `RATE_LIMIT_STORE` | `postgres` | Functions |
 | `MAX_UPLOAD_MB` | `4` | Functions |
 | `LOG_LEVEL` | `warn` | Functions |
 
-- Só `DATABASE_URL`, `DATABASE_OWNER_URL` e `SUPABASE_SERVICE_ROLE_KEY` precisam ser marcadas como
+- Só `DATABASE_URL`, `DATABASE_OWNER_URL`, `SUPABASE_SERVICE_ROLE_KEY` e `SMTP_PASSWORD` precisam ser marcadas como
   **secretas** no Netlify. As demais não são segredo; o `netlify.toml` as exclui do scanner de segredos
   (`SECRETS_SCAN_OMIT_KEYS`), que senão bloqueia o build ao achar valores comuns como "warn" no código.
 - Nenhuma dessas variáveis começa com `VITE_`: o build do frontend **não** as inclui no navegador.
@@ -121,11 +123,12 @@ O Supabase não envia e-mails da aplicação. Sem SMTP:
 - Os links não ficam gravados no sistema nem na auditoria. Se um link se perder, gere outro; o
   anterior deixa de valer.
 
-Para enviar e-mails automaticamente, contrate um SMTP transacional e defina `SMTP_URL` (e
-`MAIL_FROM`), removendo `MAIL_MODE`.
+Para enviar e-mails automaticamente, defina `SMTP_USER` e `SMTP_PASSWORD` (uma conta Gmail com
+senha de app serve, sem custo). Veja `CADASTRO_E_COBRANCAS.md`.
 
 ## 5. Limites desta hospedagem
 
+- A tarefa agendada `manutencao` (a cada hora) também envia os e-mails de cobrança.
 - **Upload de até 4 MB** por arquivo: o Netlify Functions limita o corpo da requisição a ~6 MB,
   com codificação. Arquivos maiores exigiriam upload direto ao Storage com URL assinada, o que
   não está implementado.

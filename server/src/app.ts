@@ -19,6 +19,8 @@ import { registerApplicationRoutes } from './modules/applications/routes.js';
 import { registerDocumentRoutes } from './modules/documents/routes.js';
 import { registerDashboardRoutes } from './modules/dashboard/routes.js';
 import { registerAuditRoutes } from './modules/audit/routes.js';
+import { registerSignupRoutes } from './modules/signup/routes.js';
+import { registerBillingRoutes } from './modules/billing/routes.js';
 
 z.config(z.locales.pt());
 
@@ -148,6 +150,8 @@ export async function buildApp(deps: Deps): Promise<FastifyInstance> {
   registerDocumentRoutes(app, deps);
   registerDashboardRoutes(app, deps);
   registerAuditRoutes(app, deps);
+  registerSignupRoutes(app, deps);
+  registerBillingRoutes(app, deps);
 
   /**
    * Saúde da API e da conexão com o banco. Em caso de falha, informa apenas a

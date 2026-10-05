@@ -166,7 +166,7 @@ describe('configuração', () => {
     const { loadConfig } = await import('../src/config.js');
     const cfg = loadConfig({ ...TEST_ENV, APP_ENV: 'development', MAIL_MODE: '', SMTP_URL: '', SUPABASE_URL: '', DATABASE_SSL_CA: '' });
     expect(cfg.mailMode).toBe('dev');
-    expect(() => loadConfig({ ...TEST_ENV, APP_ENV: 'production', APP_URL: 'https://x.example', MAIL_MODE: '' })).toThrow(/SMTP_URL ou MAIL_MODE/);
+    expect(() => loadConfig({ ...TEST_ENV, APP_ENV: 'production', APP_URL: 'https://x.example', MAIL_MODE: '' })).toThrow(/MAIL_MODE=manual/);
     // Erro de configuração lista só os nomes das variáveis, nunca valores.
     try {
       loadConfig({ APP_ENV: 'staging', APP_URL: 'https://x.example', DATABASE_URL: 'postgres://u:SEGREDO@h/db' });
@@ -176,6 +176,19 @@ describe('configuração', () => {
       expect(err.fields).toEqual(expect.arrayContaining(['DATABASE_OWNER_URL', 'STORAGE_DIR']));
       expect(err.message).not.toContain('SEGREDO');
     }
+  });
+
+  it('usuário e senha SMTP ativam o envio de e-mail, mesmo com MAIL_MODE=manual', async () => {
+    const { loadConfig } = await import('../src/config.js');
+    const { createMailer, SmtpMailer } = await import('../src/lib/mailer.js');
+    const base = { ...TEST_ENV, APP_ENV: 'production', APP_URL: 'https://x.example', MAIL_MODE: 'manual' };
+    const cfg = loadConfig({ ...base, SMTP_USER: 'financeiro@example.test', SMTP_PASSWORD: 'abcd efgh ijkl mnop' });
+    expect(cfg.mailMode).toBe('smtp');
+    expect(cfg.mailFrom).toBe('Alpha Select <financeiro@example.test>');
+    expect(createMailer(cfg)).toBeInstanceOf(SmtpMailer);
+    // Só a senha, sem usuário, não basta.
+    expect(loadConfig({ ...base, SMTP_PASSWORD: 'x' }).mailMode).toBe('manual');
+    expect(() => loadConfig({ ...base, MAIL_MODE: 'smtp' })).toThrow(/SMTP_USER/);
   });
 });
 

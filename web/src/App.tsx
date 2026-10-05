@@ -7,6 +7,10 @@ import { LoginPage } from './pages/auth/LoginPage';
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import { AcceptInvitePage } from './pages/auth/AcceptInvitePage';
+import { SignupPage } from './pages/auth/SignupPage';
+import { ConfirmEmailPage } from './pages/auth/ConfirmEmailPage';
+import { SignupsPage } from './pages/admin/SignupsPage';
+import { BillingPage } from './pages/admin/BillingPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProcessListPage } from './pages/processes/ProcessListPage';
 import { ProcessPage } from './pages/processes/ProcessPage';
@@ -37,6 +41,8 @@ export function App() {
       <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
       <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
       <Route path="/convite" element={<AcceptInvitePage />} />
+      <Route path="/cadastro" element={<SignupPage />} />
+      <Route path="/confirmar-email" element={<ConfirmEmailPage />} />
       <Route
         element={
           <RequireAuth>
@@ -54,6 +60,8 @@ export function App() {
         <Route path="candidatos/:id/editar" element={<RequireAuth alpha><CandidateFormPage /></RequireAuth>} />
         <Route path="clientes" element={<RequireAuth admin><CompaniesPage /></RequireAuth>} />
         <Route path="usuarios" element={<RequireAuth admin><UsersPage /></RequireAuth>} />
+        <Route path="cadastros" element={<RequireAuth admin><SignupsPage /></RequireAuth>} />
+        <Route path="cobrancas" element={<RequireAuth admin><BillingPage /></RequireAuth>} />
         <Route path="auditoria" element={<RequireAuth admin><AuditPage /></RequireAuth>} />
         <Route path="conta" element={<AccountPage />} />
         <Route path="*" element={<NotFoundPage />} />

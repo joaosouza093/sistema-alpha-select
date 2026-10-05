@@ -1,13 +1,13 @@
 # Testes executados
 
-Execução em 30/09/2026, PostgreSQL 16 local, Node.js 22, Chromium (Playwright 1.63).
+Execução em 05/10/2026, PostgreSQL 16 local, Node.js 22, Chromium (Playwright 1.63).
 
 | Verificação | Comando | Resultado |
 | --- | --- | --- |
 | Tipos (servidor e web) | `npm run typecheck` | ✅ sem erros |
 | Build de produção | `npm run build` | ✅ |
-| Integração do backend | `npm test` | ✅ **78/78** |
-| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **78/78** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
+| Integração do backend | `npm test` | ✅ **104/104** |
+| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **104/104** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
 | Empacotamento Netlify Functions | `npm run check:netlify` | ✅ |
 | Navegador (desktop + celular) | `npm run test:e2e` | ✅ **8/8** |
 | Dependências de produção | `npm audit --omit=dev` | ✅ 0 vulnerabilidades |
@@ -53,6 +53,16 @@ CSRF, origem, convites e redefinição sem SMTP, documentos no Supabase Storage 
 API REST do Storage) e limites de tentativa no PostgreSQL. O pacote gerado pelo esbuild também foi
 executado localmente com as mesmas verificações. **Não testado contra um projeto Supabase real nem
 no Netlify real** (sem acesso a esses ambientes a partir daqui).
+
+## Cadastro e cobranças
+
+`signup-billing.test.ts` (15 testes): resposta igual para e-mail novo e existente, senha só pelo
+link do e-mail, CNPJ inválido, campos extras recusados, aprovação só após confirmação, empresa
+duplicada, hash apagado após decisão, acesso só de administrador (API e RLS, inclusive coluna de
+senha negada ao próprio administrador); regra dos avisos (criada, lembrete, vencimento, atrasos
+limitados), envio em lote, e-mail de cobrança ausente, atraso sem repetição, recibo de pagamento,
+versão desatualizada, recorrência mensal sem duplicar e com fim de mês, envio automático desligado.
+`serverless.test.ts` cobre a configuração de `SMTP_USER`/`SMTP_PASSWORD`.
 
 ## Integração contínua
 

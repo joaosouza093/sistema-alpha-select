@@ -47,7 +47,7 @@ Variáveis principais:
 | `DATABASE_SSL` | `true` para exigir TLS com verificação de certificado |
 | `STORAGE_DIR` | Diretório privado e persistente dos arquivos (fora de pasta pública) |
 | `MAX_UPLOAD_MB` | Limite de upload (padrão 10) |
-| `SMTP_URL`, `MAIL_FROM` | Envio de convites e recuperação de senha |
+| `SMTP_USER` + `SMTP_PASSWORD` (ou `SMTP_URL`), `MAIL_FROM` | Envio de convites, recuperação de senha, confirmação de cadastro e cobranças |
 | `TRUST_PROXY` | `true` atrás de proxy reverso confiável (IP correto para limites) |
 | `CORS_ORIGINS` | Vazio (padrão) = somente a mesma origem |
 | `SESSION_ABSOLUTE_HOURS`, `SESSION_IDLE_MINUTES` | 12 h e 120 min por padrão |
@@ -68,7 +68,7 @@ recusado (crie uma nova).
 
 ## 4. Primeiro administrador (procedimento seguro)
 
-Não há senha administrativa fixa nem cadastro público.
+Não há senha administrativa fixa. O cadastro pelo site só cria acesso depois da aprovação de um administrador.
 
 ```bash
 npm run admin:create -- --email pessoa@alphaselect.com.br --name "Nome Completo"

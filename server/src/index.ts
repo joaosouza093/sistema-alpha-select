@@ -11,7 +11,7 @@ const deps = await createDeps(config);
 const app = await buildApp(deps);
 
 // Limpeza periódica de sessões expiradas, tokens vencidos e contadores antigos.
-const cleanup = setInterval(() => void runMaintenance(deps.pools).catch(() => undefined), 60 * 60 * 1000);
+const cleanup = setInterval(() => void runMaintenance(deps).catch(() => undefined), 60 * 60 * 1000);
 cleanup.unref();
 
 const shutdown = async () => {

@@ -10,6 +10,8 @@ Legenda: ✅ permitido · ❌ negado · 🔸 somente com vínculo ao processo ·
 | Ação | Administrador Alpha | Equipe Alpha / RH Externo | Cliente / RH Interno | Gestor / CEO |
 | --- | --- | --- | --- | --- |
 | Gerenciar empresas clientes | ✅ | ❌ | ❌ | ❌ |
+| Aprovar/recusar cadastros feitos pelo site | ✅ | ❌ | ❌ | ❌ |
+| Cobranças (ver, criar, baixar, configurar) | ✅ | ❌ | ❌ | ❌ |
 | Convidar, editar, ativar/desativar usuários | ✅ | ❌ | ❌ | ❌ |
 | Alterar o próprio perfil, empresa ou situação | ❌ | ❌ | ❌ | ❌ |
 | Criar/editar processos, alterar status | ✅ | ❌ | ❌ | ❌ |

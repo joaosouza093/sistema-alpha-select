@@ -185,7 +185,7 @@ function UserModal({ user, companies, onClose, isSelf, onLink }: { user: UserRow
   );
 }
 
-interface SharedLink {
+export interface SharedLink {
   kind: 'convite' | 'redefinicao';
   name: string;
   link: string;
@@ -196,7 +196,7 @@ interface SharedLink {
  * Exibe o link UMA vez ao administrador (modo sem e-mail). O link não é
  * guardado no sistema: se for perdido, gere outro (o anterior deixa de valer).
  */
-function SharedLinkModal({ data, onClose }: { data: SharedLink; onClose: () => void }) {
+export function SharedLinkModal({ data, onClose }: { data: SharedLink; onClose: () => void }) {
   const toast = useToast();
   const copy = async () => {
     try {

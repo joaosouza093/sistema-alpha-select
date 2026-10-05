@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import type SMTPTransport from 'nodemailer/lib/smtp-transport/index.js';
 import type { Config } from '../config.js';
 
 export interface MailMessage {
@@ -29,8 +30,8 @@ export class MemoryMailer implements Mailer {
 
 export class SmtpMailer implements Mailer {
   private transport;
-  constructor(url: string, private readonly from: string) {
-    this.transport = nodemailer.createTransport(url);
+  constructor(options: string | SMTPTransport.Options, private readonly from: string) {
+    this.transport = nodemailer.createTransport(options);
   }
   async send(msg: MailMessage) {
     await this.transport.sendMail({ from: this.from, to: msg.to, subject: msg.subject, text: msg.text });
@@ -38,6 +39,21 @@ export class SmtpMailer implements Mailer {
 }
 
 export function createMailer(config: Config): Mailer {
-  if (config.SMTP_URL) return new SmtpMailer(config.SMTP_URL, config.MAIL_FROM);
+  if (config.SMTP_URL) return new SmtpMailer(config.SMTP_URL, config.mailFrom);
+  if (config.SMTP_USER && config.SMTP_PASSWORD) {
+    return new SmtpMailer(
+      {
+        host: config.SMTP_HOST,
+        port: config.SMTP_PORT,
+        secure: config.SMTP_PORT === 465,
+        // Senhas de aplicativo do Gmail são exibidas com espaços; o servidor espera sem.
+        auth: { user: config.SMTP_USER.trim(), pass: config.SMTP_PASSWORD.replace(/\s+/g, '') },
+        connectionTimeout: 8000,
+        greetingTimeout: 8000,
+        socketTimeout: 15000,
+      },
+      config.mailFrom,
+    );
+  }
   return new MemoryMailer();
 }

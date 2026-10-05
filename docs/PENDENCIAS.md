@@ -16,7 +16,7 @@
 | Hospedagem (Node 22/Docker + disco persistente) | não disponibilizada |
 | PostgreSQL gerenciado com backup automático e criptografia em repouso | não disponibilizado |
 | Domínio + certificado TLS | não informado |
-| SMTP transacional (`SMTP_URL`, remetente com SPF/DKIM) | credencial ausente — convites e recuperação de senha dependem disso em produção |
+| E-mail de envio (`SMTP_USER` + `SMTP_PASSWORD`) | **falta configurar no Netlify** — sem isso não saem: recuperação de senha, confirmação de cadastro e cobranças automáticas |
 | Execução de `create-roles.sql`, migrações e `admin:create` | depende dos itens acima |
 
 ## Premissas de negócio a validar com a Alpha Select
@@ -28,14 +28,15 @@
   movimentação apenas para a etapa vizinha (administrador pode pular).
 - Decisões possíveis: Em avaliação, Aprovado (só na etapa Aprovação), Não aprovado, Desistiu.
 - Situações de processo: em andamento, concluído, arquivado (os dois últimos somente leitura).
-- Formatos aceitos (PDF, DOC, DOCX, ODT, PNG, JPG) e limite de 10 MB por arquivo.
+- Formatos aceitos (PDF, DOC, DOCX, ODT, PNG, JPG). Limite por arquivo: 10 MB em servidor próprio, 4 MB no Netlify.
 - Sessão: 12 h absolutas, 2 h de inatividade; convite 72 h; recuperação 60 min.
 - Base legal do tratamento e **prazo de retenção** (não implementado prazo automático).
 
 ## Hospedagem Netlify + Supabase
 
 - Upload limitado a 4 MB por arquivo nessa hospedagem (limite das funções).
-- Sem SMTP: convites e redefinições por link entregue pelo administrador (`MAIL_MODE=manual`).
+- Sem e-mail configurado: convites e redefinições por link entregue pelo administrador (`MAIL_MODE=manual`), cadastros sem confirmação de e-mail e cobranças sem aviso.
+- Cobranças sem gateway: a baixa do pagamento é manual.
 - Região do banco (Brasil × exterior) é decisão da Alpha Select.
 
 ## Limitações técnicas atuais

@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client';
 import type { Company } from '../../api/types';
 import { Button, ConfirmDialog, Empty, ErrorState, Loading, Modal, PageHeader, TextField, fieldErrors, usePageTitle, useToast } from '../../components/ui';
-import { fmtDate } from '../../lib/format';
+import { fmtCnpj, fmtDate } from '../../lib/format';
 
 export function CompaniesPage() {
   usePageTitle('Empresas clientes');
@@ -36,17 +36,18 @@ export function CompaniesPage() {
         ) : (
           <div className="table-wrap">
             <table className="table responsive">
-              <thead><tr><th>Empresa</th><th>Situação</th><th>Processos</th><th>Usuários ativos</th><th>Desde</th><th className="actions">Ações</th></tr></thead>
+              <thead><tr><th>Empresa</th><th>E-mail de cobrança</th><th>Situação</th><th>Processos</th><th>Usuários ativos</th><th>Desde</th><th className="actions">Ações</th></tr></thead>
               <tbody>
                 {list.data!.items.map((c) => (
                   <tr key={c.id}>
-                    <td data-label="Empresa"><strong>{c.name}</strong></td>
+                    <td data-label="Empresa"><strong>{c.name}</strong>{c.cnpj && <div className="muted small">CNPJ {fmtCnpj(c.cnpj)}</div>}</td>
+                    <td data-label="E-mail de cobrança">{c.billingEmail ?? <span className="muted">—</span>}</td>
                     <td data-label="Situação">{c.isActive ? <span className="badge badge-success">Ativa</span> : <span className="badge">Inativa</span>}</td>
                     <td data-label="Processos"><Link to={`/processos?empresa=${c.id}`}>{c.processCount}</Link></td>
                     <td data-label="Usuários ativos"><Link to={`/usuarios?empresa=${c.id}`}>{c.activeUsers}</Link></td>
                     <td data-label="Desde">{fmtDate(c.createdAt)}</td>
                     <td className="actions">
-                      <Button size="sm" onClick={() => setEditing(c)}>Renomear</Button>{' '}
+                      <Button size="sm" onClick={() => setEditing(c)}>Editar</Button>{' '}
                       <Button size="sm" variant={c.isActive ? 'danger' : 'default'} onClick={() => setToggling(c)}>{c.isActive ? 'Desativar' : 'Reativar'}</Button>
                     </td>
                   </tr>
@@ -70,13 +71,16 @@ function CompanyModal({ company, onClose }: { company: Company | null; onClose: 
   const qc = useQueryClient();
   const toast = useToast();
   const [name, setName] = useState(company?.name ?? '');
+  const [cnpj, setCnpj] = useState(company?.cnpj ? fmtCnpj(company.cnpj) : '');
+  const [billingEmail, setBillingEmail] = useState(company?.billingEmail ?? '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const save = async () => {
     setBusy(true);
     try {
-      if (company) await api.patch(`/api/companies/${company.id}`, { name });
-      else await api.post('/api/companies', { name });
+      const body = { name, cnpj: cnpj || null, billingEmail: billingEmail || null };
+      if (company) await api.patch(`/api/companies/${company.id}`, body);
+      else await api.post('/api/companies', body);
       toast.success('Empresa salva.');
       await qc.invalidateQueries({ queryKey: ['companies'] });
       onClose();
@@ -88,9 +92,14 @@ function CompanyModal({ company, onClose }: { company: Company | null; onClose: 
     }
   };
   return (
-    <Modal title={company ? 'Renomear empresa' : 'Nova empresa cliente'} onClose={onClose}
+    <Modal title={company ? 'Editar empresa' : 'Nova empresa cliente'} onClose={onClose}
       footer={<><Button onClick={onClose}>Cancelar</Button><Button variant="primary" onClick={save} loading={busy} disabled={name.trim().length < 2}>Salvar</Button></>}>
-      <TextField label="Nome da empresa" value={name} onChange={(e) => setName(e.target.value)} error={errors.name} maxLength={160} required />
+      <div className="stack">
+        <TextField label="Nome da empresa" value={name} onChange={(e) => setName(e.target.value)} error={errors.name} maxLength={160} required />
+        <TextField label="CNPJ" value={cnpj} onChange={(e) => setCnpj(e.target.value)} error={errors.cnpj} inputMode="numeric" maxLength={18} hint="Opcional." />
+        <TextField label="E-mail de cobrança" type="email" value={billingEmail} onChange={(e) => setBillingEmail(e.target.value)} error={errors.billingEmail}
+          hint="Para onde vão as cobranças automáticas. Se vazio, usa o e-mail do usuário da empresa." />
+      </div>
     </Modal>
   );
 }
