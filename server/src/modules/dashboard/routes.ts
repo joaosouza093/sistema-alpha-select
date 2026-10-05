@@ -49,7 +49,16 @@ export function registerDashboardRoutes(app: FastifyInstance, deps: Deps) {
            left join stages ts on ts.id = h.to_stage_id
           order by h.created_at desc, h.id desc limit 12`,
       );
-      return { totals: totals.rows[0], byStage: byStage.rows, myPending: mine.rows, recent: recent.rows };
+      const leads = await db.query<{ inTriage: number; sentLast30: number; overdue: number }>(
+        `select
+           count(*) filter (where a.sent_at is null and a.decision = 'pendente')::int as "inTriage",
+           count(*) filter (where a.sent_at > now() - interval '30 days')::int as "sentLast30",
+           count(*) filter (where a.sent_at is not null and a.decision = 'pendente'
+                              and a.stage_changed_at < now() - make_interval(days => p.sla_days))::int as "overdue"
+           from applications a join processes p on p.id = a.process_id
+          where p.status = 'em_andamento'`,
+      );
+      return { totals: totals.rows[0], leads: leads.rows[0], byStage: byStage.rows, myPending: mine.rows, recent: recent.rows };
     });
   });
 

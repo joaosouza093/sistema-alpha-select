@@ -18,7 +18,10 @@ Legenda: ✅ permitido · ❌ negado · 🔸 somente com vínculo ao processo ·
 | Alterar o próprio perfil, empresa ou situação | ❌ | ❌ | ❌ | ❌ |
 | Criar/editar processos, alterar status | ✅ | ❌ | ❌ | ❌ |
 | Vincular participantes e definir permissões | ✅ | ❌ | ❌ | ❌ |
-| Ver processo e quadro | ✅ todos | 🔸 | 🔸 (e da própria empresa) | 🔸 (e da própria empresa) |
+| Ver processo e quadro | ✅ todos | 🔸 | 🔸 (e da própria empresa; só candidatos já enviados) | 🔸 (e da própria empresa; só candidatos já enviados) |
+| Ficha de avaliação da triagem | ✅ | 🔸 | ❌ | ❌ |
+| Enviar candidatos ao cliente | ✅ | 🔹 (permissão de mover etapa) | ❌ | ❌ |
+| Definir critérios de avaliação e prazo (SLA) | ✅ | ❌ | ❌ | ❌ |
 | Cadastro completo de candidatos (lista, busca, observações) | ✅ todos | cadastrados por si ou em processos com vínculo | ❌ | ❌ |
 | Cadastrar/editar candidato | ✅ | ✅ (no seu escopo) | ❌ | ❌ |
 | Incluir candidato em processo | ✅ | 🔸 | ❌ | ❌ |

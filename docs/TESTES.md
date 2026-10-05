@@ -6,8 +6,8 @@ Execução em 05/10/2026, PostgreSQL 16 local, Node.js 22, Chromium (Playwright 
 | --- | --- | --- |
 | Tipos (servidor e web) | `npm run typecheck` | ✅ sem erros |
 | Build de produção | `npm run build` | ✅ |
-| Integração do backend | `npm test` | ✅ **110/110** |
-| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **110/110** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
+| Integração do backend | `npm test` | ✅ **117/117** |
+| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **117/117** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
 | Empacotamento Netlify Functions | `npm run check:netlify` | ✅ |
 | Navegador (desktop + celular) | `npm run test:e2e` | ✅ **8/8** |
 | Dependências de produção | `npm audit --omit=dev` | ✅ 0 vulnerabilidades |
@@ -71,6 +71,13 @@ esperada; candidatura cria candidato, currículo e participação na 1ª etapa c
 duplicidade na mesma vaga; perguntas sem resposta, sem consentimento, campos extras, arquivo falso e
 robô recusados; vaga pausada/processo concluído saem do ar; banco de talentos visível só ao
 administrador; respostas não chegam a clientes (API e RLS) e só administrador publica.
+
+## Triagem e envio
+
+`triage-leads.test.ts` (7 testes): candidato em triagem invisível ao cliente (API, RLS e visão),
+ficha de avaliação com nota média e motivo obrigatório, envio em lote só de aprovados na triagem,
+compartilhamento escolhido e aviso por e-mail, envio irreversível e sem repetição, aviso de envio
+duplicado à mesma empresa, permissões de envio, motivo padronizado nas decisões e prazo vencido.
 
 ## Integração contínua
 

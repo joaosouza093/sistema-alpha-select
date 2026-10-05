@@ -21,7 +21,67 @@ export function JobPanel({ process }: { process: Process }) {
   const job = useQuery({ queryKey: ['job', process.id], queryFn: () => api.get<JobConfig>(`/api/processes/${process.id}/job`) });
   if (job.isLoading) return <Loading />;
   if (job.isError) return <ErrorState error={job.error} onRetry={() => job.refetch()} />;
-  return <JobForm key={job.data!.version} process={process} job={job.data!} />;
+  return (
+    <div className="stack">
+      <TriageConfig key={`t-${job.data!.version}`} process={process} version={job.data!.version} />
+      <JobForm key={job.data!.version} process={process} job={job.data!} />
+    </div>
+  );
+}
+
+/** Critérios da ficha de avaliação e prazo (SLA) por etapa. */
+function TriageConfig({ process, version }: { process: Process; version: number }) {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const canManage = process.permissions.canManage;
+  const [sla, setSla] = useState(String(process.slaDays ?? 3));
+  const [criteria, setCriteria] = useState<string[]>(process.evaluationCriteria ?? []);
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    setBusy(true);
+    try {
+      await api.put(`/api/processes/${process.id}/triage-config`, {
+        expectedVersion: version,
+        slaDays: Number(sla),
+        evaluationCriteria: criteria.map((c) => c.trim()).filter(Boolean),
+      });
+      toast.success('Triagem configurada.');
+      await Promise.all([qc.invalidateQueries({ queryKey: ['job', process.id] }), qc.invalidateQueries({ queryKey: ['board', process.id] })]);
+    } catch (e) {
+      toast.error(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <section className="card">
+      <div className="card-header">
+        <div>
+          <h2>Triagem</h2>
+          <p className="muted small" style={{ margin: 0 }}>Critérios da ficha de avaliação (nota de 1 a 5) e prazo máximo em cada etapa.</p>
+        </div>
+      </div>
+      <div className="card-body stack">
+        <TextField label="Prazo por etapa (dias)" type="number" min={1} max={60} value={sla} onChange={(e) => setSla(e.target.value)} disabled={!canManage}
+          hint="Passado o prazo sem decisão, o cartão mostra “Prazo vencido”." />
+        {criteria.map((c, i) => (
+          <div key={i} className="row">
+            <div style={{ flex: 1 }}>
+              <TextField label={`Critério ${i + 1}`} value={c} maxLength={80} disabled={!canManage}
+                onChange={(e) => setCriteria((xs) => xs.map((x, j) => (j === i ? e.target.value : x)))} />
+            </div>
+            {canManage && <Button size="sm" variant="ghost" onClick={() => setCriteria((xs) => xs.filter((_, j) => j !== i))}>Remover</Button>}
+          </div>
+        ))}
+        {canManage && (
+          <div className="row">
+            {criteria.length < 10 && <Button size="sm" onClick={() => setCriteria((xs) => [...xs, ''])}>Adicionar critério</Button>}
+            <Button variant="primary" loading={busy} onClick={save} disabled={!sla || Number(sla) < 1}>Salvar triagem</Button>
+          </div>
+        )}
+      </div>
+    </section>
+  );
 }
 
 function JobForm({ process, job }: { process: Process; job: JobConfig }) {

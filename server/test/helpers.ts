@@ -16,12 +16,15 @@ export interface TestCtx {
   close: () => Promise<void>;
 }
 
+let ownerPool: pg.Pool | null = null;
+
 export async function setupApp(): Promise<TestCtx> {
   const config = loadConfig({ ...process.env, ...TEST_ENV });
   const mailer = new MemoryMailer();
   const deps = await createDeps(config, { mailer });
   const app = await buildApp(deps);
   await app.ready();
+  ownerPool = deps.pools.owner;
   return {
     app,
     deps,
@@ -182,10 +185,22 @@ export async function createCandidate(agent: Agent, data: Record<string, unknown
   return r.json().id as string;
 }
 
-export async function createApplication(agent: Agent, candidateId: string, processId: string, ownerId?: string) {
+/**
+ * Inclui o candidato no processo. Por padrão marca como já enviado ao
+ * cliente (como se tivesse passado pela triagem), para os testes de cliente.
+ */
+export async function createApplication(
+  agent: Agent,
+  candidateId: string,
+  processId: string,
+  ownerId?: string,
+  opts: { sent?: boolean } = {},
+) {
   const r = await agent.post('/api/applications', { candidateId, processId, ownerId });
   if (r.statusCode !== 201) throw new Error(r.body);
-  return r.json().id as string;
+  const id = r.json().id as string;
+  if (opts.sent !== false) await ownerPool!.query('update applications set sent_at = now() where id = $1', [id]);
+  return id;
 }
 
 export function multipartBody(filename: string, contentType: string, content: Buffer, kind = 'curriculo') {

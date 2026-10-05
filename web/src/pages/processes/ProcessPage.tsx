@@ -32,7 +32,7 @@ export function ProcessPage() {
     { id: 'quadro', label: 'Quadro' },
     { id: 'participantes', label: 'Participantes autorizados' },
     { id: 'dados', label: 'Dados do processo' },
-    ...(isAlpha ? [{ id: 'vaga' as Tab, label: 'Vaga no portal' }] : []),
+    ...(isAlpha ? [{ id: 'vaga' as Tab, label: 'Vaga e triagem' }] : []),
   ];
 
   return (

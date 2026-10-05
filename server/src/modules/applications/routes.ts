@@ -7,6 +7,7 @@ import { AppError, conflict, forbidden, notFound, staleVersion } from '../../lib
 import { parse } from '../../lib/validate.js';
 import { zOptionalText, zText, zUuid } from '../../lib/normalize.js';
 import { loadProcess, processPermissions } from '../processes/routes.js';
+import { reasons } from '../leads/routes.js';
 
 const decisions = ['pendente', 'aprovado', 'reprovado', 'desistiu'] as const;
 const zVersion = z.number().int().positive();
@@ -75,6 +76,7 @@ export function registerApplicationRoutes(app: FastifyInstance, deps: Deps) {
         `select a.id, a.stage_id as "stageId", st.name as "stageName", a.decision, a.version,
                 a.owner_id as "ownerId", app.person_label(a.owner_id) as "ownerName", a.stage_changed_at as "stageChangedAt",
                 a.created_at as "createdAt", a.updated_at as "updatedAt", a.shared_summary as "sharedSummary", a.source,
+                a.decision_reason as "decisionReason", a.sent_at as "sentAt",
                 a.share_email as "shareEmail", a.share_phone as "sharePhone", a.share_salary as "shareSalary",
                 s.candidate_id as "candidateId", s.full_name as "candidateName", s.email as "candidateEmail",
                 s.phone as "candidatePhone", s.salary_expectation as "candidateSalary"
@@ -124,11 +126,21 @@ export function registerApplicationRoutes(app: FastifyInstance, deps: Deps) {
 
   app.post('/api/applications/:id/decision', async (req) => {
     const { id } = parse(z.object({ id: zUuid }), req.params);
-    const body = parse(z.object({ decision: z.enum(decisions), expectedVersion: zVersion }).strict(), req.body);
+    const body = parse(
+      z
+        .object({ decision: z.enum(decisions), expectedVersion: zVersion, reason: z.enum(reasons).nullish() })
+        .strict()
+        .refine((b) => !['reprovado', 'desistiu'].includes(b.decision) || b.reason, {
+          message: 'Informe o motivo.',
+          path: ['reason'],
+        }),
+      req.body,
+    );
+    const reason = ['reprovado', 'desistiu'].includes(body.decision) ? body.reason! : null;
     return asUser(deps, req, async (db) => {
       const a = await loadApp(db, id);
-      await versionedUpdate(db, id, body.expectedVersion, 'decision = $3', [body.decision]);
-      await audit(db, req, 'application.decision', 'application', id, a.company_id, { decision: body.decision });
+      await versionedUpdate(db, id, body.expectedVersion, 'decision = $3, decision_reason = $4', [body.decision, reason]);
+      await audit(db, req, 'application.decision', 'application', id, a.company_id, { decision: body.decision, reason });
       return { ok: true };
     });
   });

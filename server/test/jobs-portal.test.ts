@@ -159,8 +159,12 @@ describe('vagas e portal público', () => {
     const staff = await inviteUser(ctx, admin, 'alpha_staff');
     await addMember(admin, processId, client.id);
     await addMember(admin, processId, staff.id);
+    // Antes do envio pela Alpha Select, o cliente nem vê a candidatura.
+    expect(json(await client.agent.get(`/api/processes/${processId}/board`)).cards).toHaveLength(0);
+    await ctx.owner.query('update applications set sent_at = now() where process_id = $1', [processId]);
     const board = json(await client.agent.get(`/api/processes/${processId}/board`));
     expect(board.cards[0].screeningFailed).toBeNull();
+    expect(board.cards[0].triageStatus).toBeNull();
     expect((await client.agent.get(`/api/applications/${board.cards[0].id}/intake`)).statusCode).toBe(403);
     expect((await client.agent.get(`/api/processes/${processId}/job`)).statusCode).toBe(403);
     const rows = await withUser(ctx.deps.pools.app, client.id, (db) => db.query('select * from application_intake'));

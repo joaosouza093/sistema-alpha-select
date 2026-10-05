@@ -4,7 +4,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { Board, BoardCard } from '../../api/types';
 import { Button, DecisionBadge, Empty } from '../../components/ui';
 import { MoveDialog } from '../../components/MoveDialog';
-import { daysSince } from '../../lib/format';
+import { SendLeadsModal } from '../../components/SendLeadsModal';
+import { useAuth } from '../../auth/AuthContext';
+import { daysSince, fmtScore, reasonLabel, triageLabel } from '../../lib/format';
+
+const triageBadge = { em_triagem: 'badge-info', aprovado_interno: 'badge-success', reprovado_interno: 'badge-danger' } as const;
 
 export function BoardView({ board }: { board: Board }) {
   const qc = useQueryClient();
@@ -13,6 +17,18 @@ export function BoardView({ board }: { board: Board }) {
   const [moving, setMoving] = useState<{ card: BoardCard; target?: number } | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overStage, setOverStage] = useState<number | null>(null);
+  const { isAlpha } = useAuth();
+  const canSend = isAlpha && canMove;
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [sending, setSending] = useState<BoardCard[] | null>(null);
+  const sendable = (c: BoardCard) => !c.sentAt && c.decision === 'pendente' && c.triageStatus === 'aprovado_interno';
+  const toggle = (id: string) =>
+    setSelected((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
 
   if (cards.length === 0) {
     return (
@@ -26,6 +42,24 @@ export function BoardView({ board }: { board: Board }) {
 
   return (
     <>
+      {isAlpha && board.funnel && (
+        <div className="funnel" aria-label="Funil do processo">
+          <span><strong>{board.funnel.total}</strong> candidatos</span>
+          <span><strong>{board.funnel.emTriagem}</strong> em triagem</span>
+          <span><strong>{board.funnel.aprovadosInternos}</strong> aprovados na triagem</span>
+          <span><strong>{board.funnel.enviados}</strong> enviados ao cliente</span>
+          <span><strong>{board.funnel.aprovados}</strong> aprovados</span>
+          {process.slaDays && <span className="muted">Prazo por etapa: {process.slaDays} dia(s)</span>}
+        </div>
+      )}
+      {canSend && cards.some(sendable) && (
+        <div className="row" style={{ marginBottom: 8 }}>
+          <Button variant="primary" disabled={selected.size === 0} onClick={() => setSending(cards.filter((c) => selected.has(c.id)))}>
+            Enviar selecionados ao cliente ({selected.size})
+          </Button>
+          <span className="muted small">Marque os aprovados na triagem na coluna 1.</span>
+        </div>
+      )}
       <p className="muted small" style={{ marginTop: 0 }}>
         {canMove ? 'Arraste um cartão para a coluna vizinha ou use os botões do cartão (acessíveis por teclado).' : 'Você pode consultar o quadro; movimentações dependem de permissão.'}
       </p>
@@ -83,7 +117,17 @@ export function BoardView({ board }: { board: Board }) {
                         <DecisionBadge decision={c.decision} />
                         {c.source === 'portal' && <span className="badge badge-brand">Portal</span>}
                         {c.screeningFailed && <span className="badge badge-warning" title="Respondeu diferente do exigido em pergunta eliminatória">Não atende requisito</span>}
+                        {c.triageStatus && !c.sentAt && <span className={`badge ${triageBadge[c.triageStatus]}`}>{triageLabel[c.triageStatus]}</span>}
+                        {fmtScore(c.score) && <span className="badge">Nota {fmtScore(c.score)}</span>}
+                        {c.slaOverdue && <span className="badge badge-danger" title="Parado na etapa além do prazo combinado">Prazo vencido</span>}
                       </div>
+                      {c.decisionReason && <div className="kcard-meta"><span>Motivo: {reasonLabel[c.decisionReason]}</span></div>}
+                      {canSend && sendable(c) && (
+                        <label className="checkbox small">
+                          <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} />
+                          <span>Selecionar para envio</span>
+                        </label>
+                      )}
                       <div className="kcard-meta">
                         <span>Responsável: {c.ownerName ?? '—'}</span>
                       </div>
@@ -119,6 +163,10 @@ export function BoardView({ board }: { board: Board }) {
           );
         })}
       </div>
+      {sending && (
+        <SendLeadsModal processId={process.id} candidates={sending.map((c) => ({ applicationId: c.id, name: c.candidateName }))}
+          onClose={() => setSending(null)} onDone={() => { setSending(null); setSelected(new Set()); }} />
+      )}
       {moving && (
         <MoveDialog
           applicationId={moving.card.id}

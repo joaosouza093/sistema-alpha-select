@@ -111,7 +111,7 @@ describe('regras de transição e permissões', () => {
   });
 
   it('nega decisão sem permissão', async () => {
-    const r = await staff.agent.post(`/api/applications/${app}/decision`, { decision: 'reprovado', expectedVersion: await version() });
+    const r = await staff.agent.post(`/api/applications/${app}/decision`, { decision: 'reprovado', reason: 'experiencia', expectedVersion: await version() });
     expect(r.statusCode).toBe(403);
   });
 
@@ -126,7 +126,7 @@ describe('regras de transição e permissões', () => {
   });
 
   it('decisão final impede mover etapa até ser reaberta', async () => {
-    expect((await admin.post(`/api/applications/${app}/decision`, { decision: 'reprovado', expectedVersion: await version() })).statusCode).toBe(200);
+    expect((await admin.post(`/api/applications/${app}/decision`, { decision: 'reprovado', reason: 'perfil_tecnico', expectedVersion: await version() })).statusCode).toBe(200);
     expect((await staff.agent.post(`/api/applications/${app}/move`, { toStageId: 2, expectedVersion: await version() })).statusCode).toBe(409);
     expect((await admin.post(`/api/applications/${app}/decision`, { decision: 'pendente', expectedVersion: await version() })).statusCode).toBe(200);
     expect((await staff.agent.post(`/api/applications/${app}/move`, { toStageId: 2, expectedVersion: await version() })).statusCode).toBe(200);

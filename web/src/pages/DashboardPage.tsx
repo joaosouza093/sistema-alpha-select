@@ -57,6 +57,24 @@ export function DashboardPage() {
               <div className="value">{q.data!.totals.openApplications}</div>
             </div>
           </section>
+          {q.data!.leads && (
+            <section className="grid grid-3" aria-label="Envio de candidatos">
+              {isAlpha && (
+                <div className="card stat">
+                  <div className="label">Em triagem (ainda não enviados)</div>
+                  <div className="value">{q.data!.leads.inTriage}</div>
+                </div>
+              )}
+              <div className="card stat">
+                <div className="label">{isAlpha ? 'Enviados aos clientes (30 dias)' : 'Candidatos recebidos (30 dias)'}</div>
+                <div className="value">{q.data!.leads.sentLast30}</div>
+              </div>
+              <div className="card stat">
+                <div className="label">{isAlpha ? 'Aguardando retorno além do prazo' : 'Aguardando seu retorno além do prazo'}</div>
+                <div className="value">{q.data!.leads.overdue}</div>
+              </div>
+            </section>
+          )}
 
           <div className="grid grid-2">
             <section className="card">

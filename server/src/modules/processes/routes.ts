@@ -50,17 +50,38 @@ export async function loadProcess(db: Db, id: string) {
     status: (typeof statuses)[number];
     publication: string;
     publicSlug: string | null;
+    slaDays: number;
+    evaluationCriteria: string[];
     version: number;
     createdAt: Date;
     updatedAt: Date;
   }>(
     `select p.id, p.company_id as "companyId", c.name as "companyName", p.title, p.description, p.status,
-            p.publication, p.public_slug as "publicSlug", p.version, p.created_at as "createdAt", p.updated_at as "updatedAt"
+            p.publication, p.public_slug as "publicSlug", p.sla_days as "slaDays",
+            p.evaluation_criteria as "evaluationCriteria", p.version, p.created_at as "createdAt", p.updated_at as "updatedAt"
        from processes p join companies c on c.id = p.company_id where p.id = $1`,
     [id],
   );
   if (!rows[0]) throw notFound('Processo não encontrado.');
   return rows[0];
+}
+
+interface FunnelCard {
+  stageId: number;
+  decision: string;
+  sentAt: Date | null;
+  triageStatus: string | null;
+}
+
+/** Funil do processo calculado sobre o que o usuário pode ver (RLS). */
+function funnel(cards: FunnelCard[]) {
+  return {
+    total: cards.length,
+    emTriagem: cards.filter((c) => !c.sentAt && c.decision === 'pendente' && c.triageStatus !== 'aprovado_interno' && c.triageStatus !== 'reprovado_interno').length,
+    aprovadosInternos: cards.filter((c) => c.triageStatus === 'aprovado_interno' || !!c.sentAt).length,
+    enviados: cards.filter((c) => !!c.sentAt).length,
+    aprovados: cards.filter((c) => c.decision === 'aprovado').length,
+  };
 }
 
 export function registerProcessRoutes(app: FastifyInstance, deps: Deps) {
@@ -241,14 +262,18 @@ export function registerProcessRoutes(app: FastifyInstance, deps: Deps) {
                 a.owner_id as "ownerId", app.person_label(a.owner_id) as "ownerName", s.full_name as "candidateName",
                 (select count(*)::int from application_documents ad where ad.application_id = a.id) as "documentCount",
                 (select count(*)::int from comments cm where cm.application_id = a.id) as "commentCount",
-                a.source, (select i.screening_failed from application_intake i where i.application_id = a.id) as "screeningFailed"
+                a.source, (select i.screening_failed from application_intake i where i.application_id = a.id) as "screeningFailed",
+                a.decision_reason as "decisionReason", a.sent_at as "sentAt",
+                e.triage_status as "triageStatus", e.score::float as score,
+                (a.decision = 'pendente' and a.stage_changed_at < now() - make_interval(days => $2)) as "slaOverdue"
            from applications a
+           left join application_evaluations e on e.application_id = a.id
            join shared_application_candidates s on s.application_id = a.id
           where a.process_id = $1
           order by a.stage_changed_at`,
-        [id],
+        [id, process.slaDays],
       );
-      return { process: { ...process, permissions }, stages: stages.rows, cards: rows };
+      return { process: { ...process, permissions }, stages: stages.rows, cards: rows, funnel: funnel(rows as FunnelCard[]) };
     });
   });
 }

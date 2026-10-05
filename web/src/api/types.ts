@@ -68,6 +68,8 @@ export interface Process {
   status: ProcessStatus;
   publication?: Publication;
   publicSlug?: string | null;
+  slaDays?: number;
+  evaluationCriteria?: string[];
   version: number;
   createdAt: string;
   updatedAt: string;
@@ -109,9 +111,23 @@ export interface BoardCard {
   commentCount: number;
   source?: 'interno' | 'portal';
   screeningFailed?: boolean | null;
+  decisionReason?: Reason | null;
+  sentAt?: string | null;
+  triageStatus?: TriageStatus | null;
+  score?: number | null;
+  slaOverdue?: boolean;
+}
+
+export interface Funnel {
+  total: number;
+  emTriagem: number;
+  aprovadosInternos: number;
+  enviados: number;
+  aprovados: number;
 }
 
 export interface Board {
+  funnel?: Funnel;
   process: Process;
   stages: Stage[];
   cards: BoardCard[];
@@ -183,6 +199,8 @@ export interface Application {
   updatedAt: string;
   sharedSummary: string | null;
   source?: 'interno' | 'portal';
+  decisionReason?: Reason | null;
+  sentAt?: string | null;
   shareEmail?: boolean;
   sharePhone?: boolean;
   shareSalary?: boolean;
@@ -223,6 +241,7 @@ export interface HistoryItem {
 
 export interface Dashboard {
   totals: { activeProcesses: number; candidates: number; openApplications: number };
+  leads?: { inTriage: number; sentLast30: number; overdue: number };
   byStage: { stageId: number; name: string; count: number }[];
   myPending: { id: string; candidateName: string; processTitle: string; stageName: string; stageChangedAt: string }[];
   recent: {
@@ -372,4 +391,20 @@ export interface Intake {
   answers: { id: string; text: string; eliminatory: boolean; expected: 'sim' | 'nao'; answer: 'sim' | 'nao' }[];
   screeningFailed: boolean;
   createdAt: string;
+}
+
+export type TriageStatus = 'em_triagem' | 'aprovado_interno' | 'reprovado_interno';
+export type Reason =
+  | 'perfil_tecnico' | 'experiencia' | 'pretensao_salarial' | 'localizacao' | 'disponibilidade'
+  | 'comportamental' | 'sem_retorno' | 'vaga_cancelada' | 'desistencia_candidato' | 'outro';
+
+export interface Evaluation {
+  triageStatus: TriageStatus;
+  ratings: { criterion: string; score: number }[];
+  score: number | null;
+  reason: Reason | null;
+  notes: string | null;
+  version: number;
+  updatedAt: string;
+  evaluatedByName: string | null;
 }

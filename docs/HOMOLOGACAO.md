@@ -63,6 +63,14 @@ Executar em ambiente de **homologação** com dados fictícios, usando **contas 
 - [ ] Pergunta eliminatória respondida diferente → selo "Não atende requisito"; respostas visíveis na participação.
 - [ ] Usuário de cliente não vê as respostas da candidatura.
 
+## Triagem e envio
+
+- [ ] Candidato novo não aparece para o cliente; após "Enviar ao cliente" aparece em RH Interno com o resumo.
+- [ ] Ficha de avaliação: notas por critério, nota média; reprovação na triagem exige motivo.
+- [ ] Envio em lote pelo quadro; cliente recebe e-mail de aviso.
+- [ ] "Não aprovado" e "Desistiu" pedem motivo; motivo aparece no cartão.
+- [ ] Cartão parado além do prazo mostra "Prazo vencido"; painel conta os atrasados.
+
 ## Interface
 
 - [ ] Celular: menu, quadro (colunas empilhadas, botões de mover), formulários sem rolagem horizontal.

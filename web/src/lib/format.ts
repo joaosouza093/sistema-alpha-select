@@ -87,3 +87,20 @@ export function fmtSalaryRange(min: number | null | undefined, max: number | nul
   if (min != null && max != null) return min === max ? fmtCents(min) : `${fmtCents(min)} a ${fmtCents(max)}`;
   return min != null ? `a partir de ${fmtCents(min)}` : `até ${fmtCents(max!)}`;
 }
+
+export const reasonLabel = {
+  perfil_tecnico: 'Perfil técnico não atende',
+  experiencia: 'Experiência insuficiente',
+  pretensao_salarial: 'Pretensão salarial',
+  localizacao: 'Localização',
+  disponibilidade: 'Disponibilidade',
+  comportamental: 'Perfil comportamental',
+  sem_retorno: 'Candidato sem retorno',
+  vaga_cancelada: 'Vaga cancelada/congelada',
+  desistencia_candidato: 'Desistência do candidato',
+  outro: 'Outro',
+} as const;
+
+export const triageLabel = { em_triagem: 'Em triagem', aprovado_interno: 'Aprovado na triagem', reprovado_interno: 'Reprovado na triagem' } as const;
+
+export const fmtScore = (s: number | null | undefined) => (s == null ? null : s.toFixed(1).replace('.', ','));

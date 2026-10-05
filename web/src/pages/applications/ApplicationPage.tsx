@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '../../api/client';
-import type { Application, Intake, Comment, Decision, DocumentRow, HistoryItem, Stage, Visibility } from '../../api/types';
+import type { Application, Evaluation, Intake, Reason, TriageStatus, Comment, Decision, DocumentRow, HistoryItem, Stage, Visibility } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
 import {
   Alert, Button, Checkbox, ConfirmDialog, DecisionBadge, Empty, ErrorState, Loading, PageHeader, SelectField,
@@ -10,9 +10,10 @@ import {
 } from '../../components/ui';
 import { MoveDialog } from '../../components/MoveDialog';
 import { DocumentPreview } from '../../components/DocumentPreview';
-import { daysSince, decisionLabel, docKindLabel, fmtDateTime, fmtMoney, fmtPhone, fmtSize } from '../../lib/format';
+import { daysSince, decisionLabel, docKindLabel, fmtDateTime, fmtMoney, fmtPhone, fmtScore, fmtSize, reasonLabel, triageLabel } from '../../lib/format';
+import { SendLeadsModal } from '../../components/SendLeadsModal';
 
-type Tab = 'candidato' | 'etapa' | 'documentos' | 'comentarios' | 'historico';
+type Tab = 'candidato' | 'triagem' | 'etapa' | 'documentos' | 'comentarios' | 'historico';
 
 export function ApplicationPage() {
   usePageTitle('Participação');
@@ -20,6 +21,7 @@ export function ApplicationPage() {
   const [params, setParams] = useSearchParams();
   const tab = (params.get('aba') as Tab) || 'candidato';
   const q = useQuery({ queryKey: ['application', id], queryFn: () => api.get<Application>(`/api/applications/${id}`) });
+  const { isAlpha } = useAuth();
   const stages = useQuery({ queryKey: ['stages'], queryFn: () => api.get<{ items: Stage[] }>('/api/stages'), staleTime: Infinity });
 
   if (q.isLoading || stages.isLoading) return <Loading />;
@@ -27,6 +29,7 @@ export function ApplicationPage() {
   const a = q.data!;
   const tabs: { id: Tab; label: string }[] = [
     { id: 'candidato', label: 'Candidato' },
+    ...(isAlpha ? [{ id: 'triagem' as Tab, label: 'Triagem' }] : []),
     { id: 'etapa', label: 'Etapa e decisão' },
     { id: 'documentos', label: 'Documentos' },
     { id: 'comentarios', label: 'Comentários' },
@@ -43,6 +46,7 @@ export function ApplicationPage() {
             <span>{a.process.companyName}</span>
             <span className="badge badge-brand">Etapa: {a.stageName}</span>
             <DecisionBadge decision={a.decision} />
+            {isAlpha && !a.sentAt && <span className="badge">Ainda não enviado ao cliente</span>}
             <StatusBadge status={a.process.status} />
           </span>
         }
@@ -51,6 +55,7 @@ export function ApplicationPage() {
       <Tabs label="Seções da participação" tabs={tabs} value={tab} onChange={(t) => setParams({ aba: t }, { replace: true })} />
       <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
         {tab === 'candidato' && <CandidateTab a={a} />}
+        {tab === 'triagem' && isAlpha && <TriageTab a={a} />}
         {tab === 'etapa' && <StageTab a={a} stages={stages.data!.items} />}
         {tab === 'documentos' && <DocumentsTab a={a} />}
         {tab === 'comentarios' && <CommentsTab a={a} />}
@@ -98,6 +103,110 @@ function CandidateTab({ a }: { a: Application }) {
       </section>
       {isAlpha && a.source === 'portal' && <IntakeCard a={a} />}
       {isAlpha && <SharingCard a={a} />}
+    </div>
+  );
+}
+
+/** Ficha de avaliação da triagem e envio ao cliente (somente equipe Alpha). */
+function TriageTab({ a }: { a: Application }) {
+  const q = useQuery({
+    queryKey: ['evaluation', a.id],
+    queryFn: () => api.get<{ criteria: string[]; evaluation: Evaluation | null }>(`/api/applications/${a.id}/evaluation`),
+  });
+  if (q.isLoading) return <Loading />;
+  if (q.isError) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
+  return <TriageForm key={q.data!.evaluation?.version ?? 0} a={a} criteria={q.data!.criteria} ev={q.data!.evaluation} />;
+}
+
+function TriageForm({ a, criteria, ev }: { a: Application; criteria: string[]; ev: Evaluation | null }) {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const names = Array.from(new Set([...criteria, ...(ev?.ratings.map((r) => r.criterion) ?? [])]));
+  const [status, setStatus] = useState<TriageStatus>(ev?.triageStatus ?? 'em_triagem');
+  const [ratings, setRatings] = useState<Record<string, number>>(Object.fromEntries((ev?.ratings ?? []).map((r) => [r.criterion, r.score])));
+  const [reason, setReason] = useState<Reason | ''>(ev?.reason ?? '');
+  const [notes, setNotes] = useState(ev?.notes ?? '');
+  const [busy, setBusy] = useState(false);
+  const [sending, setSending] = useState(false);
+  const open = a.process.status === 'em_andamento';
+  const values = Object.values(ratings);
+  const avg = values.length ? values.reduce((x, y) => x + y, 0) / values.length : null;
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      await api.put(`/api/applications/${a.id}/evaluation`, {
+        expectedVersion: ev?.version ?? null,
+        triageStatus: status,
+        ratings: Object.entries(ratings).map(([criterion, score]) => ({ criterion, score })),
+        reason: status === 'reprovado_interno' ? reason || null : null,
+        notes: notes || null,
+      });
+      toast.success('Avaliação salva.');
+    } catch (e) {
+      toast.error(e);
+    } finally {
+      setBusy(false);
+      await qc.invalidateQueries({ queryKey: ['evaluation', a.id] });
+      await qc.invalidateQueries({ queryKey: ['board', a.process.id] });
+    }
+  };
+
+  return (
+    <div className="grid grid-2">
+      <section className="card">
+        <div className="card-header"><h2>Ficha de avaliação</h2>{avg !== null && <span className="badge badge-brand">Nota {fmtScore(avg)}</span>}</div>
+        <div className="card-body stack">
+          {names.length === 0 ? (
+            <p className="muted small" style={{ margin: 0 }}>Sem critérios definidos. O administrador define os critérios na aba “Vaga e triagem” do processo.</p>
+          ) : names.map((n) => (
+            <div key={n} className="row" style={{ justifyContent: 'space-between' }}>
+              <span>{n}</span>
+              <span className="row" role="radiogroup" aria-label={`Nota para ${n}`} style={{ gap: 4 }}>
+                {[1, 2, 3, 4, 5].map((v) => (
+                  <Button key={v} size="sm" variant={ratings[n] === v ? 'primary' : 'default'} role="radio" aria-checked={ratings[n] === v}
+                    disabled={!open} onClick={() => setRatings((r) => ({ ...r, [n]: v }))}>{v}</Button>
+                ))}
+              </span>
+            </div>
+          ))}
+          <TextArea label="Observações internas" value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} maxLength={5000} disabled={!open}
+            hint="Não são enviadas ao cliente." />
+        </div>
+      </section>
+      <section className="card">
+        <div className="card-header"><h2>Resultado da triagem</h2></div>
+        <div className="card-body stack">
+          {a.sentAt ? (
+            <Alert kind="success">Enviado ao cliente em {fmtDateTime(a.sentAt)}.</Alert>
+          ) : (
+            <>
+              <SelectField label="Situação" value={status} onChange={(e) => setStatus(e.target.value as TriageStatus)} disabled={!open}>
+                {Object.entries(triageLabel).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </SelectField>
+              {status === 'reprovado_interno' && (
+                <SelectField label="Motivo" value={reason} onChange={(e) => setReason(e.target.value as Reason)} required>
+                  <option value="">Escolha o motivo</option>
+                  {Object.entries(reasonLabel).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </SelectField>
+              )}
+            </>
+          )}
+          {open && (
+            <div className="row">
+              <Button variant="primary" loading={busy} onClick={save} disabled={status === 'reprovado_interno' && !reason}>Salvar avaliação</Button>
+              {!a.sentAt && ev?.triageStatus === 'aprovado_interno' && a.permissions.canMoveStage && a.decision === 'pendente' && (
+                <Button onClick={() => setSending(true)}>Enviar ao cliente</Button>
+              )}
+            </div>
+          )}
+          {ev && <p className="muted small" style={{ margin: 0 }}>Última avaliação por {ev.evaluatedByName ?? '—'} em {fmtDateTime(ev.updatedAt)}.</p>}
+        </div>
+      </section>
+      {sending && (
+        <SendLeadsModal processId={a.process.id} candidates={[{ applicationId: a.id, name: a.candidateName, summary: a.sharedSummary }]}
+          onClose={() => setSending(false)} onDone={() => setSending(false)} />
+      )}
     </div>
   );
 }
@@ -182,6 +291,8 @@ function StageTab({ a, stages }: { a: Application; stages: Stage[] }) {
   const toast = useToast();
   const [moving, setMoving] = useState(false);
   const [decision, setDecision] = useState<Decision | null>(null);
+  const [reason, setReason] = useState<Reason | ''>('');
+  const needsReason = decision === 'reprovado' || decision === 'desistiu';
   const [busy, setBusy] = useState(false);
   const open = a.process.status === 'em_andamento';
   const perms = a.permissions;
@@ -191,9 +302,10 @@ function StageTab({ a, stages }: { a: Application; stages: Stage[] }) {
     if (!decision) return;
     setBusy(true);
     try {
-      await api.post(`/api/applications/${a.id}/decision`, { decision, expectedVersion: a.version });
+      await api.post(`/api/applications/${a.id}/decision`, { decision, expectedVersion: a.version, ...(needsReason ? { reason } : {}) });
       toast.success('Decisão registrada no histórico.');
       setDecision(null);
+      setReason('');
     } catch (e) {
       toast.error(e);
       if (e instanceof ApiError && e.status === 409) setDecision(null);
@@ -233,7 +345,7 @@ function StageTab({ a, stages }: { a: Application; stages: Stage[] }) {
       <section className="card">
         <div className="card-header"><h2>Decisão sobre o candidato</h2></div>
         <div className="card-body stack">
-          <div><DecisionBadge decision={a.decision} /></div>
+          <div><DecisionBadge decision={a.decision} />{a.decisionReason && <span className="muted small"> · Motivo: {reasonLabel[a.decisionReason]}</span>}</div>
           <p className="muted small">A etapa indica onde o candidato está no fluxo. A decisão é registrada separadamente; “Aprovado” só pode ser registrado na etapa Aprovação.</p>
           {open && perms.canDecide ? (
             <div className="row">
@@ -252,9 +364,18 @@ function StageTab({ a, stages }: { a: Application; stages: Stage[] }) {
       )}
       {decision && (
         <ConfirmDialog title="Registrar decisão"
-          message={<>Confirmar a decisão <strong>{decisionLabel[decision]}</strong> para {a.candidateName}? A alteração fica registrada no histórico com seu nome e horário.</>}
+          message={<div className="stack">
+            <span>Confirmar a decisão <strong>{decisionLabel[decision]}</strong> para {a.candidateName}? A alteração fica registrada no histórico com seu nome e horário.</span>
+            {needsReason && (
+              <SelectField label="Motivo" value={reason} onChange={(e) => setReason(e.target.value as Reason)} required>
+                <option value="">Escolha o motivo</option>
+                {Object.entries(reasonLabel).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </SelectField>
+            )}
+          </div>}
           confirmLabel="Registrar decisão" danger={decision === 'reprovado'} loading={busy}
-          onConfirm={saveDecision} onCancel={() => setDecision(null)} />
+          onConfirm={() => { if (!needsReason || reason) void saveDecision(); else toast.error('Escolha o motivo.'); }}
+          onCancel={() => { setDecision(null); setReason(''); }} />
       )}
     </div>
   );
