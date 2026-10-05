@@ -79,8 +79,10 @@ export function BoardView({ board }: { board: Board }) {
                       <Link to={`/participacoes/${c.id}`} className="kcard-title">
                         {c.candidateName}
                       </Link>
-                      <div>
+                      <div className="row" style={{ gap: 4 }}>
                         <DecisionBadge decision={c.decision} />
+                        {c.source === 'portal' && <span className="badge badge-brand">Portal</span>}
+                        {c.screeningFailed && <span className="badge badge-warning" title="Respondeu diferente do exigido em pergunta eliminatória">Não atende requisito</span>}
                       </div>
                       <div className="kcard-meta">
                         <span>Responsável: {c.ownerName ?? '—'}</span>

@@ -48,12 +48,14 @@ export async function loadProcess(db: Db, id: string) {
     title: string;
     description: string | null;
     status: (typeof statuses)[number];
+    publication: string;
+    publicSlug: string | null;
     version: number;
     createdAt: Date;
     updatedAt: Date;
   }>(
     `select p.id, p.company_id as "companyId", c.name as "companyName", p.title, p.description, p.status,
-            p.version, p.created_at as "createdAt", p.updated_at as "updatedAt"
+            p.publication, p.public_slug as "publicSlug", p.version, p.created_at as "createdAt", p.updated_at as "updatedAt"
        from processes p join companies c on c.id = p.company_id where p.id = $1`,
     [id],
   );
@@ -80,7 +82,7 @@ export function registerProcessRoutes(app: FastifyInstance, deps: Deps) {
       const lim = w.param(q.pageSize);
       const off = w.param((q.page - 1) * q.pageSize);
       const { rows } = await db.query(
-        `select p.id, p.title, p.status, p.company_id as "companyId", c.name as "companyName",
+        `select p.id, p.title, p.status, p.publication, p.company_id as "companyId", c.name as "companyName",
                 p.updated_at as "updatedAt",
                 (select count(*)::int from applications a where a.process_id = p.id) as "candidateCount",
                 (select count(*)::int from applications a where a.process_id = p.id and a.decision = 'pendente') as "openCount"
@@ -238,7 +240,8 @@ export function registerProcessRoutes(app: FastifyInstance, deps: Deps) {
         `select a.id, a.stage_id as "stageId", a.decision, a.version, a.stage_changed_at as "stageChangedAt",
                 a.owner_id as "ownerId", app.person_label(a.owner_id) as "ownerName", s.full_name as "candidateName",
                 (select count(*)::int from application_documents ad where ad.application_id = a.id) as "documentCount",
-                (select count(*)::int from comments cm where cm.application_id = a.id) as "commentCount"
+                (select count(*)::int from comments cm where cm.application_id = a.id) as "commentCount",
+                a.source, (select i.screening_failed from application_intake i where i.application_id = a.id) as "screeningFailed"
            from applications a
            join shared_application_candidates s on s.application_id = a.id
           where a.process_id = $1

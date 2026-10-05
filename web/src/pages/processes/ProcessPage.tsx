@@ -10,8 +10,10 @@ import {
 import { kindLabel, statusLabel } from '../../lib/format';
 import { BoardView } from './BoardView';
 import { AddCandidateModal } from './AddCandidateModal';
+import { JobPanel, PublicationBadge } from './JobPanel';
+import { useAuth } from '../../auth/AuthContext';
 
-type Tab = 'quadro' | 'participantes' | 'dados';
+type Tab = 'quadro' | 'participantes' | 'dados' | 'vaga';
 
 export function ProcessPage() {
   usePageTitle('Processo seletivo');
@@ -19,6 +21,7 @@ export function ProcessPage() {
   const [params, setParams] = useSearchParams();
   const tab = (params.get('aba') as Tab) || 'quadro';
   const [adding, setAdding] = useState(false);
+  const { isAlpha } = useAuth();
   const board = useQuery({ queryKey: ['board', id], queryFn: () => api.get<Board>(`/api/processes/${id}/board`) });
 
   if (board.isLoading) return <Loading />;
@@ -29,6 +32,7 @@ export function ProcessPage() {
     { id: 'quadro', label: 'Quadro' },
     { id: 'participantes', label: 'Participantes autorizados' },
     { id: 'dados', label: 'Dados do processo' },
+    ...(isAlpha ? [{ id: 'vaga' as Tab, label: 'Vaga no portal' }] : []),
   ];
 
   return (
@@ -40,6 +44,7 @@ export function ProcessPage() {
           <span className="row">
             <span>{process.companyName}</span>
             <StatusBadge status={process.status} />
+            <PublicationBadge publication={process.publication} />
           </span>
         }
         actions={
@@ -60,6 +65,7 @@ export function ProcessPage() {
         {tab === 'quadro' && <BoardView board={board.data!} />}
         {tab === 'participantes' && <MembersPanel process={process} />}
         {tab === 'dados' && <ProcessDetails process={process} />}
+        {tab === 'vaga' && isAlpha && <JobPanel process={process} />}
       </div>
       {adding && <AddCandidateModal processId={process.id} onClose={() => setAdding(false)} />}
     </>

@@ -56,6 +56,13 @@ Executar em ambiente de **homologação** com dados fictícios, usando **contas 
 - [ ] Cobranças → nova cobrança para várias empresas → e-mails chegam; marcar como paga → recibo chega.
 - [ ] Usuário da equipe ou cliente não vê "Cadastros" nem "Cobranças" e recebe 403 na API.
 
+## Vagas e portal
+
+- [ ] Processo → Vaga no portal → preencher e publicar → vaga aparece em /vagas; pausar → some.
+- [ ] Candidatar-se pelo celular com PDF → entra no quadro (1ª etapa) com selo Portal; e-mail de confirmação chega.
+- [ ] Pergunta eliminatória respondida diferente → selo "Não atende requisito"; respostas visíveis na participação.
+- [ ] Usuário de cliente não vê as respostas da candidatura.
+
 ## Interface
 
 - [ ] Celular: menu, quadro (colunas empilhadas, botões de mover), formulários sem rolagem horizontal.

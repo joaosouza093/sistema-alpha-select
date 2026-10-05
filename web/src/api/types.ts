@@ -66,6 +66,8 @@ export interface Process {
   title: string;
   description: string | null;
   status: ProcessStatus;
+  publication?: Publication;
+  publicSlug?: string | null;
   version: number;
   createdAt: string;
   updatedAt: string;
@@ -76,6 +78,7 @@ export interface ProcessRow {
   id: string;
   title: string;
   status: ProcessStatus;
+  publication?: Publication;
   companyId: string;
   companyName: string;
   updatedAt: string;
@@ -104,6 +107,8 @@ export interface BoardCard {
   candidateName: string;
   documentCount: number;
   commentCount: number;
+  source?: 'interno' | 'portal';
+  screeningFailed?: boolean | null;
 }
 
 export interface Board {
@@ -158,6 +163,9 @@ export interface Candidate {
   createdAt: string;
   updatedAt: string;
   createdByName: string | null;
+  source?: 'interno' | 'portal';
+  city?: string | null;
+  consentAt?: string | null;
   applications: CandidateApplication[];
   documents: DocumentRow[];
 }
@@ -174,6 +182,7 @@ export interface Application {
   createdAt: string;
   updatedAt: string;
   sharedSummary: string | null;
+  source?: 'interno' | 'portal';
   shareEmail?: boolean;
   sharePhone?: boolean;
   shareSalary?: boolean;
@@ -310,4 +319,57 @@ export interface BillingSettings {
   overdueEveryDays: number;
   overdueMaxReminders: number;
   emailEnabled: boolean;
+}
+
+export type Publication = 'rascunho' | 'publicada' | 'pausada' | 'encerrada';
+export type WorkModel = 'presencial' | 'hibrido' | 'remoto';
+export type EmploymentType = 'clt' | 'pj' | 'estagio' | 'temporario' | 'outro';
+
+export interface ScreeningQuestion {
+  id?: string;
+  text: string;
+  eliminatory: boolean;
+  expected: 'sim' | 'nao';
+}
+
+export interface JobConfig {
+  jobLocation: string | null;
+  workModel: WorkModel | null;
+  employmentType: EmploymentType | null;
+  requirements: string | null;
+  benefits: string | null;
+  salaryMinCents: number | null;
+  salaryMaxCents: number | null;
+  showCompany: boolean;
+  publication: Publication;
+  publicSlug: string | null;
+  publishedAt: string | null;
+  screeningQuestions: ScreeningQuestion[];
+  version: number;
+  status: ProcessStatus;
+}
+
+export interface PublicJob {
+  slug: string;
+  title: string;
+  location: string | null;
+  workModel: WorkModel | null;
+  employmentType: EmploymentType | null;
+  publishedAt: string | null;
+  companyName: string | null;
+  salaryMinCents: number | null;
+  salaryMaxCents: number | null;
+}
+
+export interface PublicJobDetail extends PublicJob {
+  description: string | null;
+  requirements: string | null;
+  benefits: string | null;
+  questions: { id: string; text: string }[];
+}
+
+export interface Intake {
+  answers: { id: string; text: string; eliminatory: boolean; expected: 'sim' | 'nao'; answer: 'sim' | 'nao' }[];
+  screeningFailed: boolean;
+  createdAt: string;
 }

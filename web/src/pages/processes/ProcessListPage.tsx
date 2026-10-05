@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { PublicationBadge } from './JobPanel';
 import { api, qs } from '../../api/client';
 import type { Company, Page, ProcessRow, ProcessStatus } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
@@ -72,7 +73,7 @@ export function ProcessListPage() {
                     <tr key={p.id}>
                       <td data-label="Processo"><Link to={`/processos/${p.id}`}><strong>{p.title}</strong></Link></td>
                       <td data-label="Empresa">{p.companyName}</td>
-                      <td data-label="Situação"><StatusBadge status={p.status} /></td>
+                      <td data-label="Situação"><StatusBadge status={p.status} /> <PublicationBadge publication={p.publication} /></td>
                       <td data-label="Candidatos">{p.candidateCount}</td>
                       <td data-label="Em avaliação">{p.openCount}</td>
                       <td data-label="Atualizado">{fmtDate(p.updatedAt)}</td>

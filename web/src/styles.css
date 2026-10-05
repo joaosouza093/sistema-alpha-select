@@ -305,3 +305,33 @@ table.table { width: 100%; border-collapse: collapse; }
 @media (max-width: 560px) { .filters { grid-template-columns: 1fr; } }
 .preview-frame { width: 100%; height: 70vh; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #fff; }
 .preview-img { max-width: 100%; max-height: 70vh; display: block; margin: 0 auto; }
+
+/* ---------------------------------------------------------------- portal público de vagas */
+.public-page { min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); }
+.public-header { background: var(--navy); border-bottom: 3px solid var(--gold); display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 24px; flex-wrap: wrap; }
+.public-header :focus-visible { outline-color: var(--focus-on-navy); }
+.public-brand .brand-logo { height: 44px; width: auto; display: block; }
+.public-nav { display: flex; gap: 6px; flex-wrap: wrap; }
+.public-nav a { color: #fff; text-decoration: none; padding: 8px 12px; border-radius: var(--radius-sm); font-weight: 500; }
+.public-nav a:hover { background: rgba(255, 255, 255, .08); }
+.public-nav a.active { box-shadow: inset 0 -2px 0 var(--gold); }
+.public-main { flex: 1; }
+.public-hero { background: var(--navy-800); color: #fff; padding: 32px 24px; }
+.public-hero h1 { margin: 0 0 6px; color: #fff; font-size: 1.8rem; }
+.public-hero p { margin: 0; color: #D7DEE8; }
+.public-hero > * { max-width: 1040px; margin-left: auto; margin-right: auto; }
+.public-back { display: inline-block; color: #fff; margin-bottom: 10px; }
+.public-content { max-width: 1040px; margin: 24px auto; padding: 0 16px; }
+.public-content.narrow { max-width: 640px; }
+.job-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.job-card { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 18px; flex-wrap: wrap; }
+.job-card h2 { margin: 0 0 4px; font-size: 1.1rem; }
+.job-card p { margin: 2px 0; }
+.job-detail { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.job-detail h2 { font-size: 1.05rem; margin: 0 0 6px; }
+.job-detail section p { margin: 0; }
+@media (max-width: 860px) { .job-detail { grid-template-columns: 1fr; } }
+.question { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; margin: 0; }
+.question legend { font-weight: 600; padding: 0 4px; }
+.privacy summary { cursor: pointer; font-weight: 600; }
+.privacy p { margin: 8px 0 0; color: var(--text-muted); font-size: .9rem; }

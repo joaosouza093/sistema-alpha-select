@@ -80,6 +80,7 @@ export interface Limiters {
   invite: RateLimiter;
   signupIp: RateLimiter;
   signupAccount: RateLimiter;
+  publicApplyIp: RateLimiter;
 }
 
 export function createLimiters(store: 'memory' | 'postgres' = 'memory', pool?: pg.Pool): Limiters {
@@ -96,5 +97,6 @@ export function createLimiters(store: 'memory' | 'postgres' = 'memory', pool?: p
     invite: make('invite', 30, 60 * min),
     signupIp: make('signupIp', 8, 60 * min),
     signupAccount: make('signupAccount', 3, 60 * min),
+    publicApplyIp: make('publicApplyIp', 10, 60 * min),
   };
 }

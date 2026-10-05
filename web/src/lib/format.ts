@@ -77,3 +77,13 @@ export const noticeLabel = {
   pagamento: 'Recibo de pagamento',
   manual: 'Reenvio manual',
 } as const;
+
+export const workModelLabel = { presencial: 'Presencial', hibrido: 'Híbrido', remoto: 'Remoto' } as const;
+export const employmentTypeLabel = { clt: 'CLT', pj: 'PJ', estagio: 'Estágio', temporario: 'Temporário', outro: 'Outro' } as const;
+export const publicationLabel = { rascunho: 'Não publicada', publicada: 'Publicada', pausada: 'Pausada', encerrada: 'Encerrada' } as const;
+
+export function fmtSalaryRange(min: number | null | undefined, max: number | null | undefined) {
+  if (min == null && max == null) return null;
+  if (min != null && max != null) return min === max ? fmtCents(min) : `${fmtCents(min)} a ${fmtCents(max)}`;
+  return min != null ? `a partir de ${fmtCents(min)}` : `até ${fmtCents(max!)}`;
+}

@@ -38,6 +38,7 @@ export function registerSignupRoutes(app: FastifyInstance, deps: Deps) {
   /** Informações públicas para as telas de acesso (sem dados sensíveis). */
   app.get('/api/auth/options', { config: { public: true } }, async () => ({
     emailEnabled: emailVerificationEnabled(deps),
+    maxUploadMb: deps.config.MAX_UPLOAD_MB,
   }));
 
   app.post('/api/auth/signup', { config: { public: true } }, async (req) => {

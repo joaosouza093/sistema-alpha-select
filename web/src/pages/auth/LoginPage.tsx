@@ -56,6 +56,9 @@ export function LoginPage() {
         <p className="muted small">
           Ainda não tem acesso? <Link to="/cadastro">Cadastre sua empresa</Link>
         </p>
+        <p className="muted small" style={{ margin: 0 }}>
+          Procurando emprego? <Link to="/vagas">Veja as vagas abertas</Link>
+        </p>
       </form>
     </AuthShell>
   );

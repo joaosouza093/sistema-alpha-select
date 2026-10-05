@@ -11,6 +11,9 @@ import { SignupPage } from './pages/auth/SignupPage';
 import { ConfirmEmailPage } from './pages/auth/ConfirmEmailPage';
 import { SignupsPage } from './pages/admin/SignupsPage';
 import { BillingPage } from './pages/admin/BillingPage';
+import { JobsPage } from './pages/public/JobsPage';
+import { JobPage } from './pages/public/JobPage';
+import { TalentPage } from './pages/public/TalentPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProcessListPage } from './pages/processes/ProcessListPage';
 import { ProcessPage } from './pages/processes/ProcessPage';
@@ -43,6 +46,9 @@ export function App() {
       <Route path="/convite" element={<AcceptInvitePage />} />
       <Route path="/cadastro" element={<SignupPage />} />
       <Route path="/confirmar-email" element={<ConfirmEmailPage />} />
+      <Route path="/vagas" element={<JobsPage />} />
+      <Route path="/vagas/:slug" element={<JobPage />} />
+      <Route path="/trabalhe-conosco" element={<TalentPage />} />
       <Route
         element={
           <RequireAuth>

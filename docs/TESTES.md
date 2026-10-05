@@ -6,8 +6,8 @@ Execução em 05/10/2026, PostgreSQL 16 local, Node.js 22, Chromium (Playwright 
 | --- | --- | --- |
 | Tipos (servidor e web) | `npm run typecheck` | ✅ sem erros |
 | Build de produção | `npm run build` | ✅ |
-| Integração do backend | `npm test` | ✅ **104/104** |
-| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **104/104** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
+| Integração do backend | `npm test` | ✅ **110/110** |
+| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **110/110** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
 | Empacotamento Netlify Functions | `npm run check:netlify` | ✅ |
 | Navegador (desktop + celular) | `npm run test:e2e` | ✅ **8/8** |
 | Dependências de produção | `npm audit --omit=dev` | ✅ 0 vulnerabilidades |
@@ -63,6 +63,14 @@ senha negada ao próprio administrador); regra dos avisos (criada, lembrete, ven
 limitados), envio em lote, e-mail de cobrança ausente, atraso sem repetição, recibo de pagamento,
 versão desatualizada, recorrência mensal sem duplicar e com fim de mês, envio automático desligado.
 `serverless.test.ts` cobre a configuração de `SMTP_USER`/`SMTP_PASSWORD`.
+
+## Vagas e portal
+
+`jobs-portal.test.ts` (6 testes): só vagas publicadas aparecem e sem dados internos nem resposta
+esperada; candidatura cria candidato, currículo e participação na 1ª etapa com origem e triagem;
+duplicidade na mesma vaga; perguntas sem resposta, sem consentimento, campos extras, arquivo falso e
+robô recusados; vaga pausada/processo concluído saem do ar; banco de talentos visível só ao
+administrador; respostas não chegam a clientes (API e RLS) e só administrador publica.
 
 ## Integração contínua
 

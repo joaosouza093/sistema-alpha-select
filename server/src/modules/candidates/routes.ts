@@ -151,7 +151,8 @@ export function registerCandidateRoutes(app: FastifyInstance, deps: Deps) {
       const { rows } = await db.query(
         `select c.id, c.full_name as "fullName", c.email, c.phone, c.salary_expectation as "salaryExpectation",
                 c.notes, c.version, c.archived_at as "archivedAt", c.created_at as "createdAt",
-                c.updated_at as "updatedAt", u.full_name as "createdByName"
+                c.updated_at as "updatedAt", u.full_name as "createdByName",
+                c.source, c.city, c.consent_at as "consentAt"
            from candidates c left join users u on u.id = c.created_by where c.id = $1`,
         [id],
       );

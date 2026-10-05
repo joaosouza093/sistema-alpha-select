@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, ApiError, setCsrfToken, setUnauthorizedHandler } from '../api/client';
 import type { SessionUser } from '../api/types';
@@ -23,6 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [expired, setExpired] = useState(false);
+  const hadSession = useRef(false);
   const [maxUploadMb, setMaxUploadMb] = useState(10);
 
   const clear = useCallback(() => {
@@ -33,6 +34,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setUnauthorizedHandler(() => {
+      // Só trata como "sessão expirada" quem estava logado; visitantes de páginas públicas não.
+      if (!hadSession.current) return;
+      hadSession.current = false;
       setExpired(true);
       clear();
     });
@@ -41,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((r) => {
         if (r.limits) setMaxUploadMb(r.limits.maxUploadMb);
         setCsrfToken(r.csrfToken);
+        hadSession.current = true;
         setUser(r.user);
       })
       .catch((e) => {
@@ -57,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (r.limits) setMaxUploadMb(r.limits.maxUploadMb);
       setCsrfToken(r.csrfToken);
       setExpired(false);
+      hadSession.current = true;
       setUser(r.user);
     },
     [qc],
@@ -66,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await api.post('/api/auth/logout');
     } finally {
+      hadSession.current = false;
       setExpired(false);
       clear();
     }

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '../../api/client';
-import type { Application, Comment, Decision, DocumentRow, HistoryItem, Stage, Visibility } from '../../api/types';
+import type { Application, Intake, Comment, Decision, DocumentRow, HistoryItem, Stage, Visibility } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
 import {
   Alert, Button, Checkbox, ConfirmDialog, DecisionBadge, Empty, ErrorState, Loading, PageHeader, SelectField,
@@ -92,12 +92,42 @@ function CandidateTab({ a }: { a: Application }) {
             <dt>Etapa atual</dt><dd>{a.stageName} ({daysSince(a.stageChangedAt)})</dd>
             <dt>Responsável</dt><dd>{a.ownerName ?? '—'}</dd>
             <dt>Decisão</dt><dd><DecisionBadge decision={a.decision} /></dd>
-            <dt>Incluído em</dt><dd>{fmtDateTime(a.createdAt)}</dd>
+            <dt>Incluído em</dt><dd>{fmtDateTime(a.createdAt)}{a.source === 'portal' && <> · <span className="badge badge-brand">pelo portal de vagas</span></>}</dd>
           </dl>
         </div>
       </section>
+      {isAlpha && a.source === 'portal' && <IntakeCard a={a} />}
       {isAlpha && <SharingCard a={a} />}
     </div>
+  );
+}
+
+/** Respostas da candidatura pelo portal (somente equipe Alpha). */
+function IntakeCard({ a }: { a: Application }) {
+  const q = useQuery({ queryKey: ['intake', a.id], queryFn: () => api.get<Intake>(`/api/applications/${a.id}/intake`) });
+  return (
+    <section className="card">
+      <div className="card-header"><h2>Respostas da candidatura</h2>
+        {q.data?.screeningFailed && <span className="badge badge-warning">Não atende requisito eliminatório</span>}</div>
+      <div className="card-body">
+        {q.isLoading ? <Loading /> : q.isError ? <ErrorState error={q.error} /> : q.data!.answers.length === 0 ? (
+          <p className="muted" style={{ margin: 0 }}>A vaga não tinha perguntas.</p>
+        ) : (
+          <dl className="dl">
+            {q.data!.answers.map((x) => (
+              <div key={x.id} style={{ display: 'contents' }}>
+                <dt>{x.text}</dt>
+                <dd>
+                  {x.answer === 'sim' ? 'Sim' : 'Não'}
+                  {x.eliminatory && x.answer !== x.expected && <> <span className="badge badge-warning">esperado: {x.expected === 'sim' ? 'Sim' : 'Não'}</span></>}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        )}
+        <p className="muted small" style={{ marginBottom: 0 }}>A decisão continua sendo da equipe; as respostas não reprovam ninguém automaticamente.</p>
+      </div>
+    </section>
   );
 }
 

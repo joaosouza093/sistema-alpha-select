@@ -84,7 +84,12 @@ function DataTab({ c }: { c: Candidate }) {
             <dt>Telefone</dt><dd>{fmtPhone(c.phone)}</dd>
             <dt>Pretensão salarial</dt><dd>{fmtMoney(c.salaryExpectation)}</dd>
             <dt>Observações internas</dt><dd className="pre-wrap">{c.notes || '—'}</dd>
-            <dt>Cadastrado por</dt><dd>{c.createdByName ?? '—'} em {fmtDateTime(c.createdAt)}</dd>
+            {c.city && <><dt>Cidade</dt><dd>{c.city}</dd></>}
+            <dt>Cadastrado por</dt>
+            <dd>
+              {c.source === 'portal' ? 'O próprio candidato, pelo portal de vagas' : c.createdByName ?? '—'} em {fmtDateTime(c.createdAt)}
+            </dd>
+            {c.consentAt && <><dt>Consentimento</dt><dd>Aceitou o aviso de privacidade em {fmtDateTime(c.consentAt)}</dd></>}
             <dt>Última atualização</dt><dd>{fmtDateTime(c.updatedAt)}</dd>
           </dl>
         </div>

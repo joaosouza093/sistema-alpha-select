@@ -74,7 +74,7 @@ export function registerApplicationRoutes(app: FastifyInstance, deps: Deps) {
       const { rows } = await db.query(
         `select a.id, a.stage_id as "stageId", st.name as "stageName", a.decision, a.version,
                 a.owner_id as "ownerId", app.person_label(a.owner_id) as "ownerName", a.stage_changed_at as "stageChangedAt",
-                a.created_at as "createdAt", a.updated_at as "updatedAt", a.shared_summary as "sharedSummary",
+                a.created_at as "createdAt", a.updated_at as "updatedAt", a.shared_summary as "sharedSummary", a.source,
                 a.share_email as "shareEmail", a.share_phone as "sharePhone", a.share_salary as "shareSalary",
                 s.candidate_id as "candidateId", s.full_name as "candidateName", s.email as "candidateEmail",
                 s.phone as "candidatePhone", s.salary_expectation as "candidateSalary"
