@@ -181,6 +181,7 @@ export interface Candidate {
   createdByName: string | null;
   source?: 'interno' | 'portal';
   city?: string | null;
+  emailOptOutAt?: string | null;
   consentAt?: string | null;
   applications: CandidateApplication[];
   documents: DocumentRow[];
@@ -242,6 +243,8 @@ export interface HistoryItem {
 export interface Dashboard {
   totals: { activeProcesses: number; candidates: number; openApplications: number };
   leads?: { inTriage: number; sentLast30: number; overdue: number };
+  awaiting?: { id: string; candidateName: string; processTitle: string; stageName: string; stageChangedAt: string; overdue: boolean }[];
+  byProcess?: { id: string; title: string; companyName: string; sent: number; pending: number; approved: number; rejected: number; avgResponseDays: number | null }[];
   byStage: { stageId: number; name: string; count: number }[];
   myPending: { id: string; candidateName: string; processTitle: string; stageName: string; stageChangedAt: string }[];
   recent: {
@@ -407,4 +410,36 @@ export interface Evaluation {
   version: number;
   updatedAt: string;
   evaluatedByName: string | null;
+}
+
+export interface Interview {
+  id: string;
+  scheduledAt: string;
+  mode: 'presencial' | 'online' | 'telefone';
+  location: string | null;
+  notes: string | null;
+  status: 'agendada' | 'realizada' | 'cancelada';
+  version: number;
+  createdByName: string | null;
+  createdAt: string;
+}
+
+export interface MessageTemplate {
+  key: 'candidatura_recebida' | 'perfil_enviado' | 'entrevista_agendada' | 'reprovacao';
+  enabled: boolean;
+  subject: string;
+  body: string;
+  updatedAt: string;
+}
+
+export interface MessageLogRow {
+  id: string;
+  templateKey: MessageTemplate['key'];
+  candidateId: string;
+  candidateName: string;
+  to: string;
+  subject: string;
+  ok: boolean;
+  error: string | null;
+  sentAt: string;
 }

@@ -58,7 +58,42 @@ export function registerDashboardRoutes(app: FastifyInstance, deps: Deps) {
            from applications a join processes p on p.id = a.process_id
           where p.status = 'em_andamento'`,
       );
-      return { totals: totals.rows[0], leads: leads.rows[0], byStage: byStage.rows, myPending: mine.rows, recent: recent.rows };
+      // Fila de retorno do cliente: candidatos enviados e ainda sem decisão.
+      const awaiting = user.kind === 'client_user' || user.kind === 'client_manager'
+        ? (await db.query(
+            `select a.id, s.full_name as "candidateName", p.title as "processTitle", st.name as "stageName",
+                    a.stage_changed_at as "stageChangedAt",
+                    (a.stage_changed_at < now() - make_interval(days => p.sla_days)) as "overdue"
+               from applications a
+               join processes p on p.id = a.process_id
+               join stages st on st.id = a.stage_id
+               join shared_application_candidates s on s.application_id = a.id
+              where a.sent_at is not null and a.decision = 'pendente' and p.status = 'em_andamento'
+              order by a.stage_changed_at limit 50`,
+          )).rows
+        : [];
+      // Indicadores por processo (sobre o que o usuário vê).
+      const byProcess = await db.query(
+        `select p.id, p.title, co.name as "companyName",
+                count(a.id) filter (where a.sent_at is not null)::int as sent,
+                count(a.id) filter (where a.sent_at is not null and a.decision = 'pendente')::int as pending,
+                count(a.id) filter (where a.decision = 'aprovado')::int as approved,
+                count(a.id) filter (where a.decision in ('reprovado', 'desistiu'))::int as rejected,
+                round(avg(extract(epoch from (
+                  select min(h.created_at) from application_history h
+                   where h.application_id = a.id and h.to_decision in ('aprovado', 'reprovado', 'desistiu')
+                ) - a.sent_at) / 86400)::numeric, 1)::float as "avgResponseDays"
+           from processes p
+           join companies co on co.id = p.company_id
+           left join applications a on a.process_id = p.id
+          where p.status = 'em_andamento'
+          group by p.id, p.title, co.name
+          order by p.title limit 50`,
+      );
+      return {
+        totals: totals.rows[0], leads: leads.rows[0], byStage: byStage.rows, myPending: mine.rows, recent: recent.rows,
+        awaiting, byProcess: byProcess.rows,
+      };
     });
   });
 

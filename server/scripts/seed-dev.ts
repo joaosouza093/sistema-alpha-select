@@ -84,7 +84,9 @@ for (const [i, name] of names.entries()) {
   );
   const cand = rows[0]!.id;
   const a = await client.query<{ id: string }>(
-    'insert into applications (candidate_id, process_id, stage_id, owner_id, share_email) values ($1, $2, $3, $4, $5) returning id',
+    // Participações fora da 1ª etapa já foram enviadas ao cliente.
+    `insert into applications (candidate_id, process_id, stage_id, owner_id, share_email, sent_at)
+     values ($1, $2, $3, $4, $5, case when $3::smallint > 1 then now() end) returning id`,
     [cand, i < 4 ? p1 : p2, (i % 4) + 1, i % 2 ? rhAlfa : staff, i === 0],
   );
   if (i >= 4) await client.query('update applications set owner_id = $2 where id = $1', [a.rows[0]!.id, rhBeta]);

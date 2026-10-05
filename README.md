@@ -38,7 +38,7 @@ npm run dev:web                      # interface em http://localhost:5173
 | --- | --- |
 | `npm run typecheck` | Verificação de tipos (servidor e web) |
 | `npm run build` | Build de produção (servidor e web) |
-| `npm test` | 117 testes de integração do backend (recria o banco `alpha_test`) |
+| `npm test` | 122 testes de integração do backend (recria o banco `alpha_test`) |
 | `npm run check:netlify` | Verifica o empacotamento das funções do Netlify |
 | `npm run test:e2e` | 8 testes no navegador (requer servidor em `localhost:3000`) |
 | `npm run db:migrate` | Aplica migrações pendentes |
@@ -58,5 +58,6 @@ npm run dev:web                      # interface em http://localhost:5173
 - [Cadastro pelo site, recuperação de senha e cobranças](docs/CADASTRO_E_COBRANCAS.md)
 - [Vagas e portal público de candidatura](docs/VAGAS_E_PORTAL.md)
 - [Triagem, envio ao cliente, motivos e prazos](docs/TRIAGEM_E_ENVIO.md)
+- [Portal do cliente e mensagens ao candidato](docs/PORTAL_CLIENTE_E_MENSAGENS.md)
 - [Pendências, premissas e limitações](docs/PENDENCIAS.md)
 - [Identidade visual oficial (arquivos, paleta, contraste e substituição)](docs/IDENTIDADE_VISUAL.md)

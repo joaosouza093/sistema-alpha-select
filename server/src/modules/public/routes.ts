@@ -9,6 +9,7 @@ import { zEmail, zOptionalPhone, zOptionalText, zText } from '../../lib/normaliz
 import { receiveUpload } from '../../lib/upload.js';
 import { insertAudit } from '../auth/service.js';
 import type { ScreeningQuestion } from '../jobs/routes.js';
+import { sendCandidateMessage } from '../messages/service.js';
 
 /**
  * Portal público de vagas. Rotas sem login, com a menor superfície possível:
@@ -161,10 +162,13 @@ export function registerPublicRoutes(app: FastifyInstance, deps: Deps) {
         committedKey = storageKey;
         await insertAudit(db, null, target ? 'portal.application_received' : 'portal.talent_received',
           target ? 'application' : 'candidate', applicationId ?? candidateId, req.ip, { screeningFailed });
-        return 'created' as const;
+        return { candidateId, applicationId };
       });
       committedKey = null;
-      if (result === 'created') await confirm(data, target?.title ?? null);
+      if (result !== 'duplicate') {
+        if (result.applicationId) await confirmByTemplate(data, result.candidateId, result.applicationId);
+        else await confirm(data, null);
+      }
     } finally {
       await rm(tmp, { force: true }).catch(() => undefined);
       if (committedKey) await deps.storage.remove(committedKey).catch(() => undefined);
@@ -179,6 +183,16 @@ export function registerPublicRoutes(app: FastifyInstance, deps: Deps) {
       [processId, email],
     );
     return !!r.rowCount;
+  }
+
+  /** Confirmação da candidatura pelo modelo "candidatura_recebida" (limitada por e-mail). */
+  async function confirmByTemplate(data: ApplicationInput, candidateId: string, applicationId: string) {
+    try {
+      await deps.limiters.signupAccount.consume(`cand:${data.email}`);
+    } catch {
+      return;
+    }
+    await sendCandidateMessage(deps, 'candidatura_recebida', { candidateId, applicationId });
   }
 
   /** Confirmação automática ao candidato (limitada por e-mail para evitar abuso). */

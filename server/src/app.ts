@@ -24,6 +24,7 @@ import { registerBillingRoutes } from './modules/billing/routes.js';
 import { registerJobRoutes } from './modules/jobs/routes.js';
 import { registerPublicRoutes } from './modules/public/routes.js';
 import { registerLeadRoutes } from './modules/leads/routes.js';
+import { registerMessageRoutes } from './modules/messages/routes.js';
 
 z.config(z.locales.pt());
 
@@ -158,6 +159,7 @@ export async function buildApp(deps: Deps): Promise<FastifyInstance> {
   registerJobRoutes(app, deps);
   registerPublicRoutes(app, deps);
   registerLeadRoutes(app, deps);
+  registerMessageRoutes(app, deps);
 
   /**
    * Saúde da API e da conexão com o banco. Em caso de falha, informa apenas a

@@ -14,6 +14,8 @@ import { BillingPage } from './pages/admin/BillingPage';
 import { JobsPage } from './pages/public/JobsPage';
 import { JobPage } from './pages/public/JobPage';
 import { TalentPage } from './pages/public/TalentPage';
+import { UnsubscribePage } from './pages/public/UnsubscribePage';
+import { MessagesPage } from './pages/admin/MessagesPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProcessListPage } from './pages/processes/ProcessListPage';
 import { ProcessPage } from './pages/processes/ProcessPage';
@@ -49,6 +51,7 @@ export function App() {
       <Route path="/vagas" element={<JobsPage />} />
       <Route path="/vagas/:slug" element={<JobPage />} />
       <Route path="/trabalhe-conosco" element={<TalentPage />} />
+      <Route path="/descadastrar" element={<UnsubscribePage />} />
       <Route
         element={
           <RequireAuth>
@@ -68,6 +71,7 @@ export function App() {
         <Route path="usuarios" element={<RequireAuth admin><UsersPage /></RequireAuth>} />
         <Route path="cadastros" element={<RequireAuth admin><SignupsPage /></RequireAuth>} />
         <Route path="cobrancas" element={<RequireAuth admin><BillingPage /></RequireAuth>} />
+        <Route path="mensagens" element={<RequireAuth admin><MessagesPage /></RequireAuth>} />
         <Route path="auditoria" element={<RequireAuth admin><AuditPage /></RequireAuth>} />
         <Route path="conta" element={<AccountPage />} />
         <Route path="*" element={<NotFoundPage />} />

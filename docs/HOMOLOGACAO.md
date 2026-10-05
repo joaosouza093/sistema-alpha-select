@@ -71,6 +71,13 @@ Executar em ambiente de **homologação** com dados fictícios, usando **contas 
 - [ ] "Não aprovado" e "Desistiu" pedem motivo; motivo aparece no cartão.
 - [ ] Cartão parado além do prazo mostra "Prazo vencido"; painel conta os atrasados.
 
+## Portal do cliente e mensagens
+
+- [ ] Cliente vê "Aguardando seu retorno" e os indicadores por processo no painel.
+- [ ] Cliente avança, recusa (com motivo) ou mantém em análise com comentário; agenda entrevista.
+- [ ] Candidato recebe e-mail ao ser enviado e ao ter entrevista agendada; link de descadastro funciona.
+- [ ] Administração → Mensagens: editar modelo e ver os envios.
+
 ## Interface
 
 - [ ] Celular: menu, quadro (colunas empilhadas, botões de mover), formulários sem rolagem horizontal.

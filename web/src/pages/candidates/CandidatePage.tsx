@@ -2,14 +2,14 @@ import { useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client';
-import type { Candidate, DocumentRow, Page, ProcessRow, Stage } from '../../api/types';
+import type { Candidate, DocumentRow, MessageLogRow, Page, ProcessRow, Stage } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
 import {
   Alert, Button, ConfirmDialog, DecisionBadge, Empty, ErrorState, Loading, Modal, PageHeader, SelectField, StatusBadge,
   Tabs, usePageTitle, useToast,
 } from '../../components/ui';
 import { DocumentPreview } from '../../components/DocumentPreview';
-import { docKindLabel, fmtDateTime, fmtMoney, fmtPhone, fmtSize } from '../../lib/format';
+import { docKindLabel, fmtDateTime, fmtMoney, fmtPhone, fmtSize, templateLabel } from '../../lib/format';
 
 type Tab = 'dados' | 'participacoes' | 'documentos';
 
@@ -80,7 +80,7 @@ function DataTab({ c }: { c: Candidate }) {
         <div className="card-body">
           <dl className="dl">
             <dt>Nome</dt><dd>{c.fullName}</dd>
-            <dt>E-mail</dt><dd>{c.email ?? '—'}</dd>
+            <dt>E-mail</dt><dd>{c.email ?? '—'}{c.emailOptOutAt && <> <span className="badge">não quer receber e-mails desde {fmtDateTime(c.emailOptOutAt)}</span></>}</dd>
             <dt>Telefone</dt><dd>{fmtPhone(c.phone)}</dd>
             <dt>Pretensão salarial</dt><dd>{fmtMoney(c.salaryExpectation)}</dd>
             <dt>Observações internas</dt><dd className="pre-wrap">{c.notes || '—'}</dd>
@@ -94,6 +94,7 @@ function DataTab({ c }: { c: Candidate }) {
           </dl>
         </div>
       </section>
+      <MessagesCard candidateId={c.id} />
       <section className="card">
         <div className="card-header"><h2>Ciclo de vida do cadastro</h2></div>
         <div className="card-body stack">
@@ -332,5 +333,32 @@ function DocumentsTab({ c, initialApp }: { c: Candidate; initialApp: string | nu
           onConfirm={doRemove} onCancel={() => setRemoving(null)} />
       )}
     </div>
+  );
+}
+
+/** E-mails automáticos enviados ao candidato (sem o conteúdo). */
+function MessagesCard({ candidateId }: { candidateId: string }) {
+  const q = useQuery({
+    queryKey: ['message-log', 'candidate', candidateId],
+    queryFn: () => api.get<Page<MessageLogRow>>(`/api/message-log?candidateId=${candidateId}&pageSize=20`),
+  });
+  return (
+    <section className="card">
+      <div className="card-header"><h2>Mensagens enviadas</h2></div>
+      <div className="card-body">
+        {q.isLoading ? <Loading /> : q.isError ? <ErrorState error={q.error} /> : q.data!.items.length === 0 ? (
+          <p className="muted" style={{ margin: 0 }}>Nenhum e-mail automático enviado.</p>
+        ) : (
+          <ul className="stack" style={{ listStyle: 'none', padding: 0, margin: 0, gap: 6 }}>
+            {q.data!.items.map((m) => (
+              <li key={m.id}>
+                {fmtDateTime(m.sentAt)} · <strong>{templateLabel[m.templateKey] ?? m.templateKey}</strong> · {m.subject}{' '}
+                {m.ok ? <span className="badge badge-success">enviado</span> : <span className="badge badge-danger">{m.error ?? 'falhou'}</span>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
   );
 }

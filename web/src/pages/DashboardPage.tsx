@@ -76,6 +76,53 @@ export function DashboardPage() {
             </section>
           )}
 
+          {!isAlpha && q.data!.awaiting && (
+            <section className="card">
+              <div className="card-header">
+                <h2>Aguardando seu retorno</h2>
+                <span className="muted small">candidatos enviados pela Alpha Select</span>
+              </div>
+              {q.data!.awaiting.length === 0 ? (
+                <Empty title="Nada pendente">Quando a Alpha Select enviar candidatos, eles aparecem aqui.</Empty>
+              ) : (
+                <ul className="card-body stack" style={{ listStyle: 'none', margin: 0 }}>
+                  {q.data!.awaiting.map((p) => (
+                    <li key={p.id} className="row" style={{ justifyContent: 'space-between' }}>
+                      <div>
+                        <Link to={`/participacoes/${p.id}`}><strong>{p.candidateName}</strong></Link>
+                        <div className="muted small">{p.processTitle} · {p.stageName} · {daysSince(p.stageChangedAt)}</div>
+                      </div>
+                      {p.overdue && <span className="badge badge-danger">Prazo vencido</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+
+          {q.data!.byProcess && q.data!.byProcess.length > 0 && (
+            <section className="card">
+              <div className="card-header"><h2>Indicadores por processo</h2><span className="muted small">somente processos ativos</span></div>
+              <div className="table-wrap">
+                <table className="table responsive">
+                  <thead><tr><th>Processo</th><th>Enviados</th><th>Aguardando</th><th>Aprovados</th><th>Não aprovados/desistências</th><th>Tempo médio de retorno</th></tr></thead>
+                  <tbody>
+                    {q.data!.byProcess.map((p) => (
+                      <tr key={p.id}>
+                        <td data-label="Processo"><Link to={`/processos/${p.id}`}>{p.title}</Link>{isAlpha && <div className="muted small">{p.companyName}</div>}</td>
+                        <td data-label="Enviados">{p.sent}</td>
+                        <td data-label="Aguardando">{p.pending}</td>
+                        <td data-label="Aprovados">{p.approved}</td>
+                        <td data-label="Não aprovados/desistências">{p.rejected}</td>
+                        <td data-label="Tempo médio de retorno">{p.avgResponseDays == null ? '—' : `${String(p.avgResponseDays).replace('.', ',')} dia(s)`}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+
           <div className="grid grid-2">
             <section className="card">
               <div className="card-header">

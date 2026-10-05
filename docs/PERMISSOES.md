@@ -22,6 +22,10 @@ Legenda: ✅ permitido · ❌ negado · 🔸 somente com vínculo ao processo ·
 | Ficha de avaliação da triagem | ✅ | 🔸 | ❌ | ❌ |
 | Enviar candidatos ao cliente | ✅ | 🔹 (permissão de mover etapa) | ❌ | ❌ |
 | Definir critérios de avaliação e prazo (SLA) | ✅ | ❌ | ❌ | ❌ |
+| Agendar entrevistas | ✅ | 🔸 | 🔹 (mover ou decidir) | 🔹 (mover ou decidir) |
+| Avisar o candidato por e-mail | ✅ | 🔸 | ❌ | ❌ |
+| Editar modelos de mensagem | ✅ | ❌ | ❌ | ❌ |
+| Ver histórico de mensagens ao candidato | ✅ | 🔸 | ❌ | ❌ |
 | Cadastro completo de candidatos (lista, busca, observações) | ✅ todos | cadastrados por si ou em processos com vínculo | ❌ | ❌ |
 | Cadastrar/editar candidato | ✅ | ✅ (no seu escopo) | ❌ | ❌ |
 | Incluir candidato em processo | ✅ | 🔸 | ❌ | ❌ |

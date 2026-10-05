@@ -6,8 +6,8 @@ Execução em 05/10/2026, PostgreSQL 16 local, Node.js 22, Chromium (Playwright 
 | --- | --- | --- |
 | Tipos (servidor e web) | `npm run typecheck` | ✅ sem erros |
 | Build de produção | `npm run build` | ✅ |
-| Integração do backend | `npm test` | ✅ **117/117** |
-| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **117/117** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
+| Integração do backend | `npm test` | ✅ **122/122** |
+| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **122/122** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
 | Empacotamento Netlify Functions | `npm run check:netlify` | ✅ |
 | Navegador (desktop + celular) | `npm run test:e2e` | ✅ **8/8** |
 | Dependências de produção | `npm audit --omit=dev` | ✅ 0 vulnerabilidades |
@@ -78,6 +78,14 @@ administrador; respostas não chegam a clientes (API e RLS) e só administrador 
 ficha de avaliação com nota média e motivo obrigatório, envio em lote só de aprovados na triagem,
 compartilhamento escolhido e aviso por e-mail, envio irreversível e sem repetição, aviso de envio
 duplicado à mesma empresa, permissões de envio, motivo padronizado nas decisões e prazo vencido.
+
+## Portal do cliente e mensagens
+
+`client-portal.test.ts` (5 testes): aviso ao candidato no envio sem revelar empresa confidencial,
+descadastro interrompe e-mails, entrevistas por permissão (403 sem permissão, só a Alpha avisa o
+candidato), entrevistas de candidato em triagem invisíveis ao cliente (API e RLS), modelos editáveis só
+pelo administrador, reprovação só avisa quando ligada e sem o motivo interno, quebra de linha não
+entra no assunto, fila "aguardando seu retorno", indicadores por processo e lembrete diário único.
 
 ## Integração contínua
 

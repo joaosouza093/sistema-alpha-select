@@ -8,6 +8,7 @@ import { parse } from '../../lib/validate.js';
 import { zOptionalText, zText, zUuid } from '../../lib/normalize.js';
 import { loadProcess, processPermissions } from '../processes/routes.js';
 import { reasons } from '../leads/routes.js';
+import { sendCandidateMessage } from '../messages/service.js';
 
 const decisions = ['pendente', 'aprovado', 'reprovado', 'desistiu'] as const;
 const zVersion = z.number().int().positive();
@@ -137,12 +138,17 @@ export function registerApplicationRoutes(app: FastifyInstance, deps: Deps) {
       req.body,
     );
     const reason = ['reprovado', 'desistiu'].includes(body.decision) ? body.reason! : null;
-    return asUser(deps, req, async (db) => {
+    const result = await asUser(deps, req, async (db) => {
       const a = await loadApp(db, id);
       await versionedUpdate(db, id, body.expectedVersion, 'decision = $3, decision_reason = $4', [body.decision, reason]);
       await audit(db, req, 'application.decision', 'application', id, a.company_id, { decision: body.decision, reason });
       return { ok: true };
     });
+    if (body.decision === 'reprovado') {
+      const c = await deps.pools.owner.query<{ candidate_id: string }>('select candidate_id from applications where id = $1', [id]);
+      if (c.rows[0]) await sendCandidateMessage(deps, 'reprovacao', { candidateId: c.rows[0].candidate_id, applicationId: id });
+    }
+    return result;
   });
 
   app.post('/api/applications/:id/owner', async (req) => {

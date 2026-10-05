@@ -1,5 +1,6 @@
 import type { Deps } from './lib/context.js';
 import { runBillingNotifications } from './modules/billing/notify.js';
+import { sendFeedbackReminders } from './modules/messages/service.js';
 
 /**
  * Tarefa periódica (a cada hora): limpeza de sessões, tokens e contadores
@@ -15,5 +16,6 @@ export async function runMaintenance(deps: Deps) {
       where status = 'pendente' and email_verified_at is null and verify_expires_at < now() - interval '5 days';
      delete from signup_requests where status = 'recusado' and decided_at < now() - interval '90 days';`,
   );
+  await sendFeedbackReminders(deps).catch(() => 0);
   return runBillingNotifications(deps);
 }

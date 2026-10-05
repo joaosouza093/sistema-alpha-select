@@ -152,7 +152,7 @@ export function registerCandidateRoutes(app: FastifyInstance, deps: Deps) {
         `select c.id, c.full_name as "fullName", c.email, c.phone, c.salary_expectation as "salaryExpectation",
                 c.notes, c.version, c.archived_at as "archivedAt", c.created_at as "createdAt",
                 c.updated_at as "updatedAt", u.full_name as "createdByName",
-                c.source, c.city, c.consent_at as "consentAt"
+                c.source, c.city, c.consent_at as "consentAt", c.email_opt_out_at as "emailOptOutAt"
            from candidates c left join users u on u.id = c.created_by where c.id = $1`,
         [id],
       );
