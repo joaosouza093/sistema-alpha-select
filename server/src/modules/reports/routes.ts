@@ -113,7 +113,7 @@ export function registerReportRoutes(app: FastifyInstance, deps: Deps) {
       let finance = null;
       if (isAdmin(user)) {
         const m = await db.query(
-          `select l.template_key as id, count(*)::int as total, count(*) filter (where l.ok)::int as delivered,
+          `select l.template_key as id, l.channel, count(*)::int as total, count(*) filter (where l.ok)::int as delivered,
                   count(*) filter (where not l.ok)::int as failed
              from message_log l
              left join applications a on a.id = l.application_id
@@ -122,7 +122,7 @@ export function registerReportRoutes(app: FastifyInstance, deps: Deps) {
               and l.sent_at < ($2::date + 1)::timestamp at time zone 'America/Sao_Paulo'
               and ($3::uuid is null or p.company_id = $3)
               and ($4::uuid is null or a.process_id = $4)
-            group by 1 order by 2 desc`,
+            group by 1, 2 order by 3 desc`,
           params,
         );
         const optOut = await db.query<{ n: number }>(

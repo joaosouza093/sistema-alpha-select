@@ -1,4 +1,5 @@
 import type { Deps } from '../../lib/context.js';
+import { sendWhatsAppTemplate, whatsappConfigured, WhatsAppError } from '../../lib/whatsapp.js';
 
 /**
  * E-mails automáticos de cobrança. Executado pela tarefa agendada (a cada
@@ -16,7 +17,13 @@ export interface BillingSettings {
   reminder_days_before: number;
   overdue_every_days: number;
   overdue_max_reminders: number;
+  wa_enabled: boolean;
+  /** Nome do modelo aprovado na Meta para cada tipo de aviso. */
+  wa_templates: Partial<Record<NoticeKind, string>>;
 }
+
+/** Parâmetros {{1}}…{{5}} dos modelos de cobrança no WhatsApp. */
+export const waBillingParams = ['empresa', 'descricao', 'valor', 'vencimento', 'link'] as const;
 
 interface ChargeRow {
   id: string;
@@ -115,13 +122,17 @@ export function composeNotice(
 
 export async function loadSettings(deps: Deps): Promise<BillingSettings> {
   const { rows } = await deps.pools.owner.query<BillingSettings>(
-    `select auto_email, pix_key, beneficiary, instructions, reminder_days_before, overdue_every_days, overdue_max_reminders
+    `select auto_email, pix_key, beneficiary, instructions, reminder_days_before, overdue_every_days, overdue_max_reminders,
+            wa_enabled, wa_templates
        from billing_settings limit 1`,
   );
   return rows[0]!;
 }
 
 export const billingEmailEnabled = (deps: Deps) => deps.config.mailMode !== 'manual';
+
+/** Algum canal de aviso de cobrança disponível (e-mail ou WhatsApp). */
+const anyChannel = (deps: Deps, s: BillingSettings) => billingEmailEnabled(deps) || (s.wa_enabled && whatsappConfigured(deps));
 
 /** Envia um aviso e registra o resultado (sem guardar o conteúdo do e-mail). */
 export async function sendNotice(
@@ -134,29 +145,48 @@ export async function sendNotice(
   const s = settings ?? (await loadSettings(deps));
   const { rows } = await deps.pools.owner.query<{
     company_name: string; description: string; amount_cents: number; due_date: string; payment_link: string | null; billing_email: string;
+    billing_whatsapp: string | null;
   }>(
     `select co.name as company_name, c.description, c.amount_cents, to_char(c.due_date, 'YYYY-MM-DD') as due_date,
-            c.payment_link, c.billing_email::text as billing_email
+            c.payment_link, c.billing_email::text as billing_email, co.billing_whatsapp
        from charges c join companies co on co.id = c.company_id where c.id = $1`,
     [chargeId],
   );
   const c = rows[0];
   if (!c) return false;
-  const msg = composeNotice(kind, c, s, today);
-  let ok = true;
-  let error: string | null = null;
-  try {
-    await deps.mailer.send({ to: c.billing_email, ...msg });
-  } catch (e) {
-    ok = false;
-    const code = (e as { code?: string; responseCode?: number }).code ?? (e as { responseCode?: number }).responseCode;
-    error = `falha no envio${code ? ` (${String(code).slice(0, 40)})` : ''}`;
+  const results: boolean[] = [];
+  const log = (channel: 'email' | 'whatsapp', to: string, error: string | null) =>
+    deps.pools.owner.query(
+      'insert into charge_notifications (charge_id, kind, sent_to, ok, error, channel) values ($1, $2, $3, $4, $5, $6)',
+      [chargeId, kind, to, !error, error, channel],
+    );
+  if (billingEmailEnabled(deps)) {
+    const msg = composeNotice(kind, c, s, today);
+    let error: string | null = null;
+    try {
+      await deps.mailer.send({ to: c.billing_email, ...msg });
+    } catch (e) {
+      const code = (e as { code?: string; responseCode?: number }).code ?? (e as { responseCode?: number }).responseCode;
+      error = `falha no envio${code ? ` (${String(code).slice(0, 40)})` : ''}`;
+    }
+    await log('email', c.billing_email, error);
+    results.push(!error);
   }
-  await deps.pools.owner.query(
-    'insert into charge_notifications (charge_id, kind, sent_to, ok, error) values ($1, $2, $3, $4, $5)',
-    [chargeId, kind, c.billing_email, ok, error],
-  );
-  return ok;
+  const waTemplate = s.wa_templates?.[kind];
+  if (s.wa_enabled && waTemplate && c.billing_whatsapp && whatsappConfigured(deps)) {
+    let error: string | null = null;
+    try {
+      await sendWhatsAppTemplate(deps, c.billing_whatsapp, { name: waTemplate, language: 'pt_BR' }, [
+        c.company_name, c.description, fmtCents(c.amount_cents), fmtDay(c.due_date),
+        c.payment_link ?? 'enviado por e-mail',
+      ]);
+    } catch (e) {
+      error = e instanceof WhatsAppError ? e.message.slice(0, 200) : 'falha no envio';
+    }
+    await log('whatsapp', c.billing_whatsapp, error);
+    results.push(!error);
+  }
+  return results.some(Boolean);
 }
 
 /** Gera as próximas parcelas das cobranças mensais cujo vencimento chegou. */
@@ -210,9 +240,8 @@ export async function runBillingNotifications(
   const today = await todaySP(deps);
   if (!opts.chargeIds) await generateRecurring(deps, today);
   const result = { sent: 0, failed: 0, pending: 0 };
-  if (!billingEmailEnabled(deps)) return result;
   const s = await loadSettings(deps);
-  if (!s.auto_email) return result;
+  if (!s.auto_email || !anyChannel(deps, s)) return result;
   // Com o Asaas ligado, a cobrança nova espera o link de pagamento (até 3 tentativas de criação).
   const waitGateway = (await deps.pools.owner.query<{ on: boolean }>('select gateway_enabled as on from billing_settings limit 1')).rows[0]?.on === true
     && !!deps.config.ASAAS_API_KEY;

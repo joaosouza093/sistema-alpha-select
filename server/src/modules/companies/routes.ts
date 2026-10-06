@@ -5,7 +5,7 @@ import { asUser, audit, isAdmin, requireUser } from '../../lib/context.js';
 import { withTx } from '../../lib/db.js';
 import { forbidden, notFound } from '../../lib/errors.js';
 import { parse } from '../../lib/validate.js';
-import { zOptionalEmail, zText, zUuid } from '../../lib/normalize.js';
+import { zOptionalEmail, zOptionalPhone, zText, zUuid } from '../../lib/normalize.js';
 import { zOptionalCnpj } from '../signup/routes.js';
 
 export function registerCompanyRoutes(app: FastifyInstance, deps: Deps) {
@@ -13,7 +13,7 @@ export function registerCompanyRoutes(app: FastifyInstance, deps: Deps) {
     return asUser(deps, req, async (db) => {
       const { rows } = await db.query(
         `select c.id, c.name, c.is_active as "isActive", c.created_at as "createdAt",
-                c.cnpj, c.billing_email as "billingEmail",
+                c.cnpj, c.billing_email as "billingEmail", c.billing_whatsapp as "billingWhatsapp",
                 (select count(*)::int from processes p where p.company_id = c.id) as "processCount",
                 (select count(*)::int from users u where u.company_id = c.id and u.is_active) as "activeUsers"
            from companies c order by c.is_active desc, c.name`,
@@ -26,7 +26,7 @@ export function registerCompanyRoutes(app: FastifyInstance, deps: Deps) {
     const { id } = parse(z.object({ id: zUuid }), req.params);
     return asUser(deps, req, async (db) => {
       const { rows } = await db.query(
-        `select id, name, is_active as "isActive", created_at as "createdAt", cnpj, billing_email as "billingEmail"
+        `select id, name, is_active as "isActive", created_at as "createdAt", cnpj, billing_email as "billingEmail", billing_whatsapp as "billingWhatsapp"
            from companies where id = $1`,
         [id],
       );
@@ -63,6 +63,7 @@ export function registerCompanyRoutes(app: FastifyInstance, deps: Deps) {
           isActive: z.boolean().optional(),
           cnpj: zOptionalCnpj.optional(),
           billingEmail: zOptionalEmail.optional(),
+          billingWhatsapp: zOptionalPhone.optional(),
         })
         .strict(),
       req.body,
@@ -73,10 +74,11 @@ export function registerCompanyRoutes(app: FastifyInstance, deps: Deps) {
       await db.query(
         `update companies set name = coalesce($2, name), is_active = coalesce($3, is_active),
                 cnpj = case when $4::boolean then $5 else cnpj end,
-                billing_email = case when $6::boolean then $7 else billing_email end
+                billing_email = case when $6::boolean then $7 else billing_email end,
+                billing_whatsapp = case when $8::boolean then $9 else billing_whatsapp end
           where id = $1`,
         [id, body.name ?? null, body.isActive ?? null, body.cnpj !== undefined, body.cnpj ?? null,
-          body.billingEmail !== undefined, body.billingEmail ?? null],
+          body.billingEmail !== undefined, body.billingEmail ?? null, body.billingWhatsapp !== undefined, body.billingWhatsapp ?? null],
       );
       await audit(db, req, 'company.updated', 'company', id, id, { fields: Object.keys(body), isActive: body.isActive });
       return body.isActive === false && cur.rows[0].is_active;

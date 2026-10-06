@@ -9,7 +9,7 @@ de desenvolvimento recebidas, que descrevem o escopo central do contrato. Assim 
 contrato e o material complementar forem disponibilizados, esta lista deve ser
 conferida item a item e divergências registradas em `PENDENCIAS.md`.
 
-Fora do escopo (não implementado por não estar aprovado): WhatsApp, agentes de IA,
+Fora do escopo (não implementado por não estar aprovado): agentes de IA,
 avaliação automática de candidatos, assinatura, folha de pagamento e integrações externas.
 Em outubro/2026 a Alpha Select pediu e foram incluídos: cadastro de empresas pelo site (com
 aprovação do administrador) e cobranças com e-mails automáticos, sem gateway de pagamento
@@ -37,3 +37,4 @@ Nenhum dado pessoal das partes do contrato está no código, nas seeds ou nas te
 | R15 | Retenção de dados (LGPD) | Regra configurável, aviso por e-mail com renovação, eliminação definitiva auditada, processos ativos preservados | Implementado e testado (desligado por padrão) |
 | R16 | Área do candidato | Acesso por link no e-mail; ver, corrigir, trocar currículo, e-mails, renovar, baixar e excluir os próprios dados | Implementado e testado |
 | R17 | Gateway de pagamento (Asaas) | Cobrança gerada no Asaas com link no e-mail, baixa automática por webhook, edição/cancelamento/baixa manual refletidos, nova tentativa em falhas | Implementado e testado com servidor simulado; falta a conta real |
+| R18 | WhatsApp (API oficial) | Avisos ao candidato com autorização e SAIR; avisos de cobrança ao financeiro; status de entrega por webhook assinado; falhas registradas | Implementado e testado com servidor simulado; falta a conta na Meta |

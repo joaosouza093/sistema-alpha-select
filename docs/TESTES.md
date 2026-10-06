@@ -6,8 +6,8 @@ Execução em 06/10/2026, PostgreSQL 16 local, Node.js 22, Chromium (Playwright 
 | --- | --- | --- |
 | Tipos (servidor e web) | `npm run typecheck` | ✅ sem erros |
 | Build de produção | `npm run build` | ✅ |
-| Integração do backend | `npm test` | ✅ **148/148** |
-| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **148/148** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
+| Integração do backend | `npm test` | ✅ **155/155** |
+| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **155/155** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
 | Empacotamento Netlify Functions | `npm run check:netlify` | ✅ |
 | Navegador (desktop + celular) | `npm run test:e2e` | ✅ **8/8** |
 | Dependências de produção | `npm audit --omit=dev` | ✅ 0 vulnerabilidades |
@@ -133,3 +133,11 @@ e referência; link de pagamento no primeiro e-mail; empresa sem CNPJ com erro c
 errado recusado, baixa automática com recibo único e pagamento desconhecido ignorado; edição, baixa manual
 (`receiveInCash`) e cancelamento refletidos; falha temporária refeita pela tarefa; "Atualizar do Asaas" dá baixa sem
 webhook; parcela mensal com cobrança própria. **Não testado contra o Asaas real** (sem conta).
+
+## WhatsApp
+
+`whatsapp.test.ts` (7 testes, contra `fake-whatsapp.ts`): nome do modelo obrigatório e validado; candidatura pelo
+portal com autorização envia o modelo com os parâmetros na ordem e sem autorização não envia; webhook recusa assinatura
+ausente ou errada, atualiza status sem regredir (lida não volta a entregue) e "Sair" cancela a autorização; confirmação
+da URL do webhook; falha da Meta registrada com o código; área do candidato liga/desliga e exige telefone; aviso de
+cobrança ao WhatsApp do financeiro junto com o e-mail. **Não testado contra a Meta real.**

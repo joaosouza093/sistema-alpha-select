@@ -50,6 +50,15 @@ const schema = z.object({
   ASAAS_WEBHOOK_TOKEN: z.string().min(16).optional(),
   /** Opcional: força o endereço da API (o padrão segue o tipo da chave: produção ou sandbox). */
   ASAAS_API_URL: z.string().url().optional(),
+  /** WhatsApp Cloud API (Meta). Token de acesso permanente: SOMENTE no servidor. */
+  WHATSAPP_TOKEN: z.string().optional(),
+  /** Identificação do número de telefone (Phone number ID) no painel da Meta. */
+  WHATSAPP_PHONE_NUMBER_ID: z.string().regex(/^\d{5,30}$/).optional(),
+  /** Chave secreta do aplicativo da Meta: confere a assinatura dos webhooks. */
+  WHATSAPP_APP_SECRET: z.string().min(8).optional(),
+  /** Token que você escolhe e informa na Meta para validar a URL do webhook. */
+  WHATSAPP_VERIFY_TOKEN: z.string().min(16).optional(),
+  WHATSAPP_API_URL: z.string().url().default('https://graph.facebook.com/v21.0'),
   SESSION_ABSOLUTE_HOURS: z.coerce.number().positive().default(12),
   SESSION_IDLE_MINUTES: z.coerce.number().positive().default(120),
   /** Diretório do build do frontend servido pelo backend em homologação/produção. */

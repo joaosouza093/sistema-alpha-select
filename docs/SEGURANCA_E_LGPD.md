@@ -49,9 +49,12 @@
 
 - Coleta mínima: nome obrigatório; e-mail, telefone e pretensão opcionais. CPF/RG não são
   coletados. Não há campos de dados sensíveis.
-- Nenhum currículo, documento ou comentário é enviado a IA, analytics ou serviços
-  externos. O único serviço externo é o SMTP (convites, recuperação de senha, confirmação de
-  cadastro e cobranças — sem dados de candidatos).
+- Nenhum currículo, documento ou comentário é enviado a IA, analytics ou serviços externos. Serviços externos usados,
+  todos opcionais: **SMTP** (e-mails); **Asaas** (recebe nome, CNPJ e e-mail de cobrança da empresa e os dados da
+  cobrança — nenhum dado de candidato); **WhatsApp/Meta** (recebe o telefone e os parâmetros do aviso — primeiro nome,
+  vaga e, se autorizado no envio, empresa/data da entrevista — somente de candidatos que autorizaram).
+- Autorização de WhatsApp: guardada com data (`whatsapp_opt_in_at`), dada pelo próprio candidato no formulário ou em
+  Meus dados; "SAIR" pelo WhatsApp ou o botão em Meus dados retiram na hora (auditado).
 - Cadastro pelo site: guarda empresa, CNPJ, responsável, e-mail, telefone, IP e data da autorização.
   Pedidos não confirmados são apagados em ~7 dias; recusados, após 90 dias. Cobranças guardam
   empresa, valor, vencimento e e-mail de cobrança; o texto dos e-mails não é armazenado.

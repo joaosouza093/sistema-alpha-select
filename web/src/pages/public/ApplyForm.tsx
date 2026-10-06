@@ -16,6 +16,7 @@ export function ApplyForm({ endpoint, questions = [], title }: { endpoint: strin
   const [answers, setAnswers] = useState<Record<string, 'sim' | 'nao'>>({});
   const [file, setFile] = useState<File | null>(null);
   const [accept, setAccept] = useState(false);
+  const [whatsapp, setWhatsapp] = useState(false);
   const [website, setWebsite] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +44,7 @@ export function ApplyForm({ endpoint, questions = [], title }: { endpoint: strin
       salaryExpectation: salaryCents !== null ? salaryCents / 100 : null,
       answers: questions.map((q) => ({ id: q.id, answer: answers[q.id] })),
       acceptPrivacy: accept,
+      whatsappOptIn: whatsapp && !!f.phone,
       ...(website ? { website } : {}),
     };
     const fd = new FormData();
@@ -67,6 +69,10 @@ export function ApplyForm({ endpoint, questions = [], title }: { endpoint: strin
       <TextField label="Nome completo" value={f.fullName} onChange={set('fullName')} autoComplete="name" maxLength={160} required error={errors.fullName} />
       <TextField label="E-mail" type="email" value={f.email} onChange={set('email')} autoComplete="email" required error={errors.email} />
       <TextField label="Telefone / WhatsApp" type="tel" value={f.phone} onChange={set('phone')} autoComplete="tel" error={errors.phone} hint="Opcional." />
+      {f.phone && (
+        <Checkbox checked={whatsapp} onChange={(e) => setWhatsapp(e.target.checked)}
+          label="Quero receber avisos sobre esta candidatura pelo WhatsApp (para cancelar, é só responder SAIR)." />
+      )}
       <TextField label="Cidade" value={f.city} onChange={set('city')} autoComplete="address-level2" maxLength={120} error={errors.city} hint="Opcional." />
       <TextField label="Pretensão salarial (R$)" value={f.salary} onChange={set('salary')} inputMode="decimal"
         error={f.salary && salaryCents === null ? 'Valor inválido.' : errors.salaryExpectation} hint="Opcional." />

@@ -81,7 +81,7 @@ function DataTab({ c }: { c: Candidate }) {
           <dl className="dl">
             <dt>Nome</dt><dd>{c.fullName}</dd>
             <dt>E-mail</dt><dd>{c.email ?? '—'}{c.emailOptOutAt && <> <span className="badge">não quer receber e-mails desde {fmtDateTime(c.emailOptOutAt)}</span></>}</dd>
-            <dt>Telefone</dt><dd>{fmtPhone(c.phone)}</dd>
+            <dt>Telefone</dt><dd>{fmtPhone(c.phone)}{c.whatsappOptInAt && <> <span className="badge badge-success">aceita WhatsApp desde {fmtDateTime(c.whatsappOptInAt)}</span></>}</dd>
             <dt>Pretensão salarial</dt><dd>{fmtMoney(c.salaryExpectation)}</dd>
             <dt>Observações internas</dt><dd className="pre-wrap">{c.notes || '—'}</dd>
             {c.city && <><dt>Cidade</dt><dd>{c.city}</dd></>}

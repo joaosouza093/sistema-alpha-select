@@ -104,7 +104,8 @@ export function registerCandidatePortalRoutes(app: FastifyInstance, deps: Deps) 
     const { email, ids } = await resolve(req);
     const c = await owner.query(
       `select full_name as "fullName", email::text as email, phone, city, salary_expectation as "salaryExpectation",
-              consent_at as "consentAt", email_opt_out_at as "emailOptOutAt", created_at as "createdAt"
+              consent_at as "consentAt", email_opt_out_at as "emailOptOutAt", created_at as "createdAt",
+              whatsapp_opt_in_at as "whatsappOptInAt"
          from candidates where id = $1`,
       [ids[0]],
     );
@@ -203,6 +204,22 @@ export function registerCandidatePortalRoutes(app: FastifyInstance, deps: Deps) 
     return { ok: true };
   });
 
+  /** Autoriza ou cancela avisos pelo WhatsApp (no telefone do cadastro). */
+  app.post('/api/public/my-data/whatsapp', pub, async (req) => {
+    const body = parse(z.object({ optIn: z.boolean() }).strict(), req.body);
+    await withTx(owner, async (db) => {
+      const { ids } = await resolve(req, db);
+      const r = await db.query(
+        `update candidates set whatsapp_opt_in_at = case when $2 then coalesce(whatsapp_opt_in_at, now()) end
+          where id = any($1::uuid[]) and ($2 = false or phone is not null)`,
+        [ids, body.optIn],
+      );
+      if (body.optIn && !r.rowCount) throw new AppError(422, 'invalid', 'Cadastre um telefone para receber pelo WhatsApp.');
+      for (const id of ids) await insertAudit(db, null, body.optIn ? 'candidate.whatsapp_opt_in' : 'candidate.whatsapp_opt_out', 'candidate', id, req.ip);
+    });
+    return { ok: true };
+  });
+
   /** Novo currículo: entra no cadastro mais recente; a equipe vê o mais novo primeiro. */
   app.post('/api/public/my-data/resume', pub, async (req, reply) => {
     await deps.limiters.publicApplyIp.consume(`cand-up:${req.ip}`);
@@ -240,7 +257,7 @@ export function registerCandidatePortalRoutes(app: FastifyInstance, deps: Deps) 
     const cands = await owner.query(
       `select full_name as nome, email::text as email, phone as telefone, city as cidade,
               salary_expectation as "pretensaoSalarial", source as origem, consent_at as "consentimentoEm",
-              email_opt_out_at as "descadastroEmailEm", created_at as "cadastradoEm", updated_at as "atualizadoEm"
+              email_opt_out_at as "descadastroEmailEm", whatsapp_opt_in_at as "whatsappAutorizadoEm", created_at as "cadastradoEm", updated_at as "atualizadoEm"
          from candidates where id = any($1::uuid[]) order by created_at`,
       [ids],
     );

@@ -7,6 +7,7 @@ import { parse } from '../../lib/validate.js';
 import { Where } from '../../lib/sql.js';
 import { likePattern, zOptionalEmail, zOptionalText, zPage, zText, zUuid } from '../../lib/normalize.js';
 import { billingEmailEnabled, loadSettings, runBillingNotifications, sendNotice, todaySP } from './notify.js';
+import { whatsappConfigured } from '../../lib/whatsapp.js';
 import { AsaasError, applyPayment, asaasConfigured, asaasEnvironment, fetchPayment, gatewayActive, syncGateway, webhookAuthorized } from './asaas.js';
 
 const zDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida.').refine((v) => !Number.isNaN(Date.parse(v)), 'Data inválida.');
@@ -116,7 +117,7 @@ export function registerBillingRoutes(app: FastifyInstance, deps: Deps) {
       );
       if (!rows[0]) throw notFound();
       const notices = await db.query(
-        `select id, kind, sent_to as "sentTo", ok, error, sent_at as "sentAt"
+        `select id, kind, sent_to as "sentTo", ok, error, sent_at as "sentAt", channel
            from charge_notifications where charge_id = $1 order by sent_at desc limit 100`,
         [id],
       );
@@ -381,9 +382,14 @@ export function registerBillingRoutes(app: FastifyInstance, deps: Deps) {
                 overdue_max_reminders as "overdueMaxReminders", updated_at as "updatedAt"
            from billing_settings limit 1`,
       );
-      const g = await db.query<{ gateway_enabled: boolean }>('select gateway_enabled from billing_settings limit 1');
+      const g = await db.query<{ gateway_enabled: boolean; wa_enabled: boolean; wa_templates: Record<string, string> }>(
+        'select gateway_enabled, wa_enabled, wa_templates from billing_settings limit 1',
+      );
       return {
         ...rows[0],
+        whatsappEnabled: g.rows[0]?.wa_enabled ?? false,
+        whatsappTemplates: g.rows[0]?.wa_templates ?? {},
+        whatsappConfigured: whatsappConfigured(deps),
         emailEnabled: billingEmailEnabled(deps),
         gatewayEnabled: g.rows[0]?.gateway_enabled ?? false,
         asaas: {
@@ -409,6 +415,11 @@ export function registerBillingRoutes(app: FastifyInstance, deps: Deps) {
           overdueEveryDays: z.number().int().min(1).max(60),
           overdueMaxReminders: z.number().int().min(0).max(12),
           gatewayEnabled: z.boolean().optional(),
+          whatsappEnabled: z.boolean().optional(),
+          whatsappTemplates: z
+            .partialRecord(z.enum(['criada', 'lembrete', 'vencimento', 'atraso', 'pagamento', 'manual']),
+              z.string().trim().regex(/^[a-z0-9_]{1,512}$/, 'Nome de modelo inválido (letras minúsculas, números e _).'))
+            .optional(),
         })
         .strict(),
       req.body,
@@ -420,9 +431,11 @@ export function registerBillingRoutes(app: FastifyInstance, deps: Deps) {
       await db.query(
         `update billing_settings set auto_email = $1, pix_key = $2, beneficiary = $3, instructions = $4,
                 reminder_days_before = $5, overdue_every_days = $6, overdue_max_reminders = $7,
-                updated_at = now(), updated_by = $8, gateway_enabled = coalesce($9, gateway_enabled)`,
+                updated_at = now(), updated_by = $8, gateway_enabled = coalesce($9, gateway_enabled),
+                wa_enabled = coalesce($10, wa_enabled), wa_templates = coalesce($11::jsonb, wa_templates)`,
         [body.autoEmail, body.pixKey, body.beneficiary, body.instructions, body.reminderDaysBefore,
-          body.overdueEveryDays, body.overdueMaxReminders, admin.id, body.gatewayEnabled ?? null],
+          body.overdueEveryDays, body.overdueMaxReminders, admin.id, body.gatewayEnabled ?? null,
+          body.whatsappEnabled ?? null, body.whatsappTemplates ? JSON.stringify(body.whatsappTemplates) : null],
       );
       await audit(db, req, 'billing.settings_updated', 'billing_settings', null);
     });

@@ -13,6 +13,7 @@ interface MyData {
   salaryExpectation: number | null;
   consentAt: string | null;
   emailOptOutAt: string | null;
+  whatsappOptInAt: string | null;
   createdAt: string;
   records: number;
   applications: { title: string; company: string | null; appliedAt: string; source: string; status: string }[];
@@ -174,9 +175,9 @@ function Portal({ token, onExit }: { token: string; onExit: () => void }) {
       </section>
 
       <section className="card">
-        <div className="card-header"><h2>E-mails recebidos</h2></div>
+        <div className="card-header"><h2>Mensagens recebidas</h2></div>
         <div className="card-body stack">
-          {data.messages.length === 0 ? <p className="muted" style={{ margin: 0 }}>Nenhum e-mail automático enviado.</p> : (
+          {data.messages.length === 0 ? <p className="muted" style={{ margin: 0 }}>Nenhuma mensagem automática enviada.</p> : (
             <ul style={{ margin: 0, paddingLeft: 18 }}>
               {data.messages.map((m, i) => <li key={i}>{m.subject} <span className="muted small">— {fmtDateTime(m.sentAt)}</span></li>)}
             </ul>
@@ -319,8 +320,27 @@ function EmailPrefs({ data, capi, onDone }: CardProps) {
       setBusy(false);
     }
   };
+  const waOn = !!data.whatsappOptInAt;
+  const [error, setError] = useState<string | null>(null);
+  const toggleWa = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await capi.post('/api/public/my-data/whatsapp', { optIn: !waOn });
+      await onDone(waOn ? 'Você não receberá mais avisos pelo WhatsApp.' : 'Pronto: você receberá avisos pelo WhatsApp no telefone do seu cadastro.');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Não foi possível salvar.');
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
-    <Checkbox label="Receber e-mails sobre minhas candidaturas e oportunidades" checked={!optedOut} disabled={busy} onChange={toggle} />
+    <>
+      {error && <Alert>{error}</Alert>}
+      <Checkbox label="Receber e-mails sobre minhas candidaturas e oportunidades" checked={!optedOut} disabled={busy} onChange={toggle} />
+      <Checkbox label="Receber avisos pelo WhatsApp (no telefone do cadastro)" checked={waOn} disabled={busy} onChange={toggleWa}
+        hint={data.phone ? undefined : 'Cadastre um telefone em Dados pessoais para ativar.'} />
+    </>
   );
 }
 

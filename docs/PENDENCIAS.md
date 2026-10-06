@@ -60,6 +60,6 @@ para produção são as configurações externas acima e a validação das premi
 | 1 — Fundação e carteira B2B | feito (acessos, perfis, empresas, usuários, auditoria, verificação em duas etapas opcional) |
 | 2 — Talentos, vagas e portal | feito (banco de candidatos, vagas, portal público, consentimento) |
 | 3 — Triagem e envio de leads | feito (ficha de avaliação, aprovação interna, envio individual/lote, duplicidade, SLA) |
-| 4 — Portal cliente e mensagens | feito por e-mail. **WhatsApp depende da conta oficial na Meta** |
+| 4 — Portal cliente e mensagens | feito por e-mail e WhatsApp (`WHATSAPP.md`). Falta a conta oficial na Meta e a aprovação dos modelos |
 | 5 — Financeiro e cobrança | feito, com integração ao **Asaas** (boleto, Pix, cartão e baixa automática). Falta criar a conta e colocar as chaves no Netlify |
 | 6 — Indicadores e go-live | feito: relatórios CSV/PDF (`RELATORIOS.md`), retenção automática e área do candidato `/meus-dados` (`SEGURANCA_E_LGPD.md`). Falta: homologação com usuários e decisão do prazo de retenção |

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, qs } from '../../api/client';
-import type { BillingSettings, BillingSummary, ChargeDetail, ChargeRow, ChargeSituacao, Company, Page } from '../../api/types';
+import type { BillingSettings, NoticeKind, BillingSummary, ChargeDetail, ChargeRow, ChargeSituacao, Company, Page } from '../../api/types';
 import {
   Alert, Button, Checkbox, ConfirmDialog, Empty, ErrorState, Loading, Modal, PageHeader, Pagination, SelectField, TextArea, TextField,
   fieldErrors, usePageTitle, useToast,
@@ -359,7 +359,7 @@ function ChargeModal({ id, onClose, emailEnabled, today }: { id: string; onClose
               <ul className="stack" style={{ listStyle: 'none', padding: 0, margin: 0, gap: 8 }}>
                 {c.notices.map((n) => (
                   <li key={n.id}>
-                    <strong>{noticeLabel[n.kind]}</strong> — {fmtDateTime(n.sentAt)} — {n.sentTo}{' '}
+                    <strong>{noticeLabel[n.kind]}</strong>{n.channel === 'whatsapp' ? ' (WhatsApp)' : ''} — {fmtDateTime(n.sentAt)} — {n.sentTo}{' '}
                     {n.ok ? <span className="badge badge-success">enviado</span> : <span className="badge badge-danger">{n.error ?? 'falhou'}</span>}
                   </li>
                 ))}
@@ -470,7 +470,9 @@ function SettingsForm({ initial, onClose }: { initial: BillingSettings; onClose:
     overdueEveryDays: String(initial.overdueEveryDays),
     overdueMaxReminders: String(initial.overdueMaxReminders),
     gatewayEnabled: initial.gatewayEnabled,
+    whatsappEnabled: initial.whatsappEnabled,
   });
+  const [waTemplates, setWaTemplates] = useState<Partial<Record<NoticeKind, string>>>(initial.whatsappTemplates ?? {});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof s) => (e: { target: { value: string } }) => setS((x) => ({ ...x, [k]: e.target.value }));
@@ -486,6 +488,8 @@ function SettingsForm({ initial, onClose }: { initial: BillingSettings; onClose:
         overdueEveryDays: Number(s.overdueEveryDays),
         overdueMaxReminders: Number(s.overdueMaxReminders),
         gatewayEnabled: s.gatewayEnabled,
+        whatsappEnabled: s.whatsappEnabled,
+        whatsappTemplates: Object.fromEntries(Object.entries(waTemplates).map(([k, v]) => [k, v?.trim()]).filter(([, v]) => v)),
       });
       toast.success('Configurações salvas.');
       await refresh();
@@ -539,6 +543,26 @@ function SettingsForm({ initial, onClose }: { initial: BillingSettings; onClose:
             )}
           </div>
         </fieldset>
+        {initial.whatsappConfigured && (
+          <fieldset className="question">
+            <legend>WhatsApp</legend>
+            <div className="stack">
+              <Checkbox label="Enviar os avisos também pelo WhatsApp do financeiro" checked={s.whatsappEnabled}
+                onChange={(e) => setS((x) => ({ ...x, whatsappEnabled: e.target.checked }))}
+                hint="Vai para o número cadastrado em Empresas clientes → WhatsApp do financeiro. Só sai o aviso que tiver modelo aprovado informado abaixo." />
+              <div className="grid grid-3">
+                {(['criada', 'lembrete', 'vencimento', 'atraso', 'pagamento', 'manual'] as NoticeKind[]).map((k) => (
+                  <TextField key={k} label={noticeLabel[k]} value={waTemplates[k] ?? ''} placeholder="nome do modelo"
+                    onChange={(e) => setWaTemplates((x) => ({ ...x, [k]: e.target.value.toLowerCase() }))} error={errors[`whatsappTemplates.${k}`]} />
+                ))}
+              </div>
+              <span className="muted small">
+                Parâmetros dos modelos, nesta ordem: <code>{'{{1}}'} empresa</code> <code>{'{{2}}'} descrição</code>{' '}
+                <code>{'{{3}}'} valor</code> <code>{'{{4}}'} vencimento</code> <code>{'{{5}}'} link de pagamento</code>
+              </span>
+            </div>
+          </fieldset>
+        )}
         <div className="grid grid-3">
           <TextField label="Lembrete (dias antes)" type="number" min={0} max={30} value={s.reminderDaysBefore} onChange={set('reminderDaysBefore')} error={errors.reminderDaysBefore} />
           <TextField label="Reenviar atraso a cada (dias)" type="number" min={1} max={60} value={s.overdueEveryDays} onChange={set('overdueEveryDays')} error={errors.overdueEveryDays} />
