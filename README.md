@@ -40,7 +40,7 @@ npm run dev:web                      # interface em http://localhost:5173
 | `npm run build` | Build de produção (servidor e web) |
 | `npm test` | 155 testes de integração do backend (recria o banco `alpha_test`) |
 | `npm run check:netlify` | Verifica o empacotamento das funções do Netlify |
-| `npm run test:e2e` | 8 testes no navegador (requer servidor em `localhost:3000`) |
+| `npm run test:e2e` | 13 testes no navegador (requer servidor em `localhost:3000` com `APP_URL=http://localhost:3000`) |
 | `npm run db:migrate` | Aplica migrações pendentes |
 | `npm run admin:create -- --email ... --name "..."` | Provisiona o primeiro administrador (convite) |
 | `npm run storage:cleanup -w server` | Relatório/limpeza de arquivos órfãos |

@@ -310,35 +310,35 @@ function ResumeCard({ data, token, onDone }: { data: MyData; token: string; onDo
 
 function EmailPrefs({ data, capi, onDone }: CardProps) {
   const [busy, setBusy] = useState(false);
-  const optedOut = !!data.emailOptOutAt;
-  const toggle = async () => {
-    setBusy(true);
-    try {
-      await capi.post('/api/public/my-data/email-preferences', { optOut: !optedOut });
-      await onDone(optedOut ? 'Você voltará a receber e-mails sobre processos seletivos.' : 'Você não receberá mais e-mails automáticos sobre processos seletivos.');
-    } finally {
-      setBusy(false);
-    }
-  };
-  const waOn = !!data.whatsappOptInAt;
   const [error, setError] = useState<string | null>(null);
-  const toggleWa = async () => {
+  // A caixa muda na hora; volta ao estado anterior se o servidor recusar.
+  const [emailOn, setEmailOn] = useState(!data.emailOptOutAt);
+  const [waOn, setWaOn] = useState(!!data.whatsappOptInAt);
+
+  const save = async (apply: (v: boolean) => void, next: boolean, url: string, body: object, ok: string) => {
+    apply(next);
     setBusy(true);
     setError(null);
     try {
-      await capi.post('/api/public/my-data/whatsapp', { optIn: !waOn });
-      await onDone(waOn ? 'Você não receberá mais avisos pelo WhatsApp.' : 'Pronto: você receberá avisos pelo WhatsApp no telefone do seu cadastro.');
+      await capi.post(url, body);
+      await onDone(ok);
     } catch (err) {
+      apply(!next);
       setError(err instanceof ApiError ? err.message : 'Não foi possível salvar.');
     } finally {
       setBusy(false);
     }
   };
+
   return (
     <>
       {error && <Alert>{error}</Alert>}
-      <Checkbox label="Receber e-mails sobre minhas candidaturas e oportunidades" checked={!optedOut} disabled={busy} onChange={toggle} />
-      <Checkbox label="Receber avisos pelo WhatsApp (no telefone do cadastro)" checked={waOn} disabled={busy} onChange={toggleWa}
+      <Checkbox label="Receber e-mails sobre minhas candidaturas e oportunidades" checked={emailOn} disabled={busy}
+        onChange={() => save(setEmailOn, !emailOn, '/api/public/my-data/email-preferences', { optOut: emailOn },
+          emailOn ? 'Você não receberá mais e-mails automáticos sobre processos seletivos.' : 'Você voltará a receber e-mails sobre processos seletivos.')} />
+      <Checkbox label="Receber avisos pelo WhatsApp (no telefone do cadastro)" checked={waOn} disabled={busy}
+        onChange={() => save(setWaOn, !waOn, '/api/public/my-data/whatsapp', { optIn: !waOn },
+          waOn ? 'Você não receberá mais avisos pelo WhatsApp.' : 'Pronto: você receberá avisos pelo WhatsApp no telefone do seu cadastro.')}
         hint={data.phone ? undefined : 'Cadastre um telefone em Dados pessoais para ativar.'} />
     </>
   );
