@@ -107,6 +107,8 @@ export function BillingPage() {
                           {c.description}
                           {c.recurrence === 'mensal' && <> <span className="badge badge-brand">Mensal</span></>}
                           {c.remindersPaused && c.status === 'pendente' && <> <span className="badge">Avisos pausados</span></>}
+                          {c.gatewayId && <> <span className="badge badge-info">Asaas</span></>}
+                          {c.gatewayError && c.gatewayPending && <> <span className="badge badge-danger" title={c.gatewayError}>Erro no Asaas</span></>}
                         </td>
                         <td data-label="Valor" style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtCents(c.amountCents)}</td>
                         <td data-label="Vencimento">{fmtDay(c.dueDate)}</td>
@@ -245,7 +247,19 @@ function NewChargeModal({ companies, onClose }: { companies: Company[]; onClose:
   );
 }
 
+const gatewayStatusLabel: Record<string, string> = {
+  PENDING: 'Aguardando pagamento',
+  OVERDUE: 'Vencida',
+  RECEIVED: 'Recebida',
+  CONFIRMED: 'Confirmada',
+  RECEIVED_IN_CASH: 'Baixada manualmente',
+  REFUNDED: 'Estornada',
+  DELETED: 'Removida',
+};
+
 function ChargeModal({ id, onClose, emailEnabled, today }: { id: string; onClose: () => void; emailEnabled: boolean; today?: string }) {
+  const settings = useQuery({ queryKey: ['billing', 'settings'], queryFn: () => api.get<BillingSettings>('/api/billing/settings') });
+  const gatewayOn = !!settings.data?.gatewayEnabled && !!settings.data?.asaas.configured;
   const toast = useToast();
   const refresh = useRefresh();
   const q = useQuery({ queryKey: ['billing', 'charge', id], queryFn: () => api.get<ChargeDetail>(`/api/billing/charges/${id}`) });
@@ -306,7 +320,26 @@ function ChargeModal({ id, onClose, emailEnabled, today }: { id: string; onClose
             {c.paymentLink && <div><div className="muted small">Link de pagamento</div><a href={c.paymentLink} target="_blank" rel="noopener noreferrer">{c.paymentLink}</a></div>}
             {c.paidAt && <div><div className="muted small">Pago em</div>{fmtDateTime(c.paidAt)}{c.paidNote && <div className="muted small">{c.paidNote}</div>}</div>}
             {c.canceledAt && <div><div className="muted small">Cancelada em</div>{fmtDateTime(c.canceledAt)}</div>}
+            {(c.gatewayId || c.gatewayPending) && (
+              <div>
+                <div className="muted small">Asaas</div>
+                {c.gatewayId ? <>{gatewayStatusLabel[c.gatewayStatus ?? ''] ?? c.gatewayStatus ?? '—'} <span className="muted small">({c.gatewayId})</span></> : 'Aguardando criação'}
+              </div>
+            )}
           </div>
+          {c.gatewayError && c.gatewayPending && <Alert>{c.gatewayError}</Alert>}
+          {gatewayOn && (c.gatewayId || pending) && (
+            <div className="row">
+              <Button size="sm" loading={busy}
+                onClick={() => act(async () => {
+                  const r = await api.post<{ paid: boolean }>(`/api/billing/charges/${id}/gateway-sync`);
+                  if (r.paid) toast.success('Pagamento encontrado no Asaas: cobrança baixada.');
+                }, c.gatewayId ? 'Atualizado com o Asaas.' : 'Cobrança gerada no Asaas.')}>
+                {c.gatewayId ? 'Atualizar do Asaas' : 'Gerar boleto/Pix no Asaas'}
+              </Button>
+              <span className="muted small">O pagamento pelo Asaas dá baixa automática; use este botão se ela demorar.</span>
+            </div>
+          )}
           {pending && (
             <div className="row">
               <Checkbox label="Pausar e-mails automáticos desta cobrança" checked={c.remindersPaused} disabled={busy}
@@ -436,6 +469,7 @@ function SettingsForm({ initial, onClose }: { initial: BillingSettings; onClose:
     reminderDaysBefore: String(initial.reminderDaysBefore),
     overdueEveryDays: String(initial.overdueEveryDays),
     overdueMaxReminders: String(initial.overdueMaxReminders),
+    gatewayEnabled: initial.gatewayEnabled,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -451,6 +485,7 @@ function SettingsForm({ initial, onClose }: { initial: BillingSettings; onClose:
         reminderDaysBefore: Number(s.reminderDaysBefore),
         overdueEveryDays: Number(s.overdueEveryDays),
         overdueMaxReminders: Number(s.overdueMaxReminders),
+        gatewayEnabled: s.gatewayEnabled,
       });
       toast.success('Configurações salvas.');
       await refresh();
@@ -476,6 +511,34 @@ function SettingsForm({ initial, onClose }: { initial: BillingSettings; onClose:
         </div>
         <TextArea label="Instruções no e-mail" value={s.instructions} onChange={set('instructions')} maxLength={2000} rows={3}
           hint="Opcional. Ex.: dados bancários para TED ou contato do financeiro." error={errors.instructions} />
+        <fieldset className="question">
+          <legend>Boleto, Pix e cartão (Asaas)</legend>
+          <div className="stack">
+            {!initial.asaas.configured ? (
+              <p className="muted small" style={{ margin: 0 }}>
+                Para gerar boleto/Pix/cartão e dar baixa automática, crie uma conta no Asaas e coloque a chave da API na variável
+                <code> ASAAS_API_KEY</code> do Netlify (marcada como secreta). Sem isso, a baixa continua manual.
+              </p>
+            ) : (
+              <>
+                <Checkbox label="Gerar cobranças no Asaas" checked={s.gatewayEnabled}
+                  onChange={(e) => setS((x) => ({ ...x, gatewayEnabled: e.target.checked }))}
+                  hint="Cada nova cobrança vira uma página de pagamento do Asaas (o cliente escolhe boleto, Pix ou cartão) e o link vai no e-mail. A empresa precisa ter CNPJ cadastrado." />
+                <p className="small" style={{ margin: 0 }}>
+                  Conta: <strong>{initial.asaas.environment === 'producao' ? 'produção' : 'sandbox (testes, sem cobrança real)'}</strong>
+                </p>
+                {initial.asaas.webhookConfigured ? (
+                  <p className="muted small" style={{ margin: 0 }}>
+                    Baixa automática: no Asaas, em Integrações → Webhooks, cadastre a URL <code>{initial.asaas.webhookUrl}</code> com
+                    o mesmo token da variável <code>ASAAS_WEBHOOK_TOKEN</code> e os eventos de cobrança.
+                  </p>
+                ) : (
+                  <Alert kind="warning">Falta a variável ASAAS_WEBHOOK_TOKEN: sem ela o sistema não recebe os avisos de pagamento (use "Atualizar do Asaas" na cobrança).</Alert>
+                )}
+              </>
+            )}
+          </div>
+        </fieldset>
         <div className="grid grid-3">
           <TextField label="Lembrete (dias antes)" type="number" min={0} max={30} value={s.reminderDaysBefore} onChange={set('reminderDaysBefore')} error={errors.reminderDaysBefore} />
           <TextField label="Reenviar atraso a cada (dias)" type="number" min={1} max={60} value={s.overdueEveryDays} onChange={set('overdueEveryDays')} error={errors.overdueEveryDays} />

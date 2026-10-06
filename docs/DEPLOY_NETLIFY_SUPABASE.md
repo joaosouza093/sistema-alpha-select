@@ -19,6 +19,7 @@ URL `https://nobrlidvvbbkgjqztesd.supabase.co`. Já feito a partir da sessão de
 - [x] Extensões `citext` e `pg_trgm` (esquema `extensions`).
 - [x] Papéis `alpha_owner` e `alpha_app` criados **sem senha** (ninguém entra até você definir as senhas).
 - [x] Migrações 0001–0007 aplicadas como `alpha_owner` e registradas em `schema_migrations`.
+- [x] Migrações 0008–0015 aplicadas no projeto `alpha-select-homologacao` (0013–0015 em 06/10/2026).
 - [x] Bucket `documentos-candidatos` **privado**, limite de 4 MB e tipos permitidos, sem políticas públicas.
 - [x] Verificado: o papel `anon` (API pública do Supabase) tem acesso **negado** a todas as tabelas, à visão e às funções.
 - [x] Security Advisor: só resta o aviso INFO “RLS habilitada sem políticas” em sessões, credenciais,
@@ -97,11 +98,13 @@ O último comando mostra **uma vez** o link de convite do primeiro administrador
 | `MAIL_MODE` | `manual` (enquanto não houver e-mail configurado) | Functions |
 | `SMTP_USER` | e-mail que envia (ex.: Gmail) — ver `CADASTRO_E_COBRANCAS.md` | Functions |
 | `SMTP_PASSWORD` | senha de app desse e-mail | Functions — **secreta** |
+| `ASAAS_API_KEY` | chave da API do Asaas (opcional; ver `CADASTRO_E_COBRANCAS.md`) | Functions — **secreta** |
+| `ASAAS_WEBHOOK_TOKEN` | token escolhido por você (16+ caracteres), igual ao do webhook no Asaas | Functions — **secreta** |
 | `RATE_LIMIT_STORE` | `postgres` | Functions |
 | `MAX_UPLOAD_MB` | `4` | Functions |
 | `LOG_LEVEL` | `warn` | Functions |
 
-- Só `DATABASE_URL`, `DATABASE_OWNER_URL`, `SUPABASE_SERVICE_ROLE_KEY` e `SMTP_PASSWORD` precisam ser marcadas como
+- Só `DATABASE_URL`, `DATABASE_OWNER_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SMTP_PASSWORD`, `ASAAS_API_KEY` e `ASAAS_WEBHOOK_TOKEN` precisam ser marcadas como
   **secretas** no Netlify. As demais não são segredo; o `netlify.toml` as exclui do scanner de segredos
   (`SECRETS_SCAN_OMIT_KEYS`), que senão bloqueia o build ao achar valores comuns como "warn" no código.
 - Nenhuma dessas variáveis começa com `VITE_`: o build do frontend **não** as inclui no navegador.

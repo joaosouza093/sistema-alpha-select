@@ -7,6 +7,7 @@ import { AppError, conflict, forbidden, notFound, staleVersion } from '../../lib
 import { parse } from '../../lib/validate.js';
 import { zOptionalText, zUuid } from '../../lib/normalize.js';
 import { loadProcess, processPermissions } from '../processes/routes.js';
+import { sendCandidateMessage } from '../messages/service.js';
 
 /** Motivos padronizados de reprovação/desistência (os mesmos do banco). */
 export const reasons = [
@@ -216,10 +217,11 @@ export function registerLeadRoutes(app: FastifyInstance, deps: Deps) {
           shareEmail: item.shareEmail, sharePhone: item.sharePhone, shareSalary: item.shareSalary, shareDocuments: item.shareDocuments,
         });
       }
-      return { process: p, count: rows.length };
+      return { process: p, count: rows.length, sent: rows.map((r) => ({ applicationId: r.id, candidateId: r.candidate_id })) };
     });
 
     await notifyClient(deps, id, result.process.title, result.count).catch(() => undefined);
+    for (const s of result.sent) await sendCandidateMessage(deps, 'perfil_enviado', s);
     return { ok: true, count: result.count };
   });
 }

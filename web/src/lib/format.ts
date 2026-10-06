@@ -104,3 +104,13 @@ export const reasonLabel = {
 export const triageLabel = { em_triagem: 'Em triagem', aprovado_interno: 'Aprovado na triagem', reprovado_interno: 'Reprovado na triagem' } as const;
 
 export const fmtScore = (s: number | null | undefined) => (s == null ? null : s.toFixed(1).replace('.', ','));
+
+export const interviewModeLabel = { presencial: 'Presencial', online: 'On-line', telefone: 'Telefone' } as const;
+export const interviewStatusLabel = { agendada: 'Agendada', realizada: 'Realizada', cancelada: 'Cancelada' } as const;
+export const templateLabel = {
+  candidatura_recebida: 'Candidatura recebida (portal)',
+  perfil_enviado: 'Perfil enviado ao cliente',
+  entrevista_agendada: 'Entrevista agendada',
+  reprovacao: 'Não aprovado',
+  aviso_retencao: 'Aviso de exclusão (retenção)',
+} as const;

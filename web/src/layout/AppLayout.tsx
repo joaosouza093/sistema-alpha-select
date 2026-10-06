@@ -49,6 +49,7 @@ export function AppLayout() {
           </NavLink>
           <NavLink to="/processos">Processos seletivos</NavLink>
           {isAlpha && <NavLink to="/candidatos">Candidatos</NavLink>}
+          {isAlpha && <NavLink to="/relatorios">Relatórios</NavLink>}
           {isAdmin && (
             <>
               <div className="nav-section">Administração</div>
@@ -56,6 +57,8 @@ export function AppLayout() {
               <NavLink to="/usuarios">Usuários e convites</NavLink>
               <NavLink to="/cadastros">Cadastros</NavLink>
               <NavLink to="/cobrancas">Cobranças</NavLink>
+              <NavLink to="/mensagens">Mensagens</NavLink>
+              <NavLink to="/privacidade">Privacidade (LGPD)</NavLink>
               <NavLink to="/auditoria">Auditoria</NavLink>
             </>
           )}

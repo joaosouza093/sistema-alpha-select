@@ -12,6 +12,11 @@ Legenda: ✅ permitido · ❌ negado · 🔸 somente com vínculo ao processo ·
 | Gerenciar empresas clientes | ✅ | ❌ | ❌ | ❌ |
 | Aprovar/recusar cadastros feitos pelo site | ✅ | ❌ | ❌ | ❌ |
 | Cobranças (ver, criar, baixar, configurar) | ✅ | ❌ | ❌ | ❌ |
+| Relatórios (operação) — equipe só dos processos com acesso | ✅ | ✅ | ❌ | ❌ |
+| Relatórios: blocos financeiro e mensagens | ✅ | ❌ | ❌ | ❌ |
+| Privacidade (regra de retenção, manter candidato) | ✅ | ❌ | ❌ | ❌ |
+| Desligar verificação em duas etapas de outro usuário | ✅ | ❌ | ❌ | ❌ |
+| Ativar/desligar a própria verificação em duas etapas | ✅ | ✅ | ✅ | ✅ |
 | Configurar e publicar vaga no portal | ✅ | ❌ (vê a configuração se vinculado) | ❌ | ❌ |
 | Ver respostas da candidatura pelo portal | ✅ | 🔸 | ❌ | ❌ |
 | Convidar, editar, ativar/desativar usuários | ✅ | ❌ | ❌ | ❌ |
@@ -22,6 +27,10 @@ Legenda: ✅ permitido · ❌ negado · 🔸 somente com vínculo ao processo ·
 | Ficha de avaliação da triagem | ✅ | 🔸 | ❌ | ❌ |
 | Enviar candidatos ao cliente | ✅ | 🔹 (permissão de mover etapa) | ❌ | ❌ |
 | Definir critérios de avaliação e prazo (SLA) | ✅ | ❌ | ❌ | ❌ |
+| Agendar entrevistas | ✅ | 🔸 | 🔹 (mover ou decidir) | 🔹 (mover ou decidir) |
+| Avisar o candidato por e-mail | ✅ | 🔸 | ❌ | ❌ |
+| Editar modelos de mensagem | ✅ | ❌ | ❌ | ❌ |
+| Ver histórico de mensagens ao candidato | ✅ | 🔸 | ❌ | ❌ |
 | Cadastro completo de candidatos (lista, busca, observações) | ✅ todos | cadastrados por si ou em processos com vínculo | ❌ | ❌ |
 | Cadastrar/editar candidato | ✅ | ✅ (no seu escopo) | ❌ | ❌ |
 | Incluir candidato em processo | ✅ | 🔸 | ❌ | ❌ |

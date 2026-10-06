@@ -12,6 +12,7 @@ import { MoveDialog } from '../../components/MoveDialog';
 import { DocumentPreview } from '../../components/DocumentPreview';
 import { daysSince, decisionLabel, docKindLabel, fmtDateTime, fmtMoney, fmtPhone, fmtScore, fmtSize, reasonLabel, triageLabel } from '../../lib/format';
 import { SendLeadsModal } from '../../components/SendLeadsModal';
+import { FeedbackCard, InterviewsCard } from './ClientPanels';
 
 type Tab = 'candidato' | 'triagem' | 'etapa' | 'documentos' | 'comentarios' | 'historico';
 
@@ -54,7 +55,7 @@ export function ApplicationPage() {
       />
       <Tabs label="Seções da participação" tabs={tabs} value={tab} onChange={(t) => setParams({ aba: t }, { replace: true })} />
       <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
-        {tab === 'candidato' && <CandidateTab a={a} />}
+        {tab === 'candidato' && <CandidateTab a={a} stages={stages.data!.items} />}
         {tab === 'triagem' && isAlpha && <TriageTab a={a} />}
         {tab === 'etapa' && <StageTab a={a} stages={stages.data!.items} />}
         {tab === 'documentos' && <DocumentsTab a={a} />}
@@ -67,7 +68,7 @@ export function ApplicationPage() {
 
 // ------------------------------------------------------------------ candidato
 
-function CandidateTab({ a }: { a: Application }) {
+function CandidateTab({ a, stages }: { a: Application; stages: Stage[] }) {
   const { isAlpha } = useAuth();
   return (
     <div className="grid grid-2">
@@ -101,6 +102,8 @@ function CandidateTab({ a }: { a: Application }) {
           </dl>
         </div>
       </section>
+      {!isAlpha && <FeedbackCard a={a} stages={stages} />}
+      <InterviewsCard a={a} />
       {isAlpha && a.source === 'portal' && <IntakeCard a={a} />}
       {isAlpha && <SharingCard a={a} />}
     </div>

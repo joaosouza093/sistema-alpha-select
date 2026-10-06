@@ -44,6 +44,12 @@ const schema = z.object({
   SMTP_HOST: z.string().default('smtp.gmail.com'),
   SMTP_PORT: z.coerce.number().int().positive().default(465),
   MAIL_FROM: z.string().optional(),
+  /** Asaas (boleto, Pix e cartão). Chave da API: SOMENTE no servidor. Sem ela, a baixa é manual. */
+  ASAAS_API_KEY: z.string().optional(),
+  /** Token que o Asaas envia no cabeçalho asaas-access-token dos webhooks. */
+  ASAAS_WEBHOOK_TOKEN: z.string().min(16).optional(),
+  /** Opcional: força o endereço da API (o padrão segue o tipo da chave: produção ou sandbox). */
+  ASAAS_API_URL: z.string().url().optional(),
   SESSION_ABSOLUTE_HOURS: z.coerce.number().positive().default(12),
   SESSION_IDLE_MINUTES: z.coerce.number().positive().default(120),
   /** Diretório do build do frontend servido pelo backend em homologação/produção. */

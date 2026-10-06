@@ -15,6 +15,7 @@ import {
   zUuid,
 } from '../../lib/normalize.js';
 import { Where } from '../../lib/sql.js';
+import { eraseCandidates } from './erase.js';
 
 const zSalary = z
   .union([z.number(), z.string(), z.null()])
@@ -152,7 +153,7 @@ export function registerCandidateRoutes(app: FastifyInstance, deps: Deps) {
         `select c.id, c.full_name as "fullName", c.email, c.phone, c.salary_expectation as "salaryExpectation",
                 c.notes, c.version, c.archived_at as "archivedAt", c.created_at as "createdAt",
                 c.updated_at as "updatedAt", u.full_name as "createdByName",
-                c.source, c.city, c.consent_at as "consentAt"
+                c.source, c.city, c.consent_at as "consentAt", c.email_opt_out_at as "emailOptOutAt"
            from candidates c left join users u on u.id = c.created_by where c.id = $1`,
         [id],
       );
@@ -299,14 +300,9 @@ export function registerCandidateRoutes(app: FastifyInstance, deps: Deps) {
     const keys = await asUser(deps, req, async (db) => {
       const cur = await db.query('select 1 from candidates where id = $1', [id]);
       if (!cur.rowCount) throw notFound('Candidato não encontrado.');
-      const docs = await db.query<{ storage_key: string }>('select storage_key from documents where candidate_id = $1', [
-        id,
-      ]);
-      await db.query('delete from applications where candidate_id = $1', [id]);
-      await db.query('delete from documents where candidate_id = $1', [id]);
-      await db.query('delete from candidates where id = $1', [id]);
-      await audit(db, req, 'candidate.erased', 'candidate', id, null, { documents: docs.rowCount });
-      return docs.rows.map((d) => d.storage_key);
+      const keys = await eraseCandidates(db, [id]);
+      await audit(db, req, 'candidate.erased', 'candidate', id, null, { documents: keys.length });
+      return keys;
     });
     for (const k of keys) await deps.storage.remove(k).catch(() => undefined);
     return { ok: true };

@@ -38,7 +38,7 @@ npm run dev:web                      # interface em http://localhost:5173
 | --- | --- |
 | `npm run typecheck` | Verificação de tipos (servidor e web) |
 | `npm run build` | Build de produção (servidor e web) |
-| `npm test` | 117 testes de integração do backend (recria o banco `alpha_test`) |
+| `npm test` | 148 testes de integração do backend (recria o banco `alpha_test`) |
 | `npm run check:netlify` | Verifica o empacotamento das funções do Netlify |
 | `npm run test:e2e` | 8 testes no navegador (requer servidor em `localhost:3000`) |
 | `npm run db:migrate` | Aplica migrações pendentes |
@@ -52,11 +52,13 @@ npm run dev:web                      # interface em http://localhost:5173
 - [Matriz de permissões](docs/PERMISSOES.md)
 - [Instalação, configuração, primeiro administrador e publicação](docs/INSTALACAO.md)
 - [**Deploy no Netlify + Supabase** (passo a passo)](docs/DEPLOY_NETLIFY_SUPABASE.md)
-- [Segurança, proteção de dados, backup e incidentes](docs/SEGURANCA_E_LGPD.md)
+- [Segurança, verificação em duas etapas, LGPD (retenção e área do candidato), backup e incidentes](docs/SEGURANCA_E_LGPD.md)
 - [Roteiro de homologação](docs/HOMOLOGACAO.md)
 - [Testes executados](docs/TESTES.md)
 - [Cadastro pelo site, recuperação de senha e cobranças](docs/CADASTRO_E_COBRANCAS.md)
 - [Vagas e portal público de candidatura](docs/VAGAS_E_PORTAL.md)
 - [Triagem, envio ao cliente, motivos e prazos](docs/TRIAGEM_E_ENVIO.md)
+- [Portal do cliente e mensagens ao candidato](docs/PORTAL_CLIENTE_E_MENSAGENS.md)
+- [Relatórios e indicadores (CSV e PDF)](docs/RELATORIOS.md)
 - [Pendências, premissas e limitações](docs/PENDENCIAS.md)
 - [Identidade visual oficial (arquivos, paleta, contraste e substituição)](docs/IDENTIDADE_VISUAL.md)

@@ -9,6 +9,7 @@ import { zEmail, zOptionalPhone, zOptionalText, zText } from '../../lib/normaliz
 import { receiveUpload } from '../../lib/upload.js';
 import { insertAudit } from '../auth/service.js';
 import type { ScreeningQuestion } from '../jobs/routes.js';
+import { sendCandidateMessage } from '../messages/service.js';
 
 /**
  * Portal público de vagas. Rotas sem login, com a menor superfície possível:
@@ -16,7 +17,7 @@ import type { ScreeningQuestion } from '../jobs/routes.js';
  * expõe identificadores internos, respostas esperadas ou dados de candidatos.
  */
 
-export const CONSENT_VERSION = 'portal-v1';
+export const CONSENT_VERSION = 'portal-v2'; // v2: aviso cita a área Meus dados e a retenção
 const RESUME_EXTENSIONS = ['pdf', 'doc', 'docx', 'odt'];
 
 const publicCols = `p.public_slug as slug, p.title, p.job_location as location, p.work_model as "workModel",
@@ -161,10 +162,13 @@ export function registerPublicRoutes(app: FastifyInstance, deps: Deps) {
         committedKey = storageKey;
         await insertAudit(db, null, target ? 'portal.application_received' : 'portal.talent_received',
           target ? 'application' : 'candidate', applicationId ?? candidateId, req.ip, { screeningFailed });
-        return 'created' as const;
+        return { candidateId, applicationId };
       });
       committedKey = null;
-      if (result === 'created') await confirm(data, target?.title ?? null);
+      if (result !== 'duplicate') {
+        if (result.applicationId) await confirmByTemplate(data, result.candidateId, result.applicationId);
+        else await confirm(data, null);
+      }
     } finally {
       await rm(tmp, { force: true }).catch(() => undefined);
       if (committedKey) await deps.storage.remove(committedKey).catch(() => undefined);
@@ -181,6 +185,16 @@ export function registerPublicRoutes(app: FastifyInstance, deps: Deps) {
     return !!r.rowCount;
   }
 
+  /** Confirmação da candidatura pelo modelo "candidatura_recebida" (limitada por e-mail). */
+  async function confirmByTemplate(data: ApplicationInput, candidateId: string, applicationId: string) {
+    try {
+      await deps.limiters.signupAccount.consume(`cand:${data.email}`);
+    } catch {
+      return;
+    }
+    await sendCandidateMessage(deps, 'candidatura_recebida', { candidateId, applicationId });
+  }
+
   /** Confirmação automática ao candidato (limitada por e-mail para evitar abuso). */
   async function confirm(data: ApplicationInput, title: string | null) {
     if (deps.config.mailMode === 'manual') return;
@@ -195,7 +209,7 @@ export function registerPublicRoutes(app: FastifyInstance, deps: Deps) {
             ? `Recebemos sua candidatura para a vaga "${title}". `
             : 'Recebemos seu currículo no banco de talentos da Alpha Select. ') +
           'Nossa equipe vai analisar seu perfil e, se ele avançar, entraremos em contato.\n\n' +
-          'Seus dados são usados somente para processos seletivos. Para corrigir ou excluir seus dados, responda a este e-mail.\n\n' +
+          `Seus dados são usados somente para processos seletivos. Para consultar, corrigir ou excluir seus dados: ${deps.config.APP_URL.replace(/\/$/, '')}/meus-dados\n\n` +
           'Alpha Select Consultoria de Recursos Humanos',
       });
     } catch {

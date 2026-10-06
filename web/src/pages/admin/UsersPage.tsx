@@ -24,6 +24,7 @@ export function UsersPage() {
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<UserRow | 'new' | null>(null);
   const [toggling, setToggling] = useState<UserRow | null>(null);
+  const [mfaReset, setMfaReset] = useState<UserRow | null>(null);
 
   const companies = useQuery({ queryKey: ['companies'], queryFn: () => api.get<{ items: Company[] }>('/api/companies') });
   const list = useQuery({
@@ -65,6 +66,18 @@ export function UsersPage() {
     }
   };
 
+  const resetMfa = async () => {
+    if (!mfaReset) return;
+    try {
+      await api.post(`/api/users/${mfaReset.id}/mfa-reset`);
+      toast.success('Verificação em duas etapas desligada.');
+      setMfaReset(null);
+      await qc.invalidateQueries({ queryKey: ['users'] });
+    } catch (e) {
+      toast.error(e);
+    }
+  };
+
   return (
     <>
       <PageHeader title="Usuários e convites" subtitle="Não há cadastro público: todo acesso é criado aqui e ativado por convite de uso único."
@@ -99,12 +112,14 @@ export function UsersPage() {
                         {!u.isActive ? <span className="badge">Desativado</span> : u.accessStatus && (
                           <span className={`badge ${u.accessStatus === 'senha_definida' ? 'badge-success' : 'badge-warning'}`}>{accessLabel[u.accessStatus]}</span>
                         )}
+                        {u.mfaEnabled && <>{' '}<span className="badge badge-info">Duas etapas</span></>}
                       </td>
                       <td data-label="Último acesso">{fmtDateTime(u.lastLoginAt)}</td>
                       <td className="actions">
                         <Button size="sm" onClick={() => setEditing(u)}>Editar</Button>
                         {u.isActive && u.accessStatus !== 'senha_definida' && <>{' '}<Button size="sm" onClick={() => resend(u)}>Reenviar convite</Button></>}
                         {u.isActive && u.accessStatus === 'senha_definida' && u.id !== me?.id && <>{' '}<Button size="sm" onClick={() => resetLink(u)}>Link de redefinição</Button></>}
+                        {u.mfaEnabled && u.id !== me?.id && <>{' '}<Button size="sm" onClick={() => setMfaReset(u)}>Desligar duas etapas</Button></>}
                         {u.id !== me?.id && <>{' '}<Button size="sm" variant={u.isActive ? 'danger' : 'default'} onClick={() => setToggling(u)}>{u.isActive ? 'Desativar' : 'Reativar'}</Button></>}
                       </td>
                     </tr>
@@ -118,6 +133,11 @@ export function UsersPage() {
       </section>
       {shared && <SharedLinkModal data={shared} onClose={() => setShared(null)} />}
       {editing && <UserModal onLink={setShared} user={editing === 'new' ? null : editing} companies={companies.data?.items.filter((c) => c.isActive) ?? []} onClose={() => setEditing(null)} isSelf={editing !== 'new' && editing.id === me?.id} />}
+      {mfaReset && (
+        <ConfirmDialog title="Desligar verificação em duas etapas" danger
+          message={<>Desligar a verificação em duas etapas de <strong>{mfaReset.fullName}</strong>? Use só quando a pessoa perdeu o celular e os códigos de recuperação e você confirmou a identidade dela. Ela passará a entrar só com a senha e poderá ativar de novo em Minha conta.</>}
+          confirmLabel="Desligar" onConfirm={resetMfa} onCancel={() => setMfaReset(null)} />
+      )}
       {toggling && (
         <ConfirmDialog title={toggling.isActive ? 'Desativar usuário' : 'Reativar usuário'} danger={toggling.isActive}
           message={toggling.isActive ? <>Desativar <strong>{toggling.fullName}</strong>? O acesso é bloqueado imediatamente, inclusive em sessões abertas.</> : <>Reativar <strong>{toggling.fullName}</strong>?</>}

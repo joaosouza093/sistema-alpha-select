@@ -14,7 +14,12 @@ import { BillingPage } from './pages/admin/BillingPage';
 import { JobsPage } from './pages/public/JobsPage';
 import { JobPage } from './pages/public/JobPage';
 import { TalentPage } from './pages/public/TalentPage';
+import { UnsubscribePage } from './pages/public/UnsubscribePage';
+import { MyDataPage } from './pages/public/MyDataPage';
+import { PrivacyPage } from './pages/admin/PrivacyPage';
+import { MessagesPage } from './pages/admin/MessagesPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { ReportsPage } from './pages/ReportsPage';
 import { ProcessListPage } from './pages/processes/ProcessListPage';
 import { ProcessPage } from './pages/processes/ProcessPage';
 import { ApplicationPage } from './pages/applications/ApplicationPage';
@@ -49,6 +54,8 @@ export function App() {
       <Route path="/vagas" element={<JobsPage />} />
       <Route path="/vagas/:slug" element={<JobPage />} />
       <Route path="/trabalhe-conosco" element={<TalentPage />} />
+      <Route path="/descadastrar" element={<UnsubscribePage />} />
+      <Route path="/meus-dados" element={<MyDataPage />} />
       <Route
         element={
           <RequireAuth>
@@ -64,10 +71,13 @@ export function App() {
         <Route path="candidatos/novo" element={<RequireAuth alpha><CandidateFormPage /></RequireAuth>} />
         <Route path="candidatos/:id" element={<RequireAuth alpha><CandidatePage /></RequireAuth>} />
         <Route path="candidatos/:id/editar" element={<RequireAuth alpha><CandidateFormPage /></RequireAuth>} />
+        <Route path="relatorios" element={<RequireAuth alpha><ReportsPage /></RequireAuth>} />
         <Route path="clientes" element={<RequireAuth admin><CompaniesPage /></RequireAuth>} />
         <Route path="usuarios" element={<RequireAuth admin><UsersPage /></RequireAuth>} />
         <Route path="cadastros" element={<RequireAuth admin><SignupsPage /></RequireAuth>} />
         <Route path="cobrancas" element={<RequireAuth admin><BillingPage /></RequireAuth>} />
+        <Route path="mensagens" element={<RequireAuth admin><MessagesPage /></RequireAuth>} />
+        <Route path="privacidade" element={<RequireAuth admin><PrivacyPage /></RequireAuth>} />
         <Route path="auditoria" element={<RequireAuth admin><AuditPage /></RequireAuth>} />
         <Route path="conta" element={<AccountPage />} />
         <Route path="*" element={<NotFoundPage />} />

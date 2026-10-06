@@ -13,6 +13,7 @@
 | CSRF | Cookie `SameSite=Strict` + token `X-CSRF-Token` por sessão + verificação de `Origin` |
 | CORS | Somente mesma origem por padrão; origens extras apenas por configuração |
 | Senhas | scrypt (N=2^15) com sal; mínimo 10 caracteres; troca/redefinição encerra outras sessões |
+| Verificação em duas etapas | Opcional por usuário (Minha conta): código TOTP de aplicativo autenticador + 10 códigos de recuperação de uso único (guardados como hash). Código não pode ser reutilizado; desafio de login vale 5 min e cai após 5 erros; ativar encerra as outras sessões; administrador pode desligar de quem perdeu o celular (auditado) |
 | Tentativas | Limites por IP e por conta (login, recuperação, convite, upload) + bloqueio de conta por 15 min após 8 falhas |
 | Convites | Token aleatório de 256 bits, guardado como hash, uso único, 72 h, perfil definido pelo servidor; reenvio invalida o anterior; token no fragmento `#` (não vai a logs) |
 | Revogação | Sessão validada a cada requisição (usuário e empresa ativos); desativação apaga sessões; RLS também nega usuário inativo |
@@ -40,7 +41,8 @@
   instâncias, substituir por armazenamento compartilhado (ex.: Redis) ou limitar no proxy.
 - **Criptografia em repouso**: depende do provedor do banco e do disco. Nada está
   habilitado por este projeto; habilite no provedor escolhido e registre aqui.
-- **Sem MFA** nesta versão.
+- Verificação em duas etapas é **opcional** (não há regra que obrigue um perfil a usá-la). O segredo TOTP fica no banco sem
+  criptografia adicional, acessível só ao papel do servidor (como as credenciais).
 - O dono do banco (`alpha_owner`) pode, tecnicamente, ler tudo; proteja essa credencial.
 
 ## Proteção de dados pessoais (LGPD)
@@ -53,10 +55,21 @@
 - Cadastro pelo site: guarda empresa, CNPJ, responsável, e-mail, telefone, IP e data da autorização.
   Pedidos não confirmados são apagados em ~7 dias; recusados, após 90 dias. Cobranças guardam
   empresa, valor, vencimento e e-mail de cobrança; o texto dos e-mails não é armazenado.
-- **Base legal e prazo de retenção devem ser definidos pela Alpha Select.** O sistema não
-  aplica prazo automático e nenhuma tela apresenta “aceite” como garantia de conformidade.
+- **Base legal e prazo de retenção devem ser definidos pela Alpha Select.** A regra automática de retenção existe
+  (Administração → Privacidade), mas vem **desligada**: o administrador escolhe o prazo (6 a 120 meses sem atividade) e o
+  aviso (7 a 90 dias). Candidatos fora do prazo e fora de processos em andamento recebem e-mail com link para continuar
+  no banco de talentos; sem resposta, são eliminados definitivamente (auditoria `candidate.retention_erased`). Qualquer
+  atividade (renovação, edição, nova candidatura, "Manter" do administrador) cancela o aviso.
 
 ### Atendimento a solicitações de titulares
+
+O próprio titular atende a maioria dos pedidos em **/meus-dados** (link "Meus dados" no portal de vagas): informa o
+e-mail e recebe um link de acesso de 60 minutos (sem senha; mesma resposta exista ou não o cadastro). Lá ele vê os dados e
+candidaturas (sem anotações, avaliações ou motivos internos), corrige nome/telefone/cidade/pretensão, envia currículo novo,
+liga/desliga e-mails, renova o consentimento, baixa uma cópia (JSON) e exclui tudo (imediato e definitivo, todos os
+cadastros com aquele e-mail). Tudo fica na auditoria. Sem e-mail configurado, a página orienta a falar com a Alpha Select.
+
+Pedidos por outros canais:
 
 | Pedido | Procedimento |
 | --- | --- |

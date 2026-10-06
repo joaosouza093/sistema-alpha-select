@@ -99,8 +99,9 @@ export function ApplyForm({ endpoint, questions = [], title }: { endpoint: strin
         <p>
           A Alpha Select usa seus dados (nome, contatos, cidade, pretensão, currículo e respostas) para analisar sua candidatura e
           para futuras oportunidades compatíveis do banco de talentos. Seus dados só são apresentados a uma empresa contratante
-          se o seu perfil avançar no processo. Você pode pedir acesso, correção ou exclusão dos seus dados respondendo ao e-mail de
-          confirmação que enviaremos.
+          se o seu perfil avançar no processo. Você pode consultar, corrigir, baixar ou excluir seus dados a qualquer momento em{' '}
+          <a href="/meus-dados" target="_blank" rel="noreferrer">Meus dados</a>. Se não houver atividade no seu cadastro por um
+          longo período, avisaremos por e-mail antes de excluí-lo.
         </p>
       </details>
       <Checkbox checked={accept} onChange={(e) => setAccept(e.target.checked)}

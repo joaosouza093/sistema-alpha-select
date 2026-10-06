@@ -1,13 +1,13 @@
 # Testes executados
 
-Execução em 05/10/2026, PostgreSQL 16 local, Node.js 22, Chromium (Playwright 1.63).
+Execução em 06/10/2026, PostgreSQL 16 local, Node.js 22, Chromium (Playwright 1.63).
 
 | Verificação | Comando | Resultado |
 | --- | --- | --- |
 | Tipos (servidor e web) | `npm run typecheck` | ✅ sem erros |
 | Build de produção | `npm run build` | ✅ |
-| Integração do backend | `npm test` | ✅ **117/117** |
-| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **117/117** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
+| Integração do backend | `npm test` | ✅ **148/148** |
+| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **148/148** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
 | Empacotamento Netlify Functions | `npm run check:netlify` | ✅ |
 | Navegador (desktop + celular) | `npm run test:e2e` | ✅ **8/8** |
 | Dependências de produção | `npm audit --omit=dev` | ✅ 0 vulnerabilidades |
@@ -79,6 +79,14 @@ ficha de avaliação com nota média e motivo obrigatório, envio em lote só de
 compartilhamento escolhido e aviso por e-mail, envio irreversível e sem repetição, aviso de envio
 duplicado à mesma empresa, permissões de envio, motivo padronizado nas decisões e prazo vencido.
 
+## Portal do cliente e mensagens
+
+`client-portal.test.ts` (5 testes): aviso ao candidato no envio sem revelar empresa confidencial,
+descadastro interrompe e-mails, entrevistas por permissão (403 sem permissão, só a Alpha avisa o
+candidato), entrevistas de candidato em triagem invisíveis ao cliente (API e RLS), modelos editáveis só
+pelo administrador, reprovação só avisa quando ligada e sem o motivo interno, quebra de linha não
+entra no assunto, fila "aguardando seu retorno", indicadores por processo e lembrete diário único.
+
 ## Integração contínua
 
 `.github/workflows/ci.yml` executa, a cada push/PR, verificação de tipos, build, os testes de
@@ -93,3 +101,35 @@ servidor e dados de desenvolvimento) e são executados localmente com `npm run t
 - **Publicação**: sem ambiente autorizado.
 - **Leitores de tela** e navegadores além do Chromium: não testados automaticamente.
 - **Carga/desempenho**: não testado.
+
+## Relatórios
+
+`reports.test.ts` (5 testes): totais por processo conferidos contra o cenário criado (triagem, envio,
+recusa do cliente, motivos, recrutador, mês); período vazio zerado; equipe só vê os processos aos quais tem
+acesso e não recebe financeiro nem mensagens (inclusive filtrando por processo alheio); cliente recebe 403
+e visitante 401; período invertido, acima de 2 anos, data inválida e parâmetro extra recusados; financeiro
+por empresa (emitido, recebido, vencido e adimplência). Tela verificada no navegador em desktop e celular.
+
+## Verificação em duas etapas, retenção e área do candidato
+
+`mfa.test.ts` (7 testes): vetores da RFC 6238; login sem sessão até o código; desafio de uso único; código não reutilizável;
+ativar encerra outras sessões; código de recuperação uma única vez; 5 erros invalidam o desafio; desligar exige senha e
+código; administrador desliga de outro usuário (não de si mesmo) e fica na auditoria; segredo inacessível ao papel da aplicação.
+
+`privacy-portal.test.ts` (6 testes): regra desligada por padrão e só administrador configura; aviso por e-mail, sem repetição,
+eliminação após o prazo, candidato em processo em andamento preservado; "Manter" e renovação pelo candidato cancelam o aviso;
+link de acesso com resposta igual para e-mail inexistente e token inválido recusado; candidato vê candidaturas sem empresa
+confidencial nem anotações internas, corrige dados, troca currículo, se descadastra e baixa os dados; exclusão pelo
+candidato apaga todos os cadastros do e-mail e invalida o link.
+
+Telas verificadas no navegador: ativação com QR code, login em duas etapas com código de recuperação, Privacidade e
+Meus dados (celular). Os testes de navegador (`npm run test:e2e`) não foram executados nesta rodada.
+
+## Asaas
+
+`asaas.test.ts` (8 testes, contra um servidor que imita a API v3 do Asaas — `fake-asaas.ts`): ambiente pela chave e
+recusa de ligar sem chave; cliente criado uma vez por CNPJ com avisos do Asaas desligados; cobrança com valor, vencimento
+e referência; link de pagamento no primeiro e-mail; empresa sem CNPJ com erro claro e e-mail retido; webhook com token
+errado recusado, baixa automática com recibo único e pagamento desconhecido ignorado; edição, baixa manual
+(`receiveInCash`) e cancelamento refletidos; falha temporária refeita pela tarefa; "Atualizar do Asaas" dá baixa sem
+webhook; parcela mensal com cobrança própria. **Não testado contra o Asaas real** (sem conta).

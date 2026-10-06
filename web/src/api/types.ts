@@ -47,6 +47,7 @@ export interface UserRow {
   createdAt: string;
   lastLoginAt: string | null;
   accessStatus: 'senha_definida' | 'convite_pendente' | 'sem_convite_valido' | null;
+  mfaEnabled: boolean | null;
 }
 
 export interface Permissions {
@@ -181,6 +182,7 @@ export interface Candidate {
   createdByName: string | null;
   source?: 'interno' | 'portal';
   city?: string | null;
+  emailOptOutAt?: string | null;
   consentAt?: string | null;
   applications: CandidateApplication[];
   documents: DocumentRow[];
@@ -242,6 +244,8 @@ export interface HistoryItem {
 export interface Dashboard {
   totals: { activeProcesses: number; candidates: number; openApplications: number };
   leads?: { inTriage: number; sentLast30: number; overdue: number };
+  awaiting?: { id: string; candidateName: string; processTitle: string; stageName: string; stageChangedAt: string; overdue: boolean }[];
+  byProcess?: { id: string; title: string; companyName: string; sent: number; pending: number; approved: number; rejected: number; avgResponseDays: number | null }[];
   byStage: { stageId: number; name: string; count: number }[];
   myPending: { id: string; candidateName: string; processTitle: string; stageName: string; stageChangedAt: string }[];
   recent: {
@@ -311,6 +315,11 @@ export interface ChargeRow {
   createdAt: string;
   version: number;
   lastNotice: { kind: NoticeKind; sentAt: string; ok: boolean } | null;
+  gatewayId: string | null;
+  gatewayStatus: string | null;
+  gatewayError: string | null;
+  gatewayPending: boolean;
+  paidVia: 'manual' | 'asaas' | null;
 }
 
 export interface ChargeDetail extends ChargeRow {
@@ -338,6 +347,8 @@ export interface BillingSettings {
   overdueEveryDays: number;
   overdueMaxReminders: number;
   emailEnabled: boolean;
+  gatewayEnabled: boolean;
+  asaas: { configured: boolean; environment: 'sandbox' | 'producao' | null; webhookConfigured: boolean; webhookUrl: string };
 }
 
 export type Publication = 'rascunho' | 'publicada' | 'pausada' | 'encerrada';
@@ -407,4 +418,71 @@ export interface Evaluation {
   version: number;
   updatedAt: string;
   evaluatedByName: string | null;
+}
+
+export interface Interview {
+  id: string;
+  scheduledAt: string;
+  mode: 'presencial' | 'online' | 'telefone';
+  location: string | null;
+  notes: string | null;
+  status: 'agendada' | 'realizada' | 'cancelada';
+  version: number;
+  createdByName: string | null;
+  createdAt: string;
+}
+
+export interface MessageTemplate {
+  key: 'candidatura_recebida' | 'perfil_enviado' | 'entrevista_agendada' | 'reprovacao';
+  enabled: boolean;
+  subject: string;
+  body: string;
+  updatedAt: string;
+}
+
+export interface MessageLogRow {
+  id: string;
+  templateKey: MessageTemplate['key'];
+  candidateId: string;
+  candidateName: string;
+  to: string;
+  subject: string;
+  ok: boolean;
+  error: string | null;
+  sentAt: string;
+}
+
+export interface ReportMetrics {
+  applications: number;
+  screened: number;
+  approvedInternal: number;
+  rejectedInternal: number;
+  sent: number;
+  awaitingFeedback: number;
+  hired: number;
+  rejectedClient: number;
+  avgDaysToSend: number | null;
+  avgResponseDays: number | null;
+}
+
+export type ReasonKey = keyof typeof import('../lib/format').reasonLabel;
+
+export interface Report {
+  filters: { from: string; to: string; companyId?: string; processId?: string };
+  summary: ReportMetrics;
+  byCompany: (ReportMetrics & { id: string; name: string })[];
+  byProcess: (ReportMetrics & { id: string; name: string; companyName: string })[];
+  bySource: (ReportMetrics & { id: 'interno' | 'portal' })[];
+  byMonth: (ReportMetrics & { id: string })[];
+  byRecruiter: { id: string; name: string; screened: number; sent: number; hired: number; avgDaysToSend: number | null }[];
+  triageReasons: { reason: ReasonKey; count: number }[];
+  clientReasons: { reason: ReasonKey; count: number }[];
+  messages: null | {
+    byTemplate: { id: string; total: number; delivered: number; failed: number }[];
+    optOuts: number;
+  };
+  finance: null | {
+    byCompany: { id: string; name: string; billedCents: number; paidCents: number; overdueCents: number; openCents: number; avgPayDelayDays: number | null }[];
+    totals: { billedCents: number; paidCents: number; overdueCents: number; openCents: number; complianceRate: number | null };
+  };
 }

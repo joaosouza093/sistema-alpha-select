@@ -170,11 +170,13 @@ export async function generateRecurring(deps: Deps, today: string) {
           limit 200
        ), ins as (
          insert into charges (company_id, description, amount_cents, due_date, billing_email, payment_link,
-                              recurrence, series_id, series_start, series_index, created_by)
+                              recurrence, series_id, series_start, series_index, created_by, gateway_dirty)
          select s.company_id, s.description, s.amount_cents,
                 (s.series_start + make_interval(months => s.series_index + 1))::date,
-                coalesce(co.billing_email, s.billing_email), s.payment_link,
-                'mensal', s.series_id, s.series_start, s.series_index + 1, s.created_by
+                coalesce(co.billing_email, s.billing_email),
+                -- o link do Asaas é de cada parcela: a nova recebe o seu ao ser criada lá
+                case when s.gateway_id is null then s.payment_link end,
+                'mensal', s.series_id, s.series_start, s.series_index + 1, s.created_by, s.gateway_id is not null
            from src s join companies co on co.id = s.company_id
           where co.is_active
          on conflict (series_id, series_index) do nothing
@@ -211,6 +213,9 @@ export async function runBillingNotifications(
   if (!billingEmailEnabled(deps)) return result;
   const s = await loadSettings(deps);
   if (!s.auto_email) return result;
+  // Com o Asaas ligado, a cobrança nova espera o link de pagamento (até 3 tentativas de criação).
+  const waitGateway = (await deps.pools.owner.query<{ on: boolean }>('select gateway_enabled as on from billing_settings limit 1')).rows[0]?.on === true
+    && !!deps.config.ASAAS_API_KEY;
 
   const { rows } = await deps.pools.owner.query<ChargeRow>(
     `select c.id, co.name as company_name, c.description, c.amount_cents,
@@ -226,10 +231,11 @@ export async function runBillingNotifications(
        left join charge_notifications n on n.charge_id = c.id
       where c.status = 'pendente' and not c.reminders_paused and co.is_active
         and ($1::uuid[] is null or c.id = any($1))
+        and not ($2::boolean and c.gateway_dirty and c.gateway_id is null and c.gateway_attempts < 3)
       group by c.id, co.name
       order by c.due_date
       limit 500`,
-    [opts.chargeIds ?? null],
+    [opts.chargeIds ?? null, waitGateway],
   );
   for (const c of rows) {
     const kind = nextNotice(c, today, s);

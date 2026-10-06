@@ -18,8 +18,8 @@ export interface TestCtx {
 
 let ownerPool: pg.Pool | null = null;
 
-export async function setupApp(): Promise<TestCtx> {
-  const config = loadConfig({ ...process.env, ...TEST_ENV });
+export async function setupApp(env: Record<string, string> = {}): Promise<TestCtx> {
+  const config = loadConfig({ ...process.env, ...TEST_ENV, ...env });
   const mailer = new MemoryMailer();
   const deps = await createDeps(config, { mailer });
   const app = await buildApp(deps);

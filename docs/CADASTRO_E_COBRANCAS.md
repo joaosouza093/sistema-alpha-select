@@ -65,9 +65,31 @@ telefone. Ao aprovar, o sistema mostra um link de convite para a pessoa criar a 
 - **Configurações**: liga/desliga o envio automático, chave Pix, favorecido, instruções e os prazos.
 - Painel: a receber, vencidas e recebido no mês.
 
-Não há integração com banco ou gateway: a baixa é manual ("Marcar como paga"). Para cobrar por
-boleto/cartão automaticamente seria preciso contratar um gateway (ex.: Asaas, Mercado Pago), o que
-não foi feito.
+## Boleto, Pix e cartão com o Asaas (opcional)
+
+Sem o Asaas, a baixa é manual ("Marcar como paga"). Com ele:
+
+- Cada nova cobrança (inclusive as parcelas mensais) vira uma cobrança no Asaas. O cliente abre o link do e-mail e
+  escolhe **boleto, Pix ou cartão** na página do Asaas. O primeiro e-mail espera o link ser criado.
+- Quando o cliente paga, o Asaas avisa o sistema (webhook) e a cobrança é **baixada sozinha**, com recibo por e-mail
+  ("Pago pelo Asaas (Pix)", por exemplo). O botão **Atualizar do Asaas** na cobrança busca a situação se o aviso não chegar.
+- Editar valor/vencimento/descrição, cancelar ou dar baixa manual também atualiza o Asaas. Falhas ficam registradas na
+  cobrança ("Erro no Asaas") e são tentadas de novo a cada hora.
+- A empresa precisa ter **CNPJ** cadastrado (Empresas clientes → Editar). Os avisos do próprio Asaas ficam desligados
+  para o cliente não receber e-mails em dobro.
+
+### Como ligar
+
+1. Crie a conta no Asaas (para testar sem cobrar ninguém, use uma conta **sandbox**: sandbox.asaas.com).
+2. No Asaas: Integrações → **Chave de API** → gerar. No Netlify, variável `ASAAS_API_KEY` (secreta). Chaves de produção
+   começam com `$aact_prod_`; as de sandbox, com `$aact_hmlg_` — o sistema escolhe o endereço certo sozinho.
+3. Invente um token longo (16+ caracteres) e coloque em `ASAAS_WEBHOOK_TOKEN` (secreta) no Netlify.
+4. No Asaas: Integrações → **Webhooks** → nova URL `https://SEU-SITE/api/webhooks/asaas`, com o mesmo token em
+   "Token de autenticação", eventos de **cobrança**, API v3. (A URL exata aparece em Cobranças → Configurações.)
+5. Faça um novo deploy no Netlify e, em Cobranças → Configurações, marque **Gerar cobranças no Asaas**.
+
+Cobranças criadas antes de ligar continuam manuais; para levar uma delas ao Asaas, abra-a e use **Gerar boleto/Pix no
+Asaas**. Taxas do Asaas (por boleto, Pix ou cartão) são cobradas pelo próprio Asaas.
 
 Acesso: somente administradores (servidor + RLS). Equipe e clientes recebem 403 e o banco não
 devolve nenhuma linha a eles. Todas as ações ficam na auditoria; o conteúdo dos e-mails não é

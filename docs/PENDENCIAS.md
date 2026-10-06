@@ -30,13 +30,13 @@
 - Situações de processo: em andamento, concluído, arquivado (os dois últimos somente leitura).
 - Formatos aceitos (PDF, DOC, DOCX, ODT, PNG, JPG). Limite por arquivo: 10 MB em servidor próprio, 4 MB no Netlify.
 - Sessão: 12 h absolutas, 2 h de inatividade; convite 72 h; recuperação 60 min.
-- Base legal do tratamento e **prazo de retenção** (não implementado prazo automático).
+- Base legal do tratamento e **prazo de retenção** (regra pronta, desligada até a Alpha Select definir o prazo).
 
 ## Hospedagem Netlify + Supabase
 
 - Upload limitado a 4 MB por arquivo nessa hospedagem (limite das funções).
 - Sem e-mail configurado: convites e redefinições por link entregue pelo administrador (`MAIL_MODE=manual`), cadastros sem confirmação de e-mail e cobranças sem aviso.
-- Cobranças sem gateway: a baixa do pagamento é manual.
+- Cobranças: baixa manual até configurar o Asaas (`ASAAS_API_KEY` e `ASAAS_WEBHOOK_TOKEN`).
 - Região do banco (Brasil × exterior) é decisão da Alpha Select.
 
 ## Limitações técnicas atuais
@@ -44,7 +44,7 @@
 - Sem análise antivírus dos uploads.
 - Limitador de tentativas em memória (uma instância).
 - Sem notificações por e-mail de movimentações e sem atualização em tempo real.
-- Sem MFA.
+- Verificação em duas etapas opcional (nenhum perfil é obrigado).
 - Imagem Docker não foi construída neste ambiente (sem daemon).
 
 ## Situação
@@ -52,3 +52,14 @@
 O sistema está **pronto para homologação** assim que houver um ambiente de homologação
 (banco, hospedagem, SMTP). Não há bloqueio técnico conhecido no código; os bloqueios
 para produção são as configurações externas acima e a validação das premissas.
+
+## Andamento frente ao PDF de escopo (6 marcos)
+
+| Marco | Situação |
+| --- | --- |
+| 1 — Fundação e carteira B2B | feito (acessos, perfis, empresas, usuários, auditoria, verificação em duas etapas opcional) |
+| 2 — Talentos, vagas e portal | feito (banco de candidatos, vagas, portal público, consentimento) |
+| 3 — Triagem e envio de leads | feito (ficha de avaliação, aprovação interna, envio individual/lote, duplicidade, SLA) |
+| 4 — Portal cliente e mensagens | feito por e-mail. **WhatsApp depende da conta oficial na Meta** |
+| 5 — Financeiro e cobrança | feito, com integração ao **Asaas** (boleto, Pix, cartão e baixa automática). Falta criar a conta e colocar as chaves no Netlify |
+| 6 — Indicadores e go-live | feito: relatórios CSV/PDF (`RELATORIOS.md`), retenção automática e área do candidato `/meus-dados` (`SEGURANCA_E_LGPD.md`). Falta: homologação com usuários e decisão do prazo de retenção |

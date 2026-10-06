@@ -14,6 +14,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
         <nav className="public-nav" aria-label="Portal de vagas">
           <NavLink to="/vagas" end>Vagas</NavLink>
           <NavLink to="/trabalhe-conosco">Cadastrar currículo</NavLink>
+          <NavLink to="/meus-dados">Meus dados</NavLink>
           <NavLink to="/entrar">Área restrita</NavLink>
         </nav>
       </header>
