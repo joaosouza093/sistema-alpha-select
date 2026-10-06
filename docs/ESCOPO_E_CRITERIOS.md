@@ -36,3 +36,4 @@ Nenhum dado pessoal das partes do contrato está no código, nas seeds ou nas te
 | R14 | Verificação em duas etapas (opcional) | Código de aplicativo autenticador no login, códigos de recuperação, sem reutilização, desligamento pelo administrador | Implementado e testado |
 | R15 | Retenção de dados (LGPD) | Regra configurável, aviso por e-mail com renovação, eliminação definitiva auditada, processos ativos preservados | Implementado e testado (desligado por padrão) |
 | R16 | Área do candidato | Acesso por link no e-mail; ver, corrigir, trocar currículo, e-mails, renovar, baixar e excluir os próprios dados | Implementado e testado |
+| R17 | Gateway de pagamento (Asaas) | Cobrança gerada no Asaas com link no e-mail, baixa automática por webhook, edição/cancelamento/baixa manual refletidos, nova tentativa em falhas | Implementado e testado com servidor simulado; falta a conta real |

@@ -36,7 +36,7 @@
 
 - Upload limitado a 4 MB por arquivo nessa hospedagem (limite das funções).
 - Sem e-mail configurado: convites e redefinições por link entregue pelo administrador (`MAIL_MODE=manual`), cadastros sem confirmação de e-mail e cobranças sem aviso.
-- Cobranças sem gateway: a baixa do pagamento é manual.
+- Cobranças: baixa manual até configurar o Asaas (`ASAAS_API_KEY` e `ASAAS_WEBHOOK_TOKEN`).
 - Região do banco (Brasil × exterior) é decisão da Alpha Select.
 
 ## Limitações técnicas atuais
@@ -61,5 +61,5 @@ para produção são as configurações externas acima e a validação das premi
 | 2 — Talentos, vagas e portal | feito (banco de candidatos, vagas, portal público, consentimento) |
 | 3 — Triagem e envio de leads | feito (ficha de avaliação, aprovação interna, envio individual/lote, duplicidade, SLA) |
 | 4 — Portal cliente e mensagens | feito por e-mail. **WhatsApp depende da conta oficial na Meta** |
-| 5 — Financeiro e cobrança | feito com baixa manual. **Gateway (boleto/Pix/cartão) depende de escolher o fornecedor** |
+| 5 — Financeiro e cobrança | feito, com integração ao **Asaas** (boleto, Pix, cartão e baixa automática). Falta criar a conta e colocar as chaves no Netlify |
 | 6 — Indicadores e go-live | feito: relatórios CSV/PDF (`RELATORIOS.md`), retenção automática e área do candidato `/meus-dados` (`SEGURANCA_E_LGPD.md`). Falta: homologação com usuários e decisão do prazo de retenção |

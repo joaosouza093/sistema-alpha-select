@@ -1,5 +1,6 @@
 import type { Deps } from './lib/context.js';
 import { runBillingNotifications } from './modules/billing/notify.js';
+import { syncGateway } from './modules/billing/asaas.js';
 import { sendFeedbackReminders } from './modules/messages/service.js';
 import { runRetention } from './modules/privacy/retention.js';
 
@@ -22,5 +23,6 @@ export async function runMaintenance(deps: Deps) {
   );
   await sendFeedbackReminders(deps).catch(() => 0);
   await runRetention(deps).catch(() => undefined);
+  await syncGateway(deps).catch(() => undefined);
   return runBillingNotifications(deps);
 }

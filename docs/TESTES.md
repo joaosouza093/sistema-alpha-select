@@ -6,8 +6,8 @@ Execução em 06/10/2026, PostgreSQL 16 local, Node.js 22, Chromium (Playwright 
 | --- | --- | --- |
 | Tipos (servidor e web) | `npm run typecheck` | ✅ sem erros |
 | Build de produção | `npm run build` | ✅ |
-| Integração do backend | `npm test` | ✅ **140/140** |
-| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **140/140** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
+| Integração do backend | `npm test` | ✅ **148/148** |
+| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **148/148** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
 | Empacotamento Netlify Functions | `npm run check:netlify` | ✅ |
 | Navegador (desktop + celular) | `npm run test:e2e` | ✅ **8/8** |
 | Dependências de produção | `npm audit --omit=dev` | ✅ 0 vulnerabilidades |
@@ -124,3 +124,12 @@ candidato apaga todos os cadastros do e-mail e invalida o link.
 
 Telas verificadas no navegador: ativação com QR code, login em duas etapas com código de recuperação, Privacidade e
 Meus dados (celular). Os testes de navegador (`npm run test:e2e`) não foram executados nesta rodada.
+
+## Asaas
+
+`asaas.test.ts` (8 testes, contra um servidor que imita a API v3 do Asaas — `fake-asaas.ts`): ambiente pela chave e
+recusa de ligar sem chave; cliente criado uma vez por CNPJ com avisos do Asaas desligados; cobrança com valor, vencimento
+e referência; link de pagamento no primeiro e-mail; empresa sem CNPJ com erro claro e e-mail retido; webhook com token
+errado recusado, baixa automática com recibo único e pagamento desconhecido ignorado; edição, baixa manual
+(`receiveInCash`) e cancelamento refletidos; falha temporária refeita pela tarefa; "Atualizar do Asaas" dá baixa sem
+webhook; parcela mensal com cobrança própria. **Não testado contra o Asaas real** (sem conta).

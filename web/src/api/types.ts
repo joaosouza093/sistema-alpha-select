@@ -315,6 +315,11 @@ export interface ChargeRow {
   createdAt: string;
   version: number;
   lastNotice: { kind: NoticeKind; sentAt: string; ok: boolean } | null;
+  gatewayId: string | null;
+  gatewayStatus: string | null;
+  gatewayError: string | null;
+  gatewayPending: boolean;
+  paidVia: 'manual' | 'asaas' | null;
 }
 
 export interface ChargeDetail extends ChargeRow {
@@ -342,6 +347,8 @@ export interface BillingSettings {
   overdueEveryDays: number;
   overdueMaxReminders: number;
   emailEnabled: boolean;
+  gatewayEnabled: boolean;
+  asaas: { configured: boolean; environment: 'sandbox' | 'producao' | null; webhookConfigured: boolean; webhookUrl: string };
 }
 
 export type Publication = 'rascunho' | 'publicada' | 'pausada' | 'encerrada';
