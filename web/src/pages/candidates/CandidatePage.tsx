@@ -87,7 +87,7 @@ function DataTab({ c }: { c: Candidate }) {
             {c.city && <><dt>Cidade</dt><dd>{c.city}</dd></>}
             <dt>Cadastrado por</dt>
             <dd>
-              {c.source === 'portal' ? 'O próprio candidato, pelo portal de vagas' : c.createdByName ?? '—'} em {fmtDateTime(c.createdAt)}
+              {c.source === 'portal' ? 'O próprio candidato, pelo portal de vagas' : c.source === 'importacao' ? `Importado de planilha por ${c.createdByName ?? '—'}` : c.createdByName ?? '—'} em {fmtDateTime(c.createdAt)}
             </dd>
             {c.consentAt && <><dt>Consentimento</dt><dd>Aceitou o aviso de privacidade em {fmtDateTime(c.consentAt)}</dd></>}
             <dt>Última atualização</dt><dd>{fmtDateTime(c.updatedAt)}</dd>

@@ -19,7 +19,8 @@ URL `https://nobrlidvvbbkgjqztesd.supabase.co`. Já feito a partir da sessão de
 - [x] Extensões `citext` e `pg_trgm` (esquema `extensions`).
 - [x] Papéis `alpha_owner` e `alpha_app` criados **sem senha** (ninguém entra até você definir as senhas).
 - [x] Migrações 0001–0007 aplicadas como `alpha_owner` e registradas em `schema_migrations`.
-- [x] Migrações 0008–0015 aplicadas no projeto `alpha-select-homologacao` (0013–0015 em 06/10/2026).
+- [ ] Migração 0017 (importação de candidatos): aplicar antes de publicar.
+- [x] Migrações 0008–0016 aplicadas no projeto `alpha-select-homologacao` (0013–0016 em 06/10/2026).
 - [x] Bucket `documentos-candidatos` **privado**, limite de 4 MB e tipos permitidos, sem políticas públicas.
 - [x] Verificado: o papel `anon` (API pública do Supabase) tem acesso **negado** a todas as tabelas, à visão e às funções.
 - [x] Security Advisor: só resta o aviso INFO “RLS habilitada sem políticas” em sessões, credenciais,

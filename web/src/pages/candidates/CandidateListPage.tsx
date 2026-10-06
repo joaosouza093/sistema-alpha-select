@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, qs } from '../../api/client';
 import type { CandidateRow, Decision, Page, ProcessRow, Stage, UserRow } from '../../api/types';
+import { useAuth } from '../../auth/AuthContext';
 import { Empty, ErrorState, Loading, PageHeader, Pagination, SelectField, TextField, usePageTitle } from '../../components/ui';
 import { decisionLabel, fmtDate, fmtPhone } from '../../lib/format';
 
@@ -17,6 +18,7 @@ function useDebounced<T>(v: T, ms = 300) {
 
 export function CandidateListPage() {
   usePageTitle('Candidatos');
+  const { isAdmin } = useAuth();
   const [q, setQ] = useState('');
   const [processId, setProcessId] = useState('');
   const [stageId, setStageId] = useState('');
@@ -39,7 +41,7 @@ export function CandidateListPage() {
   return (
     <>
       <PageHeader title="Candidatos" subtitle="Cadastro interno da Alpha Select (não visível aos clientes)."
-        actions={<Link to="/candidatos/novo" className="btn btn-primary">Cadastrar candidato</Link>} />
+        actions={<>{isAdmin && <Link to="/candidatos/importar" className="btn">Importar planilha</Link>}<Link to="/candidatos/novo" className="btn btn-primary">Cadastrar candidato</Link></>} />
       <section className="card">
         <div className="card-header">
           <div className="filters" style={{ width: '100%' }}>

@@ -38,9 +38,9 @@ npm run dev:web                      # interface em http://localhost:5173
 | --- | --- |
 | `npm run typecheck` | Verificação de tipos (servidor e web) |
 | `npm run build` | Build de produção (servidor e web) |
-| `npm test` | 157 testes de integração do backend (recria o banco `alpha_test`) |
+| `npm test` | 160 testes de integração do backend (recria o banco `alpha_test`) |
 | `npm run check:netlify` | Verifica o empacotamento das funções do Netlify |
-| `npm run test:e2e` | 13 testes no navegador (requer servidor em `localhost:3000` com `APP_URL=http://localhost:3000`) |
+| `npm run test:e2e` | 14 testes no navegador (requer servidor em `localhost:3000` com `APP_URL=http://localhost:3000`) |
 | `npm run db:migrate` | Aplica migrações pendentes |
 | `npm run admin:create -- --email ... --name "..."` | Provisiona o primeiro administrador (convite) |
 | `npm run storage:cleanup -w server` | Relatório/limpeza de arquivos órfãos |
@@ -61,5 +61,6 @@ npm run dev:web                      # interface em http://localhost:5173
 - [Portal do cliente e mensagens ao candidato](docs/PORTAL_CLIENTE_E_MENSAGENS.md)
 - [Relatórios e indicadores (CSV e PDF)](docs/RELATORIOS.md)
 - [WhatsApp (API oficial da Meta)](docs/WHATSAPP.md)
+- [Importação de candidatos por planilha](docs/IMPORTACAO.md)
 - [Pendências, premissas e limitações](docs/PENDENCIAS.md)
 - [Identidade visual oficial (arquivos, paleta, contraste e substituição)](docs/IDENTIDADE_VISUAL.md)

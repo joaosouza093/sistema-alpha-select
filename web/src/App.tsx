@@ -26,6 +26,7 @@ import { ApplicationPage } from './pages/applications/ApplicationPage';
 import { CandidateListPage } from './pages/candidates/CandidateListPage';
 import { CandidateFormPage } from './pages/candidates/CandidateFormPage';
 import { CandidatePage } from './pages/candidates/CandidatePage';
+import { ImportCandidatesPage } from './pages/candidates/ImportCandidatesPage';
 import { CompaniesPage } from './pages/admin/CompaniesPage';
 import { UsersPage } from './pages/admin/UsersPage';
 import { AuditPage } from './pages/admin/AuditPage';
@@ -69,6 +70,7 @@ export function App() {
         <Route path="participacoes/:id" element={<ApplicationPage />} />
         <Route path="candidatos" element={<RequireAuth alpha><CandidateListPage /></RequireAuth>} />
         <Route path="candidatos/novo" element={<RequireAuth alpha><CandidateFormPage /></RequireAuth>} />
+        <Route path="candidatos/importar" element={<RequireAuth admin><ImportCandidatesPage /></RequireAuth>} />
         <Route path="candidatos/:id" element={<RequireAuth alpha><CandidatePage /></RequireAuth>} />
         <Route path="candidatos/:id/editar" element={<RequireAuth alpha><CandidateFormPage /></RequireAuth>} />
         <Route path="relatorios" element={<RequireAuth alpha><ReportsPage /></RequireAuth>} />

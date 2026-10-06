@@ -181,7 +181,7 @@ export interface Candidate {
   createdAt: string;
   updatedAt: string;
   createdByName: string | null;
-  source?: 'interno' | 'portal';
+  source?: 'interno' | 'portal' | 'importacao';
   city?: string | null;
   emailOptOutAt?: string | null;
   consentAt?: string | null;
