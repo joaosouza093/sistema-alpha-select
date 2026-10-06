@@ -6,10 +6,10 @@ Execução em 06/10/2026, PostgreSQL 16 local, Node.js 22, Chromium (Playwright 
 | --- | --- | --- |
 | Tipos (servidor e web) | `npm run typecheck` | ✅ sem erros |
 | Build de produção | `npm run build` | ✅ |
-| Integração do backend | `npm test` | ✅ **155/155** |
-| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **155/155** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
+| Integração do backend | `npm test` | ✅ **157/157** |
+| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **157/157** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
 | Empacotamento Netlify Functions | `npm run check:netlify` | ✅ |
-| Navegador (desktop + celular) | `npm run test:e2e` | ✅ **8/8** |
+| Navegador (desktop + celular) | `npm run test:e2e` | ✅ **13/13** (06/10/2026) |
 | Dependências de produção | `npm audit --omit=dev` | ✅ 0 vulnerabilidades |
 | Servidor compilado em modo `staging` | manual | ✅ HSTS, CSP, `noindex`; recusa sem https/SMTP; recusa origem externa |
 | Teste de mutação | política RLS de comentários enfraquecida de propósito | ✅ 3 testes falharam (detectado); código restaurado |
@@ -123,7 +123,7 @@ confidencial nem anotações internas, corrige dados, troca currículo, se desca
 candidato apaga todos os cadastros do e-mail e invalida o link.
 
 Telas verificadas no navegador: ativação com QR code, login em duas etapas com código de recuperação, Privacidade e
-Meus dados (celular). Os testes de navegador (`npm run test:e2e`) não foram executados nesta rodada.
+Meus dados (celular).
 
 ## Asaas
 
@@ -141,3 +141,11 @@ portal com autorização envia o modelo com os parâmetros na ordem e sem autori
 ausente ou errada, atualiza status sem regredir (lida não volta a entregue) e "Sair" cancela a autorização; confirmação
 da URL do webhook; falha da Meta registrada com o código; área do candidato liga/desliga e exige telefone; aviso de
 cobrança ao WhatsApp do financeiro junto com o e-mail. **Não testado contra a Meta real.**
+
+## Navegador: telas novas
+
+`e2e/novos.spec.ts` (5 testes): relatórios com filtro e download do CSV, equipe sem o bloco financeiro; ativação da
+verificação em duas etapas com QR code e login com código de recuperação; candidatura pelo portal com autorização de
+WhatsApp, visível na ficha do candidato; Meus dados no celular (correção de dados, WhatsApp, sem rolagem horizontal);
+Privacidade começa desligada e é só do administrador. Rodando várias vezes seguidas, o limite de 30 logins por IP a cada
+15 minutos bloqueia os testes: reinicie o servidor entre as rodadas.

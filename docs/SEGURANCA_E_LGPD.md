@@ -13,7 +13,7 @@
 | CSRF | Cookie `SameSite=Strict` + token `X-CSRF-Token` por sessão + verificação de `Origin` |
 | CORS | Somente mesma origem por padrão; origens extras apenas por configuração |
 | Senhas | scrypt (N=2^15) com sal; mínimo 10 caracteres; troca/redefinição encerra outras sessões |
-| Verificação em duas etapas | Opcional por usuário (Minha conta): código TOTP de aplicativo autenticador + 10 códigos de recuperação de uso único (guardados como hash). Código não pode ser reutilizado; desafio de login vale 5 min e cai após 5 erros; ativar encerra as outras sessões; administrador pode desligar de quem perdeu o celular (auditado) |
+| Verificação em duas etapas | Opcional por usuário (Minha conta): código TOTP de aplicativo autenticador + 10 códigos de recuperação de uso único (guardados como hash). Código não pode ser reutilizado; desafio de login vale 5 min e cai após 5 erros; no máximo 8 códigos por conta a cada 15 min, somando todos os desafios (acertar a senha de novo não zera); ativar encerra as outras sessões; administrador pode desligar de quem perdeu o celular (auditado) |
 | Tentativas | Limites por IP e por conta (login, recuperação, convite, upload) + bloqueio de conta por 15 min após 8 falhas |
 | Convites | Token aleatório de 256 bits, guardado como hash, uso único, 72 h, perfil definido pelo servidor; reenvio invalida o anterior; token no fragmento `#` (não vai a logs) |
 | Revogação | Sessão validada a cada requisição (usuário e empresa ativos); desativação apaga sessões; RLS também nega usuário inativo |
@@ -62,7 +62,16 @@
   (Administração → Privacidade), mas vem **desligada**: o administrador escolhe o prazo (6 a 120 meses sem atividade) e o
   aviso (7 a 90 dias). Candidatos fora do prazo e fora de processos em andamento recebem e-mail com link para continuar
   no banco de talentos; sem resposta, são eliminados definitivamente (auditoria `candidate.retention_erased`). Qualquer
-  atividade (renovação, edição, nova candidatura, "Manter" do administrador) cancela o aviso.
+  atividade (renovação, edição, nova candidatura, "Manter" do administrador) cancela o aviso. Se o e-mail de aviso falhar,
+  o aviso não conta e é reenviado na execução seguinte; desligar a regra invalida os avisos já enviados (ao religar, todos
+  são avisados de novo). Candidatos sem e-mail, descadastrados ou com o envio desligado no servidor não têm como ser
+  avisados e são excluídos ao fim do prazo do aviso.
+- Webhooks: o do Asaas exige o token e **confere a situação na API do Asaas** antes de dar baixa (o corpo do aviso só
+  indica qual cobrança mudou); o do WhatsApp exige a assinatura HMAC da Meta sobre o corpo bruto. Sem as variáveis
+  secretas configuradas, ambos recusam tudo.
+- Links da área do candidato: aleatórios (256 bits), guardados só como hash; pedir um novo invalida o anterior; o link do
+  aviso de exclusão passa a valer só 1 hora depois que o candidato renova; a resposta do pedido de link leva o mesmo tempo
+  exista ou não o cadastro.
 
 ### Atendimento a solicitações de titulares
 

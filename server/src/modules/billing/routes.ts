@@ -348,8 +348,18 @@ export function registerBillingRoutes(app: FastifyInstance, deps: Deps) {
     }
     const body = req.body as { event?: unknown; payment?: { id?: unknown } } | null;
     const p = body?.payment;
-    if (!p || typeof p.id !== 'string' || p.id.length > 60) return { ok: true, ignored: true };
-    const r = await applyPayment(deps, p as never, 'webhook');
+    if (!p || typeof p.id !== 'string' || !/^[\w-]{1,60}$/.test(p.id)) return { ok: true, ignored: true };
+    const known = await deps.pools.owner.query('select 1 from charges where gateway_id = $1', [p.id]);
+    if (!known.rowCount) return { ok: true, found: false, paid: false };
+    // O corpo do aviso só diz QUAL cobrança mudou; a situação vem da própria API do Asaas.
+    let payment;
+    try {
+      payment = await fetchPayment(deps, p.id);
+    } catch {
+      reply.code(503); // o Asaas reenvia o aviso mais tarde
+      return { ok: false };
+    }
+    const r = await applyPayment(deps, payment, 'webhook');
     return { ok: true, ...r };
   });
 

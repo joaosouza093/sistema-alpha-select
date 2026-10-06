@@ -55,15 +55,19 @@ export function registerPrivacyRoutes(app: FastifyInstance, deps: Deps) {
         .strict(),
       req.body,
     );
-    return asUser(deps, req, async (db, user) => {
+    await asUser(deps, req, async (db, user) => {
       await db.query(
         `update privacy_settings set retention_enabled = $1, retention_months = $2, notice_days = $3,
                 updated_at = now(), updated_by = $4`,
         [body.retentionEnabled, body.retentionMonths, body.noticeDays, user.id],
       );
       await audit(db, req, 'privacy.retention_updated', null, null, null, body);
-      return { ok: true };
     });
+    // Regra desligada: os avisos pendentes perdem a validade. Se ligar de novo, cada candidato é avisado outra vez.
+    if (!body.retentionEnabled) {
+      await deps.pools.owner.query('update candidate_retention set notice_at = null, notice_sent = false where notice_at is not null');
+    }
+    return { ok: true };
   });
 
   /** "Manter": conta como atividade e cancela o aviso. */
