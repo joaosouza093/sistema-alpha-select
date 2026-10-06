@@ -38,3 +38,4 @@ Nenhum dado pessoal das partes do contrato está no código, nas seeds ou nas te
 | R16 | Área do candidato | Acesso por link no e-mail; ver, corrigir, trocar currículo, e-mails, renovar, baixar e excluir os próprios dados | Implementado e testado |
 | R17 | Gateway de pagamento (Asaas) | Cobrança gerada no Asaas com link no e-mail, baixa automática por webhook, edição/cancelamento/baixa manual refletidos, nova tentativa em falhas | Implementado e testado com servidor simulado; falta a conta real |
 | R18 | WhatsApp (API oficial) | Avisos ao candidato com autorização e SAIR; avisos de cobrança ao financeiro; status de entrega por webhook assinado; falhas registradas | Implementado e testado com servidor simulado; falta a conta na Meta |
+| R19 | Importação de candidatos (migração) | Planilha CSV com prévia, validação, detecção de duplicados, origem registrada na auditoria | Implementado e testado |

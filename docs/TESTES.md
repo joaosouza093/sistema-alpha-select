@@ -6,10 +6,10 @@ Execução em 06/10/2026, PostgreSQL 16 local, Node.js 22, Chromium (Playwright 
 | --- | --- | --- |
 | Tipos (servidor e web) | `npm run typecheck` | ✅ sem erros |
 | Build de produção | `npm run build` | ✅ |
-| Integração do backend | `npm test` | ✅ **157/157** |
-| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **157/157** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
+| Integração do backend | `npm test` | ✅ **160/160** |
+| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **160/160** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
 | Empacotamento Netlify Functions | `npm run check:netlify` | ✅ |
-| Navegador (desktop + celular) | `npm run test:e2e` | ✅ **13/13** (06/10/2026) |
+| Navegador (desktop + celular) | `npm run test:e2e` | ✅ **14/14** (06/10/2026) |
 | Dependências de produção | `npm audit --omit=dev` | ✅ 0 vulnerabilidades |
 | Servidor compilado em modo `staging` | manual | ✅ HSTS, CSP, `noindex`; recusa sem https/SMTP; recusa origem externa |
 | Teste de mutação | política RLS de comentários enfraquecida de propósito | ✅ 3 testes falharam (detectado); código restaurado |
@@ -149,3 +149,10 @@ verificação em duas etapas com QR code e login com código de recuperação; c
 WhatsApp, visível na ficha do candidato; Meus dados no celular (correção de dados, WhatsApp, sem rolagem horizontal);
 Privacidade começa desligada e é só do administrador. Rodando várias vezes seguidas, o limite de 30 logins por IP a cada
 15 minutos bloqueia os testes: reinicie o servidor entre as rodadas.
+
+## Importação de candidatos
+
+`candidate-import.test.ts` (3 testes): leitor de CSV (aspas, `;`, quebra de linha dentro de aspas, BOM, CRLF); prévia
+com erros, repetidos e já cadastrados sem gravar nada; importação grava só as linhas válidas, com origem e auditoria, e
+o mesmo arquivo de novo não duplica; só administrador; planilha sem coluna Nome recusada. No navegador
+(`e2e/novos.spec.ts`): arquivo no formato do Excel (Windows-1252) com acentos, prévia e importação.

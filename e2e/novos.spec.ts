@@ -163,4 +163,21 @@ test.describe('telas novas', () => {
     await page.goto('/privacidade');
     await expect(page.getByText(/não encontrad|indisponível/i).first()).toBeVisible();
   });
+
+  test('importação de planilha: prévia com acentos do Excel e importação', async ({ page }) => {
+    const c = creds();
+    await login(page, c.admin);
+    await page.goto('/candidatos');
+    await page.getByRole('link', { name: 'Importar planilha' }).click();
+    const tag = randomBytes(3).toString('hex');
+    // Arquivo como o Excel em português salva: separador ";" e codificação Windows-1252 (latin1 cobre os acentos usados).
+    const csv = `Nome;E-mail;Telefone;Cidade\r\nJoão Importação ${tag};joao.${tag}@exemplo.invalid;(11) 97777-${tag.slice(0, 4).replace(/\D/g, '1').padEnd(4, '1')};São Paulo\r\nSem e-mail ${tag};;;\r\nX;inválido;;\r\n`;
+    await page.locator('input[type=file]').setInputFiles({ name: 'banco.csv', mimeType: 'text/csv', buffer: Buffer.from(csv, 'latin1') });
+    await expect(page.getByText('Serão importados')).toBeVisible();
+    await expect(page.getByRole('cell', { name: `João Importação ${tag}` })).toBeVisible();
+    await expect(page.getByText('Com erro', { exact: true }).first()).toBeVisible();
+    await page.getByLabel('De onde vieram estes dados?').fill('Teste automático de importação');
+    await page.getByRole('button', { name: 'Importar 2 candidato(s)' }).click();
+    await expect(page.getByText('2 candidato(s) importado(s)').first()).toBeVisible();
+  });
 });

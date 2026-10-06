@@ -28,6 +28,7 @@ import { registerMessageRoutes } from './modules/messages/routes.js';
 import { registerReportRoutes } from './modules/reports/routes.js';
 import { registerPrivacyRoutes } from './modules/privacy/routes.js';
 import { registerWhatsAppRoutes } from './modules/whatsapp/routes.js';
+import { registerCandidateImportRoutes } from './modules/candidates/import.js';
 import { registerCandidatePortalRoutes } from './modules/candidate-portal/routes.js';
 
 z.config(z.locales.pt());
@@ -167,6 +168,7 @@ export async function buildApp(deps: Deps): Promise<FastifyInstance> {
   registerReportRoutes(app, deps);
   registerPrivacyRoutes(app, deps);
   registerWhatsAppRoutes(app, deps);
+  registerCandidateImportRoutes(app, deps);
   registerCandidatePortalRoutes(app, deps);
 
   /**
