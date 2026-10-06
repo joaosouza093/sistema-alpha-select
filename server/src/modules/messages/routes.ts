@@ -5,7 +5,8 @@ import { asUser, audit, isAdmin, isAlpha, requireUser } from '../../lib/context.
 import { forbidden, notFound, staleVersion } from '../../lib/errors.js';
 import { parse } from '../../lib/validate.js';
 import { zOptionalText, zPage, zText, zUuid } from '../../lib/normalize.js';
-import { fmtDateTimeBR, modeLabel, sendCandidateMessage, templateKeys, templateVars } from './service.js';
+import { whatsappConfigured } from '../../lib/whatsapp.js';
+import { fmtDateTimeBR, modeLabel, sendCandidateMessage, templateKeys, templateVars, waParams, type TemplateKey } from './service.js';
 
 const modes = ['presencial', 'online', 'telefone'] as const;
 
@@ -20,23 +21,52 @@ export function registerMessageRoutes(app: FastifyInstance, deps: Deps) {
     adminOnly(req);
     return asUser(deps, req, async (db) => {
       const { rows } = await db.query(
-        'select key, enabled, subject, body, updated_at as "updatedAt" from message_templates order by key',
+        `select key, enabled, subject, body, wa_enabled as "waEnabled", wa_template as "waTemplate",
+                wa_language as "waLanguage", updated_at as "updatedAt" from message_templates order by key`,
       );
-      return { items: rows, variables: templateVars, emailEnabled: deps.config.mailMode !== 'manual' };
+      return {
+        items: rows.map((r) => ({ ...r, waParams: waParams[r.key as TemplateKey] })),
+        variables: templateVars,
+        emailEnabled: deps.config.mailMode !== 'manual',
+        whatsapp: {
+          configured: whatsappConfigured(deps),
+          webhookConfigured: !!deps.config.WHATSAPP_APP_SECRET && !!deps.config.WHATSAPP_VERIFY_TOKEN,
+          webhookUrl: `${deps.config.APP_URL.replace(/\/$/, '')}/api/webhooks/whatsapp`,
+        },
+      };
     });
   });
 
   app.put('/api/message-templates/:key', async (req) => {
     adminOnly(req);
     const { key } = parse(z.object({ key: z.enum(templateKeys) }), req.params);
-    const body = parse(z.object({ enabled: z.boolean(), subject: zText(3, 200), body: zText(10, 5000) }).strict(), req.body);
+    const body = parse(
+      z
+        .object({
+          enabled: z.boolean(),
+          subject: zText(3, 200),
+          body: zText(10, 5000),
+          waEnabled: z.boolean().default(false),
+          waTemplate: z
+            .string()
+            .trim()
+            .regex(/^[a-z0-9_]{1,512}$/, 'Use o nome exato do modelo aprovado na Meta (minúsculas, números e _).')
+            .nullish()
+            .transform((v) => v || null),
+          waLanguage: z.string().regex(/^[a-z]{2,3}(_[A-Z]{2})?$/, 'Idioma inválido (ex.: pt_BR).').default('pt_BR'),
+        })
+        .strict()
+        .refine((b) => !b.waEnabled || b.waTemplate, { message: 'Informe o nome do modelo aprovado.', path: ['waTemplate'] }),
+      req.body,
+    );
     return asUser(deps, req, async (db, user) => {
       const r = await db.query(
-        'update message_templates set enabled = $2, subject = $3, body = $4, updated_at = now(), updated_by = $5 where key = $1',
-        [key, body.enabled, body.subject, body.body, user.id],
+        `update message_templates set enabled = $2, subject = $3, body = $4, updated_at = now(), updated_by = $5,
+                wa_enabled = $6, wa_template = $7, wa_language = $8 where key = $1`,
+        [key, body.enabled, body.subject, body.body, user.id, body.waEnabled, body.waTemplate, body.waLanguage],
       );
       if (!r.rowCount) throw notFound();
-      await audit(db, req, 'message_template.updated', 'message_template', key, null, { enabled: body.enabled });
+      await audit(db, req, 'message_template.updated', 'message_template', key, null, { enabled: body.enabled, waEnabled: body.waEnabled });
       return { ok: true };
     });
   });
@@ -56,7 +86,8 @@ export function registerMessageRoutes(app: FastifyInstance, deps: Deps) {
       params.push(q.pageSize, (q.page - 1) * q.pageSize);
       const { rows } = await db.query(
         `select l.id, l.template_key as "templateKey", l.candidate_id as "candidateId", c.full_name as "candidateName",
-                l.to_address as "to", l.subject, l.ok, l.error, l.sent_at as "sentAt"
+                l.to_address as "to", l.subject, l.ok, l.error, l.sent_at as "sentAt",
+                l.channel, l.delivery_status as "deliveryStatus"
            from message_log l join candidates c on c.id = l.candidate_id ${where}
           order by l.sent_at desc limit $${params.length - 1} offset $${params.length}`,
         params,

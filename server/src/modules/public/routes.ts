@@ -36,6 +36,8 @@ const zApplication = z
     salaryExpectation: z.number().min(0).max(10_000_000).nullish().transform((v) => v ?? null),
     answers: z.array(z.object({ id: z.string().max(16), answer: z.enum(['sim', 'nao']) }).strict()).max(10).default([]),
     acceptPrivacy: z.literal(true, { message: 'É necessário aceitar o aviso de privacidade.' }),
+    /** Autoriza avisos sobre a candidatura pelo WhatsApp (opcional; exige telefone). */
+    whatsappOptIn: z.boolean().default(false),
     /** Campo isca: invisível para pessoas; robôs costumam preencher. */
     website: z.string().max(200).optional(),
   })
@@ -131,9 +133,10 @@ export function registerPublicRoutes(app: FastifyInstance, deps: Deps) {
       const result = await withTx(owner, async (db) => {
         if (target && (await alreadyApplied(db, target.processId, data.email))) return 'duplicate' as const;
         const cand = await db.query<{ id: string }>(
-          `insert into candidates (full_name, email, phone, salary_expectation, city, source, consent_at, consent_version)
-           values ($1, $2, $3, $4, $5, 'portal', now(), $6) returning id`,
-          [data.fullName, data.email, data.phone, data.salaryExpectation, data.city, CONSENT_VERSION],
+          `insert into candidates (full_name, email, phone, salary_expectation, city, source, consent_at, consent_version,
+                                  whatsapp_opt_in_at)
+           values ($1, $2, $3, $4, $5, 'portal', now(), $6, case when $7 and $3::text is not null then now() end) returning id`,
+          [data.fullName, data.email, data.phone, data.salaryExpectation, data.city, CONSENT_VERSION, data.whatsappOptIn],
         );
         const candidateId = cand.rows[0]!.id;
         const storageKey = deps.storage.newKey();

@@ -201,9 +201,10 @@ export function ReportsPage() {
     ];
     if (d.messages) {
       list.push({
-        key: 'mensagens', title: 'Mensagens ao candidato', note: `e-mails enviados no período · ${d.messages.optOuts} descadastro(s)`,
+        key: 'mensagens', title: 'Mensagens ao candidato', note: `e-mails e WhatsApp enviados no período · ${d.messages.optOuts} descadastro(s)`,
         cols: [
           { label: 'Modelo', value: (r: NonNullable<Report['messages']>['byTemplate'][number]) => templateLabel[r.id as keyof typeof templateLabel] ?? r.id },
+          { label: 'Canal', value: (r: NonNullable<Report['messages']>['byTemplate'][number]) => (r.channel === 'whatsapp' ? 'WhatsApp' : 'E-mail') },
           { label: 'Enviados', value: (r: NonNullable<Report['messages']>['byTemplate'][number]) => r.total },
           { label: 'Entregues ao servidor', value: (r: NonNullable<Report['messages']>['byTemplate'][number]) => r.delivered },
           { label: 'Falhas', value: (r: NonNullable<Report['messages']>['byTemplate'][number]) => r.failed },

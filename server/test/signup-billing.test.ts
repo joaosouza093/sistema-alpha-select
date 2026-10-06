@@ -162,6 +162,8 @@ const settings: BillingSettings = {
   reminder_days_before: 3,
   overdue_every_days: 7,
   overdue_max_reminders: 3,
+  wa_enabled: false,
+  wa_templates: {},
 };
 
 describe('regra dos avisos de cobrança', () => {

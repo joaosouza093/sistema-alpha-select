@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client';
 import type { Company } from '../../api/types';
 import { Button, ConfirmDialog, Empty, ErrorState, Loading, Modal, PageHeader, TextField, fieldErrors, usePageTitle, useToast } from '../../components/ui';
-import { fmtCnpj, fmtDate } from '../../lib/format';
+import { fmtCnpj, fmtDate, fmtPhone } from '../../lib/format';
 
 export function CompaniesPage() {
   usePageTitle('Empresas clientes');
@@ -73,12 +73,13 @@ function CompanyModal({ company, onClose }: { company: Company | null; onClose: 
   const [name, setName] = useState(company?.name ?? '');
   const [cnpj, setCnpj] = useState(company?.cnpj ? fmtCnpj(company.cnpj) : '');
   const [billingEmail, setBillingEmail] = useState(company?.billingEmail ?? '');
+  const [billingWhatsapp, setBillingWhatsapp] = useState(company?.billingWhatsapp ? fmtPhone(company.billingWhatsapp) : '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const save = async () => {
     setBusy(true);
     try {
-      const body = { name, cnpj: cnpj || null, billingEmail: billingEmail || null };
+      const body = { name, cnpj: cnpj || null, billingEmail: billingEmail || null, billingWhatsapp: billingWhatsapp || null };
       if (company) await api.patch(`/api/companies/${company.id}`, body);
       else await api.post('/api/companies', body);
       toast.success('Empresa salva.');
@@ -99,6 +100,8 @@ function CompanyModal({ company, onClose }: { company: Company | null; onClose: 
         <TextField label="CNPJ" value={cnpj} onChange={(e) => setCnpj(e.target.value)} error={errors.cnpj} inputMode="numeric" maxLength={18} hint="Opcional." />
         <TextField label="E-mail de cobrança" type="email" value={billingEmail} onChange={(e) => setBillingEmail(e.target.value)} error={errors.billingEmail}
           hint="Para onde vão as cobranças automáticas. Se vazio, usa o e-mail do usuário da empresa." />
+        <TextField label="WhatsApp do financeiro" type="tel" value={billingWhatsapp} onChange={(e) => setBillingWhatsapp(e.target.value)} error={errors.billingWhatsapp}
+          hint="Opcional. Recebe os avisos de cobrança pelo WhatsApp quando estiver ligado em Cobranças → Configurações." />
       </div>
     </Modal>
   );

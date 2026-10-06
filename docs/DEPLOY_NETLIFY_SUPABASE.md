@@ -100,11 +100,13 @@ O último comando mostra **uma vez** o link de convite do primeiro administrador
 | `SMTP_PASSWORD` | senha de app desse e-mail | Functions — **secreta** |
 | `ASAAS_API_KEY` | chave da API do Asaas (opcional; ver `CADASTRO_E_COBRANCAS.md`) | Functions — **secreta** |
 | `ASAAS_WEBHOOK_TOKEN` | token escolhido por você (16+ caracteres), igual ao do webhook no Asaas | Functions — **secreta** |
+| `WHATSAPP_TOKEN`, `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN` | opcionais, ver `WHATSAPP.md` | Functions — **secretas** |
+| `WHATSAPP_PHONE_NUMBER_ID` | opcional, ver `WHATSAPP.md` | Functions |
 | `RATE_LIMIT_STORE` | `postgres` | Functions |
 | `MAX_UPLOAD_MB` | `4` | Functions |
 | `LOG_LEVEL` | `warn` | Functions |
 
-- Só `DATABASE_URL`, `DATABASE_OWNER_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SMTP_PASSWORD`, `ASAAS_API_KEY` e `ASAAS_WEBHOOK_TOKEN` precisam ser marcadas como
+- Só `DATABASE_URL`, `DATABASE_OWNER_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SMTP_PASSWORD`, `ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN`, `WHATSAPP_TOKEN`, `WHATSAPP_APP_SECRET` e `WHATSAPP_VERIFY_TOKEN` precisam ser marcadas como
   **secretas** no Netlify. As demais não são segredo; o `netlify.toml` as exclui do scanner de segredos
   (`SECRETS_SCAN_OMIT_KEYS`), que senão bloqueia o build ao achar valores comuns como "warn" no código.
 - Nenhuma dessas variáveis começa com `VITE_`: o build do frontend **não** as inclui no navegador.

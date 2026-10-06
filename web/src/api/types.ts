@@ -34,6 +34,7 @@ export interface Company {
   activeUsers?: number;
   cnpj?: string | null;
   billingEmail?: string | null;
+  billingWhatsapp?: string | null;
 }
 
 export interface UserRow {
@@ -184,6 +185,7 @@ export interface Candidate {
   city?: string | null;
   emailOptOutAt?: string | null;
   consentAt?: string | null;
+  whatsappOptInAt?: string | null;
   applications: CandidateApplication[];
   documents: DocumentRow[];
 }
@@ -323,7 +325,7 @@ export interface ChargeRow {
 }
 
 export interface ChargeDetail extends ChargeRow {
-  notices: { id: string; kind: NoticeKind; sentTo: string; ok: boolean; error: string | null; sentAt: string }[];
+  notices: { id: string; kind: NoticeKind; sentTo: string; ok: boolean; error: string | null; sentAt: string; channel: 'email' | 'whatsapp' }[];
 }
 
 export interface BillingSummary {
@@ -348,6 +350,9 @@ export interface BillingSettings {
   overdueMaxReminders: number;
   emailEnabled: boolean;
   gatewayEnabled: boolean;
+  whatsappEnabled: boolean;
+  whatsappTemplates: Partial<Record<NoticeKind, string>>;
+  whatsappConfigured: boolean;
   asaas: { configured: boolean; environment: 'sandbox' | 'producao' | null; webhookConfigured: boolean; webhookUrl: string };
 }
 
@@ -438,6 +443,11 @@ export interface MessageTemplate {
   subject: string;
   body: string;
   updatedAt: string;
+  waEnabled: boolean;
+  waTemplate: string | null;
+  waLanguage: string;
+  /** Variáveis na ordem dos parâmetros {{1}}, {{2}}… do modelo na Meta. */
+  waParams: string[];
 }
 
 export interface MessageLogRow {
@@ -450,6 +460,8 @@ export interface MessageLogRow {
   ok: boolean;
   error: string | null;
   sentAt: string;
+  channel: 'email' | 'whatsapp';
+  deliveryStatus: 'enviada' | 'entregue' | 'lida' | 'falhou' | null;
 }
 
 export interface ReportMetrics {
@@ -478,7 +490,7 @@ export interface Report {
   triageReasons: { reason: ReasonKey; count: number }[];
   clientReasons: { reason: ReasonKey; count: number }[];
   messages: null | {
-    byTemplate: { id: string; total: number; delivered: number; failed: number }[];
+    byTemplate: { id: string; channel: 'email' | 'whatsapp'; total: number; delivered: number; failed: number }[];
     optOuts: number;
   };
   finance: null | {

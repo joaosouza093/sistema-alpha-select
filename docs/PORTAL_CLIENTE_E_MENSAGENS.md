@@ -1,6 +1,6 @@
 # Portal do cliente e mensagens ao candidato
 
-Corresponde aos Módulos 6 e 7 do documento de escopo (sem WhatsApp, que depende de conta oficial da Meta).
+Corresponde aos Módulos 6 e 7 do documento de escopo. O WhatsApp está em `WHATSAPP.md`.
 
 ## Portal do cliente
 

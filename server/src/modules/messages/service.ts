@@ -1,4 +1,5 @@
 import type { Deps } from '../../lib/context.js';
+import { WhatsAppError, sendWhatsAppTemplate, whatsappConfigured } from '../../lib/whatsapp.js';
 
 export const templateKeys = ['candidatura_recebida', 'perfil_enviado', 'entrevista_agendada', 'reprovacao'] as const;
 export type TemplateKey = (typeof templateKeys)[number];
@@ -12,11 +13,26 @@ export function render(text: string, vars: Record<string, string | null | undefi
 
 const oneLine = (s: string) => s.replace(/[\r\n]+/g, ' ').trim().slice(0, 200);
 
+/** Ordem dos parâmetros {{1}}, {{2}}… de cada modelo aprovado na Meta. */
+export const waParams: Record<TemplateKey, (typeof templateVars)[number][]> = {
+  candidatura_recebida: ['candidato', 'vaga'],
+  perfil_enviado: ['candidato', 'vaga', 'empresa'],
+  entrevista_agendada: ['candidato', 'vaga', 'data_entrevista', 'formato', 'local'],
+  reprovacao: ['candidato', 'vaga'],
+};
+
+const failure = (e: unknown) => {
+  if (e instanceof WhatsAppError) return e.message.slice(0, 200);
+  const code = (e as { code?: string; responseCode?: number }).code ?? (e as { responseCode?: number }).responseCode;
+  return `falha no envio${code ? ` (${String(code).slice(0, 40)})` : ''}`;
+};
+
 /**
- * Envia ao candidato a mensagem do modelo, se ativo, se houver e-mail, se o
- * candidato não se descadastrou e se o servidor tiver e-mail configurado.
- * Registra o resultado (sem o corpo). Nunca lança: falha de aviso não
- * interrompe a operação principal.
+ * Envia ao candidato a mensagem do modelo por e-mail (se o modelo estiver
+ * ativo, houver e-mail, o candidato não tiver se descadastrado e o servidor
+ * tiver e-mail) e pelo WhatsApp (se o modelo do WhatsApp estiver ativo, o
+ * candidato tiver autorizado e o WhatsApp estiver configurado). Registra cada
+ * envio (sem o corpo). Nunca lança: falha de aviso não interrompe a operação.
  */
 export async function sendCandidateMessage(
   deps: Deps,
@@ -24,20 +40,26 @@ export async function sendCandidateMessage(
   opts: { candidateId: string; applicationId?: string | null; vars?: Record<string, string | null | undefined> },
 ): Promise<'sent' | 'failed' | 'skipped'> {
   try {
-    if (deps.config.mailMode === 'manual') return 'skipped';
     const owner = deps.pools.owner;
-    const t = await owner.query<{ enabled: boolean; subject: string; body: string }>(
-      'select enabled, subject, body from message_templates where key = $1',
+    const t = await owner.query<{ enabled: boolean; subject: string; body: string; wa_enabled: boolean; wa_template: string | null; wa_language: string }>(
+      'select enabled, subject, body, wa_enabled, wa_template, wa_language from message_templates where key = $1',
       [key],
     );
     const tpl = t.rows[0];
-    if (!tpl?.enabled) return 'skipped';
-    const c = await owner.query<{ full_name: string; email: string | null; email_opt_out_at: Date | null; unsubscribe_token: string }>(
-      'select full_name, email::text as email, email_opt_out_at, unsubscribe_token from candidates where id = $1',
+    if (!tpl) return 'skipped';
+    const mail = tpl.enabled && deps.config.mailMode !== 'manual';
+    const wa = tpl.wa_enabled && !!tpl.wa_template && whatsappConfigured(deps);
+    if (!mail && !wa) return 'skipped';
+    const c = await owner.query<{
+      full_name: string; email: string | null; email_opt_out_at: Date | null; unsubscribe_token: string;
+      phone: string | null; whatsapp_opt_in_at: Date | null;
+    }>(
+      `select full_name, email::text as email, email_opt_out_at, unsubscribe_token, phone, whatsapp_opt_in_at
+         from candidates where id = $1`,
       [opts.candidateId],
     );
     const cand = c.rows[0];
-    if (!cand?.email || cand.email_opt_out_at) return 'skipped';
+    if (!cand) return 'skipped';
     let ctx: Record<string, string | null> = {};
     if (opts.applicationId) {
       const a = await owner.query<{ title: string; company: string | null }>(
@@ -48,28 +70,47 @@ export async function sendCandidateMessage(
       );
       if (a.rows[0]) ctx = { vaga: a.rows[0].title, empresa: a.rows[0].company ?? 'uma empresa parceira' };
     }
-    const vars = { candidato: cand.full_name.split(' ')[0], ...ctx, ...opts.vars };
+    const vars: Record<string, string | null | undefined> = { candidato: cand.full_name.split(' ')[0], ...ctx, ...opts.vars };
     const subject = oneLine(render(tpl.subject, vars));
-    const base = deps.config.APP_URL.replace(/\/$/, '');
-    const link = `${base}/descadastrar#token=${cand.unsubscribe_token}`;
-    const text =
-      `${render(tpl.body, vars)}\n\n—\nConsultar, corrigir ou excluir seus dados: ${base}/meus-dados\n` +
-      `Para não receber mais e-mails sobre processos seletivos: ${link}`;
-    let ok = true;
-    let error: string | null = null;
-    try {
-      await deps.mailer.send({ to: cand.email, subject, text });
-    } catch (e) {
-      ok = false;
-      const code = (e as { code?: string; responseCode?: number }).code ?? (e as { responseCode?: number }).responseCode;
-      error = `falha no envio${code ? ` (${String(code).slice(0, 40)})` : ''}`;
+    const results: boolean[] = [];
+
+    if (mail && cand.email && !cand.email_opt_out_at) {
+      const base = deps.config.APP_URL.replace(/\/$/, '');
+      const link = `${base}/descadastrar#token=${cand.unsubscribe_token}`;
+      const text =
+        `${render(tpl.body, vars)}\n\n—\nConsultar, corrigir ou excluir seus dados: ${base}/meus-dados\n` +
+        `Para não receber mais e-mails sobre processos seletivos: ${link}`;
+      let error: string | null = null;
+      try {
+        await deps.mailer.send({ to: cand.email, subject, text });
+      } catch (e) {
+        error = failure(e);
+      }
+      await owner.query(
+        `insert into message_log (channel, template_key, candidate_id, application_id, to_address, subject, ok, error)
+         values ('email', $1, $2, $3, $4, $5, $6, $7)`,
+        [key, opts.candidateId, opts.applicationId ?? null, cand.email, subject, !error, error],
+      );
+      results.push(!error);
     }
-    await owner.query(
-      `insert into message_log (template_key, candidate_id, application_id, to_address, subject, ok, error)
-       values ($1, $2, $3, $4, $5, $6, $7)`,
-      [key, opts.candidateId, opts.applicationId ?? null, cand.email, subject, ok, error],
-    );
-    return ok ? 'sent' : 'failed';
+
+    if (wa && cand.phone && cand.whatsapp_opt_in_at) {
+      let error: string | null = null;
+      let providerId: string | null = null;
+      try {
+        providerId = await sendWhatsAppTemplate(deps, cand.phone, { name: tpl.wa_template!, language: tpl.wa_language }, waParams[key].map((v) => vars[v]));
+      } catch (e) {
+        error = failure(e);
+      }
+      await owner.query(
+        `insert into message_log (channel, template_key, candidate_id, application_id, to_address, subject, ok, error, provider_id, delivery_status)
+         values ('whatsapp', $1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [key, opts.candidateId, opts.applicationId ?? null, cand.phone, subject, !error, error, providerId, error ? 'falhou' : 'enviada'],
+      );
+      results.push(!error);
+    }
+    if (!results.length) return 'skipped';
+    return results.some(Boolean) ? 'sent' : 'failed';
   } catch {
     return 'failed';
   }
