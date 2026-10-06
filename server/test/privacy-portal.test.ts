@@ -114,6 +114,31 @@ describe('retenção (LGPD)', () => {
     expect(audit.rows).toEqual([{ actor_id: null }]);
   });
 
+  it('desligar a regra invalida os avisos; falha no envio não conta como aviso', async () => {
+    const email = `${uniq('off')}@example.test`;
+    const a = await createCandidate(admin, { email });
+    await age(a, 30);
+    await ctx.owner.query('delete from candidate_retention where candidate_id = $1', [a]);
+    await admin.put('/api/privacy/retention', { retentionEnabled: true, retentionMonths: 24, noticeDays: 30 });
+
+    const send = ctx.mailer.send.bind(ctx.mailer);
+    ctx.mailer.send = async () => { throw new Error('smtp fora do ar'); };
+    try {
+      expect((await runRetention(ctx.deps)).noticed).toBe(0);
+    } finally {
+      ctx.mailer.send = send;
+    }
+    expect((await ctx.owner.query('select notice_at from candidate_retention where candidate_id = $1', [a])).rowCount).toBe(0);
+
+    expect((await runRetention(ctx.deps)).noticed).toBe(1);
+    await ctx.owner.query("update candidate_retention set notice_at = now() - interval '200 days' where candidate_id = $1", [a]);
+    await admin.put('/api/privacy/retention', { retentionEnabled: false, retentionMonths: 24, noticeDays: 30 });
+    await admin.put('/api/privacy/retention', { retentionEnabled: true, retentionMonths: 24, noticeDays: 30 });
+    const r = await runRetention(ctx.deps);
+    expect(r.erased).toBe(0); // aviso antigo perdeu a validade: avisa de novo em vez de apagar
+    expect(await exists(a)).toBe(true);
+  });
+
   it('administrador "manter" e renovação pelo candidato cancelam o aviso', async () => {
     const email = `${uniq('keep')}@example.test`;
     const a = await createCandidate(admin, { email });
@@ -146,6 +171,10 @@ describe('área do candidato', () => {
     expect(r1.message).toBe(r2.message);
     expect(ctx.mailer.outbox.length).toBe(before + 1);
     expect((await cand('x'.repeat(43)).get('/api/public/my-data')).statusCode).toBe(401);
+    // Pedir um link novo invalida o anterior.
+    const first = linkToken(email);
+    await new Agent(ctx).post('/api/public/my-data/request', { email });
+    expect((await cand(first).get('/api/public/my-data')).statusCode).toBe(401);
     expect((await ctx.app.inject({ method: 'GET', url: '/api/public/my-data' })).statusCode).toBe(401);
     const me = json(await cand(linkToken(email)).get('/api/public/my-data'));
     expect(me).toMatchObject({ fullName: 'Maria Fictícia', email });

@@ -108,6 +108,21 @@ describe('verificação em duas etapas', () => {
     expect((await a.post('/api/auth/login/mfa', { mfaToken, code: totpAt(u.secret, currentStep()) })).statusCode).toBe(401);
   });
 
+  it('códigos errados contam por conta: fazer login de novo com a senha não zera o limite', async () => {
+    const u = await withMfa();
+    let blocked = false;
+    for (let round = 0; round < 3 && !blocked; round++) {
+      const a = new Agent(ctx);
+      const { mfaToken } = json(await a.post('/api/auth/login', { email: u.email, password: PASSWORD }));
+      for (let i = 0; i < 4; i++) {
+        const r = await a.post('/api/auth/login/mfa', { mfaToken, code: 'AAAA-AAAA' });
+        if (r.statusCode === 429) { blocked = true; break; }
+        expect(r.statusCode).toBe(422);
+      }
+    }
+    expect(blocked).toBe(true); // 8 tentativas a cada 15 min por conta, somando todos os desafios
+  });
+
   it('desligar exige senha e código; administrador pode desligar de outro usuário', async () => {
     const u = await withMfa();
     expect((await u.agent.post('/api/auth/mfa/disable', { password: 'errada-123456', code: u.recoveryCodes[0] })).statusCode).toBe(422);

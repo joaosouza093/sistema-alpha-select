@@ -64,12 +64,14 @@ export async function runRetention(deps: Deps) {
   const deadline = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeZone: 'America/Sao_Paulo' }).format(
     new Date(Date.now() + s.notice_days * 86_400_000),
   );
-  const mailed = new Set<string>();
+  // Resultado do envio por e-mail nesta execução (cadastros com o mesmo e-mail recebem um aviso só).
+  const mailed = new Map<string, boolean>();
+  let noticed = 0;
   for (const c of toNotice.rows) {
     const canMail = !!c.email && !c.opt_out && deps.config.mailMode !== 'manual';
     let sent = false;
-    if (canMail && !mailed.has(c.email!.toLowerCase())) {
-      mailed.add(c.email!.toLowerCase());
+    const key = c.email?.toLowerCase() ?? '';
+    if (canMail && !mailed.has(key)) {
       const token = await createCandidateToken(owner as unknown as Db, c.email!, 'retencao', s.notice_days * 24 * 60);
       const subject = 'Seus dados no banco de talentos — Alpha Select';
       try {
@@ -87,19 +89,23 @@ export async function runRetention(deps: Deps) {
       } catch {
         sent = false;
       }
+      mailed.set(key, sent);
       await owner.query(
         `insert into message_log (template_key, candidate_id, to_address, subject, ok, error)
          values ('aviso_retencao', $1, $2, $3, $4, $5)`,
         [c.id, c.email, subject, sent, sent ? null : 'falha no envio'],
       );
     } else if (canMail) {
-      sent = true; // mesmo e-mail de outro cadastro já avisado nesta execução
+      sent = mailed.get(key)!;
     }
+    // Falha no envio: sem aviso registrado, tenta de novo na próxima execução (o prazo só corre depois do aviso).
+    if (canMail && !sent) continue;
+    noticed++;
     await owner.query(
       `insert into candidate_retention (candidate_id, notice_at, notice_sent) values ($1, now(), $2)
        on conflict (candidate_id) do update set notice_at = now(), notice_sent = excluded.notice_sent`,
       [c.id, sent],
     );
   }
-  return { noticed: toNotice.rowCount ?? 0, erased, canceled: canceled.rowCount ?? 0 };
+  return { noticed, erased, canceled: canceled.rowCount ?? 0 };
 }

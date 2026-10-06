@@ -119,7 +119,12 @@ describe('Asaas', () => {
     const c = await charge(await company());
     expect((await webhook('PAYMENT_RECEIVED', { id: c.gatewayId, status: 'RECEIVED' }, 'errado-errado-errado')).statusCode).toBe(401);
     const payload = { id: c.gatewayId, status: 'RECEIVED', billingType: 'PIX', value: 1500, clientPaymentDate: inDays(0) };
-    const r = await webhook('PAYMENT_RECEIVED', payload);
+    // Aviso forjado (token vazado): o corpo diz "pago", mas o Asaas ainda diz "pendente" → nada muda.
+    expect(json(await webhook('PAYMENT_RECEIVED', payload))).toMatchObject({ found: true, paid: false });
+    expect(json(await admin.get(`/api/billing/charges/${c.id}`)).status).toBe('pendente');
+    // Pagamento real: a situação confirmada vem da API do Asaas.
+    Object.assign(asaas.payments.get(c.gatewayId)!, { status: 'RECEIVED', billingType: 'PIX', clientPaymentDate: inDays(0) });
+    const r = await webhook('PAYMENT_RECEIVED', { id: c.gatewayId });
     expect(json(r)).toMatchObject({ ok: true, found: true, paid: true });
     const after = json(await admin.get(`/api/billing/charges/${c.id}`));
     expect(after).toMatchObject({ status: 'pago', paidVia: 'asaas', paidNote: 'Pago pelo Asaas (Pix)', gatewayStatus: 'RECEIVED' });

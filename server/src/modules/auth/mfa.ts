@@ -108,6 +108,8 @@ export async function completeLogin(deps: Deps, mfaToken: string, code: string, 
     );
     const ch = rows[0];
     if (!ch || !ch.active || ch.attempts >= MAX_CHALLENGE_ATTEMPTS) return { error: EXPIRED };
+    // Limite por conta, somando todos os desafios: acertar a senha de novo não zera esta contagem.
+    await deps.limiters.loginAccount.consume(`mfa-login:${ch.user_id}`);
     const used = await consumeCode(db, ch.user_id, code);
     if (!used) {
       await db.query('update mfa_challenges set attempts = attempts + 1 where id = $1', [ch.id]);

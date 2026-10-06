@@ -107,7 +107,8 @@ describe('WhatsApp', () => {
     const st = await ctx.owner.query('select delivery_status from message_log where provider_id = $1', [m.id]);
     expect(st.rows[0].delivery_status).toBe('lida');
 
-    const inbound = { entry: [{ changes: [{ value: { messages: [{ from: '5521977773333', type: 'text', text: { body: ' Sair ' } }] } }] }] };
+    // A Meta costuma mandar o celular sem o nono dígito (55 21 7777-3333).
+    const inbound = { entry: [{ changes: [{ value: { messages: [{ from: '552177773333', type: 'text', text: { body: ' Sair ' } }] } }] }] };
     expect(json(await hook(inbound)).optOuts).toBe(1);
     expect(await sendCandidateMessage(ctx.deps, 'perfil_enviado', { candidateId: id })).toBe('skipped');
   });

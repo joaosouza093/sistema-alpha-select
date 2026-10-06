@@ -1,8 +1,20 @@
 import type { FastifyInstance } from 'fastify';
 import type { Deps } from '../../lib/context.js';
 import type { Db } from '../../lib/db.js';
+import { safeEqual } from '../../lib/crypto.js';
 import { validWebhookSignature, waNumber } from '../../lib/whatsapp.js';
 import { insertAudit } from '../auth/service.js';
+
+/**
+ * Celular brasileiro com e sem o nono dígito: a Meta costuma informar o
+ * remetente sem o 9 (55 + DDD + 8 dígitos), enquanto o cadastro guarda com ele.
+ */
+export function brVariants(digits: string): string[] {
+  const out = new Set([digits]);
+  if (/^55\d{10}$/.test(digits)) out.add(`${digits.slice(0, 4)}9${digits.slice(4)}`);
+  if (/^55\d{2}9\d{8}$/.test(digits)) out.add(`${digits.slice(0, 4)}${digits.slice(5)}`);
+  return [...out];
+}
 
 /** Respostas do candidato que cancelam as mensagens pelo WhatsApp. */
 const OPT_OUT = new Set(['sair', 'parar', 'pare', 'cancelar', 'stop', 'descadastrar']);
@@ -27,7 +39,8 @@ export function registerWhatsAppRoutes(app: FastifyInstance, deps: Deps) {
   app.get('/api/webhooks/whatsapp', { config: { public: true } }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
     const expected = deps.config.WHATSAPP_VERIFY_TOKEN;
-    if (q['hub.mode'] === 'subscribe' && expected && q['hub.verify_token'] === expected && q['hub.challenge']) {
+    const given = q['hub.verify_token'];
+    if (q['hub.mode'] === 'subscribe' && expected && typeof given === 'string' && safeEqual(given, expected) && q['hub.challenge']) {
       reply.header('Content-Type', 'text/plain');
       return q['hub.challenge'].slice(0, 200);
     }
@@ -78,8 +91,8 @@ export function registerWhatsAppRoutes(app: FastifyInstance, deps: Deps) {
             if (!m.from || !OPT_OUT.has(text)) continue;
             const r = await owner.query<{ id: string }>(
               `update candidates set whatsapp_opt_in_at = null
-                where whatsapp_opt_in_at is not null and regexp_replace(phone, '\\D', '', 'g') = $1 returning id`,
-              [waNumber(m.from)],
+                where whatsapp_opt_in_at is not null and regexp_replace(phone, '\\D', '', 'g') = any($1::text[]) returning id`,
+              [brVariants(waNumber(m.from))],
             );
             for (const c of r.rows) await insertAudit(owner as unknown as Db, null, 'candidate.whatsapp_opt_out', 'candidate', c.id, null);
             optOuts += r.rowCount ?? 0;

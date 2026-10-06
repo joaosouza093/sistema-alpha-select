@@ -29,6 +29,8 @@ export function candidatePortalLink(deps: Deps, token: string) {
 /** Cria um token de acesso aos dados do e-mail (usado também pelo aviso de retenção). */
 export async function createCandidateToken(db: Db, email: string, purpose: 'acesso' | 'retencao', minutes: number) {
   const token = newToken();
+  // Um link novo invalida os anteriores do mesmo tipo para aquele e-mail.
+  await db.query('delete from candidate_access_tokens where email = $1 and purpose = $2', [email, purpose]);
   await db.query(
     `insert into candidate_access_tokens (token_hash, email, purpose, expires_at)
      values ($1, $2, $3, now() + make_interval(mins => $4))`,
@@ -84,7 +86,10 @@ export function registerCandidatePortalRoutes(app: FastifyInstance, deps: Deps) 
       await insertAudit(db, null, 'candidate.portal_link_requested', 'candidate', c.rows[0].id, req.ip);
       return { ...c.rows[0], token };
     });
-    if (target) {
+    if (!target) {
+      // Mesmo tempo de resposta exista ou não o cadastro (não revela quem está no banco de talentos).
+      await new Promise((r) => setTimeout(r, 300 + Math.floor(Math.random() * 700)));
+    } else {
       await deps.mailer
         .send({
           to: body.email,
@@ -187,6 +192,12 @@ export function registerCandidatePortalRoutes(app: FastifyInstance, deps: Deps) 
         [ids],
       );
       for (const id of ids) await insertAudit(db, null, 'candidate.consent_renewed', 'candidate', id, req.ip);
+      // O link do aviso de exclusão cumpriu o papel: vale só mais 1 hora (o suficiente para terminar esta visita).
+      await db.query(
+        `update candidate_access_tokens set expires_at = least(expires_at, now() + interval '1 hour')
+          where email = (select email from candidates where id = $1) and purpose = 'retencao'`,
+        [ids[0]],
+      );
     });
     return { ok: true };
   });

@@ -6,8 +6,8 @@ Execução em 06/10/2026, PostgreSQL 16 local, Node.js 22, Chromium (Playwright 
 | --- | --- | --- |
 | Tipos (servidor e web) | `npm run typecheck` | ✅ sem erros |
 | Build de produção | `npm run build` | ✅ |
-| Integração do backend | `npm test` | ✅ **155/155** |
-| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **155/155** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
+| Integração do backend | `npm test` | ✅ **157/157** |
+| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **157/157** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
 | Empacotamento Netlify Functions | `npm run check:netlify` | ✅ |
 | Navegador (desktop + celular) | `npm run test:e2e` | ✅ **13/13** (06/10/2026) |
 | Dependências de produção | `npm audit --omit=dev` | ✅ 0 vulnerabilidades |
