@@ -12,6 +12,8 @@ Legenda: ✅ permitido · ❌ negado · 🔸 somente com vínculo ao processo ·
 | Gerenciar empresas clientes | ✅ | ❌ | ❌ | ❌ |
 | Aprovar/recusar cadastros feitos pelo site | ✅ | ❌ | ❌ | ❌ |
 | Cobranças (ver, criar, baixar, configurar) | ✅ | ❌ | ❌ | ❌ |
+| Relatórios (operação) — equipe só dos processos com acesso | ✅ | ✅ | ❌ | ❌ |
+| Relatórios: blocos financeiro e mensagens | ✅ | ❌ | ❌ | ❌ |
 | Configurar e publicar vaga no portal | ✅ | ❌ (vê a configuração se vinculado) | ❌ | ❌ |
 | Ver respostas da candidatura pelo portal | ✅ | 🔸 | ❌ | ❌ |
 | Convidar, editar, ativar/desativar usuários | ✅ | ❌ | ❌ | ❌ |

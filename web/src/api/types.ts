@@ -443,3 +443,38 @@ export interface MessageLogRow {
   error: string | null;
   sentAt: string;
 }
+
+export interface ReportMetrics {
+  applications: number;
+  screened: number;
+  approvedInternal: number;
+  rejectedInternal: number;
+  sent: number;
+  awaitingFeedback: number;
+  hired: number;
+  rejectedClient: number;
+  avgDaysToSend: number | null;
+  avgResponseDays: number | null;
+}
+
+export type ReasonKey = keyof typeof import('../lib/format').reasonLabel;
+
+export interface Report {
+  filters: { from: string; to: string; companyId?: string; processId?: string };
+  summary: ReportMetrics;
+  byCompany: (ReportMetrics & { id: string; name: string })[];
+  byProcess: (ReportMetrics & { id: string; name: string; companyName: string })[];
+  bySource: (ReportMetrics & { id: 'interno' | 'portal' })[];
+  byMonth: (ReportMetrics & { id: string })[];
+  byRecruiter: { id: string; name: string; screened: number; sent: number; hired: number; avgDaysToSend: number | null }[];
+  triageReasons: { reason: ReasonKey; count: number }[];
+  clientReasons: { reason: ReasonKey; count: number }[];
+  messages: null | {
+    byTemplate: { id: string; total: number; delivered: number; failed: number }[];
+    optOuts: number;
+  };
+  finance: null | {
+    byCompany: { id: string; name: string; billedCents: number; paidCents: number; overdueCents: number; openCents: number; avgPayDelayDays: number | null }[];
+    totals: { billedCents: number; paidCents: number; overdueCents: number; openCents: number; complianceRate: number | null };
+  };
+}

@@ -1,13 +1,13 @@
 # Testes executados
 
-Execução em 05/10/2026, PostgreSQL 16 local, Node.js 22, Chromium (Playwright 1.63).
+Execução em 06/10/2026, PostgreSQL 16 local, Node.js 22, Chromium (Playwright 1.63).
 
 | Verificação | Comando | Resultado |
 | --- | --- | --- |
 | Tipos (servidor e web) | `npm run typecheck` | ✅ sem erros |
 | Build de produção | `npm run build` | ✅ |
-| Integração do backend | `npm test` | ✅ **122/122** |
-| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **122/122** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
+| Integração do backend | `npm test` | ✅ **127/127** |
+| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **127/127** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
 | Empacotamento Netlify Functions | `npm run check:netlify` | ✅ |
 | Navegador (desktop + celular) | `npm run test:e2e` | ✅ **8/8** |
 | Dependências de produção | `npm audit --omit=dev` | ✅ 0 vulnerabilidades |
@@ -101,3 +101,11 @@ servidor e dados de desenvolvimento) e são executados localmente com `npm run t
 - **Publicação**: sem ambiente autorizado.
 - **Leitores de tela** e navegadores além do Chromium: não testados automaticamente.
 - **Carga/desempenho**: não testado.
+
+## Relatórios
+
+`reports.test.ts` (5 testes): totais por processo conferidos contra o cenário criado (triagem, envio,
+recusa do cliente, motivos, recrutador, mês); período vazio zerado; equipe só vê os processos aos quais tem
+acesso e não recebe financeiro nem mensagens (inclusive filtrando por processo alheio); cliente recebe 403
+e visitante 401; período invertido, acima de 2 anos, data inválida e parâmetro extra recusados; financeiro
+por empresa (emitido, recebido, vencido e adimplência). Tela verificada no navegador em desktop e celular.

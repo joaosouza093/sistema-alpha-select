@@ -32,3 +32,4 @@ Nenhum dado pessoal das partes do contrato está no código, nas seeds ou nas te
 | R10 | Visualização segura de documentos | Armazenamento privado, sem URL pública, autorização a cada acesso, revogação imediata | Implementado e testado |
 | R11 | Painel intuitivo | Indicadores reais limitados ao escopo, pendências, movimentações recentes, atalhos | Implementado e testado |
 | R12 | Testes, ajustes e preparação para publicação | Build, tipos, testes de integração e navegador; Dockerfile; documentação | Implementado; publicação depende de ambiente (ver `PENDENCIAS.md`) |
+| R13 | Relatórios e indicadores (Marco 6) | Por empresa, processo, origem, mês e recrutador; motivos; mensagens e financeiro (admin); CSV e PDF; totais reproduzíveis | Implementado e testado (ver `RELATORIOS.md`) |

@@ -52,3 +52,14 @@
 O sistema está **pronto para homologação** assim que houver um ambiente de homologação
 (banco, hospedagem, SMTP). Não há bloqueio técnico conhecido no código; os bloqueios
 para produção são as configurações externas acima e a validação das premissas.
+
+## Andamento frente ao PDF de escopo (6 marcos)
+
+| Marco | Situação |
+| --- | --- |
+| 1 — Fundação e carteira B2B | feito (acessos, perfis, empresas, usuários, auditoria). Falta: autenticação em dois fatores (opcional no escopo) |
+| 2 — Talentos, vagas e portal | feito (banco de candidatos, vagas, portal público, consentimento) |
+| 3 — Triagem e envio de leads | feito (ficha de avaliação, aprovação interna, envio individual/lote, duplicidade, SLA) |
+| 4 — Portal cliente e mensagens | feito por e-mail. **WhatsApp depende da conta oficial na Meta** |
+| 5 — Financeiro e cobrança | feito com baixa manual. **Gateway (boleto/Pix/cartão) depende de escolher o fornecedor** |
+| 6 — Indicadores e go-live | relatórios com CSV/PDF feitos (`RELATORIOS.md`). Faltam: prazo de retenção automático (LGPD), área do candidato para atualizar os próprios dados, homologação com usuários |

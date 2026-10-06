@@ -338,3 +338,19 @@ table.table { width: 100%; border-collapse: collapse; }
 
 .funnel { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 10px 14px; margin-bottom: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: .9rem; }
 .funnel strong { color: var(--navy); }
+
+/* Relatórios */
+.report-filters { grid-template-columns: repeat(2, minmax(140px, 1fr)) repeat(2, minmax(180px, 2fr)); }
+@media (max-width: 1000px) { .report-filters { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .report-filters { grid-template-columns: 1fr; } }
+.print-only { display: none; }
+@media print {
+  .sidebar, .topbar, .skip-link, .no-print, .footer { display: none !important; }
+  .print-only { display: block; }
+  .app-shell, .main { display: block; margin: 0; padding: 0; }
+  body { background: #fff; }
+  .card { box-shadow: none; }
+  .report-section { break-inside: avoid; }
+  .table th, .table td { padding: 4px 6px; font-size: .75rem; }
+  .table-wrap { overflow: visible; }
+}
