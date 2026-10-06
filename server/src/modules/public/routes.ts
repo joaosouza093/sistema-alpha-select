@@ -17,7 +17,7 @@ import { sendCandidateMessage } from '../messages/service.js';
  * expõe identificadores internos, respostas esperadas ou dados de candidatos.
  */
 
-export const CONSENT_VERSION = 'portal-v1';
+export const CONSENT_VERSION = 'portal-v2'; // v2: aviso cita a área Meus dados e a retenção
 const RESUME_EXTENSIONS = ['pdf', 'doc', 'docx', 'odt'];
 
 const publicCols = `p.public_slug as slug, p.title, p.job_location as location, p.work_model as "workModel",
@@ -209,7 +209,7 @@ export function registerPublicRoutes(app: FastifyInstance, deps: Deps) {
             ? `Recebemos sua candidatura para a vaga "${title}". `
             : 'Recebemos seu currículo no banco de talentos da Alpha Select. ') +
           'Nossa equipe vai analisar seu perfil e, se ele avançar, entraremos em contato.\n\n' +
-          'Seus dados são usados somente para processos seletivos. Para corrigir ou excluir seus dados, responda a este e-mail.\n\n' +
+          `Seus dados são usados somente para processos seletivos. Para consultar, corrigir ou excluir seus dados: ${deps.config.APP_URL.replace(/\/$/, '')}/meus-dados\n\n` +
           'Alpha Select Consultoria de Recursos Humanos',
       });
     } catch {

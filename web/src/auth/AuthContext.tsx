@@ -12,7 +12,9 @@ interface AuthState {
   isAlpha: boolean;
   /** Limite de upload informado pelo servidor (MB). */
   maxUploadMb: number;
-  login: (email: string, password: string) => Promise<void>;
+  /** Devolve o desafio quando a conta usa verificação em duas etapas. */
+  login: (email: string, password: string) => Promise<{ mfaToken: string } | null>;
+  completeMfa: (mfaToken: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -55,9 +57,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, [clear]);
 
-  const login = useCallback(
-    async (email: string, password: string) => {
-      const r = await api.post<{ user: SessionUser; csrfToken: string; limits?: { maxUploadMb: number } }>('/api/auth/login', { email, password });
+  type SessionResponse = { user: SessionUser; csrfToken: string; limits?: { maxUploadMb: number } };
+  const start = useCallback(
+    (r: SessionResponse) => {
       qc.clear();
       if (r.limits) setMaxUploadMb(r.limits.maxUploadMb);
       setCsrfToken(r.csrfToken);
@@ -66,6 +68,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(r.user);
     },
     [qc],
+  );
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const r = await api.post<SessionResponse | { mfaRequired: true; mfaToken: string }>('/api/auth/login', { email, password });
+      if ('mfaRequired' in r) return { mfaToken: r.mfaToken };
+      start(r);
+      return null;
+    },
+    [start],
+  );
+
+  const completeMfa = useCallback(
+    async (mfaToken: string, code: string) => {
+      start(await api.post<SessionResponse>('/api/auth/login/mfa', { mfaToken, code }));
+    },
+    [start],
   );
 
   const logout = useCallback(async () => {
@@ -87,9 +106,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAlpha: isAlphaKind(user?.kind),
       maxUploadMb,
       login,
+      completeMfa,
       logout,
     }),
-    [user, loading, expired, maxUploadMb, login, logout],
+    [user, loading, expired, maxUploadMb, login, completeMfa, logout],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -6,8 +6,8 @@ Execução em 06/10/2026, PostgreSQL 16 local, Node.js 22, Chromium (Playwright 
 | --- | --- | --- |
 | Tipos (servidor e web) | `npm run typecheck` | ✅ sem erros |
 | Build de produção | `npm run build` | ✅ |
-| Integração do backend | `npm test` | ✅ **127/127** |
-| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **127/127** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
+| Integração do backend | `npm test` | ✅ **140/140** |
+| Integração no layout do Supabase | `TEST_SUPABASE_LAYOUT=1 npm test` | ✅ **140/140** (extensões em `extensions`, papéis `anon`/`authenticated` sem acesso) |
 | Empacotamento Netlify Functions | `npm run check:netlify` | ✅ |
 | Navegador (desktop + celular) | `npm run test:e2e` | ✅ **8/8** |
 | Dependências de produção | `npm audit --omit=dev` | ✅ 0 vulnerabilidades |
@@ -109,3 +109,18 @@ recusa do cliente, motivos, recrutador, mês); período vazio zerado; equipe só
 acesso e não recebe financeiro nem mensagens (inclusive filtrando por processo alheio); cliente recebe 403
 e visitante 401; período invertido, acima de 2 anos, data inválida e parâmetro extra recusados; financeiro
 por empresa (emitido, recebido, vencido e adimplência). Tela verificada no navegador em desktop e celular.
+
+## Verificação em duas etapas, retenção e área do candidato
+
+`mfa.test.ts` (7 testes): vetores da RFC 6238; login sem sessão até o código; desafio de uso único; código não reutilizável;
+ativar encerra outras sessões; código de recuperação uma única vez; 5 erros invalidam o desafio; desligar exige senha e
+código; administrador desliga de outro usuário (não de si mesmo) e fica na auditoria; segredo inacessível ao papel da aplicação.
+
+`privacy-portal.test.ts` (6 testes): regra desligada por padrão e só administrador configura; aviso por e-mail, sem repetição,
+eliminação após o prazo, candidato em processo em andamento preservado; "Manter" e renovação pelo candidato cancelam o aviso;
+link de acesso com resposta igual para e-mail inexistente e token inválido recusado; candidato vê candidaturas sem empresa
+confidencial nem anotações internas, corrige dados, troca currículo, se descadastra e baixa os dados; exclusão pelo
+candidato apaga todos os cadastros do e-mail e invalida o link.
+
+Telas verificadas no navegador: ativação com QR code, login em duas etapas com código de recuperação, Privacidade e
+Meus dados (celular). Os testes de navegador (`npm run test:e2e`) não foram executados nesta rodada.

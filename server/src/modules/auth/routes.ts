@@ -5,6 +5,7 @@ import { requireUser } from '../../lib/context.js';
 import { parse } from '../../lib/validate.js';
 import { zEmail, zPassword } from '../../lib/normalize.js';
 import * as auth from './service.js';
+import * as mfa from './mfa.js';
 
 export function sessionCookieName(deps: Deps) {
   return deps.config.secureCookies ? '__Host-as_session' : 'as_session';
@@ -25,16 +26,52 @@ export function publicUser(u: AuthUser) {
 }
 
 const zToken = z.string().min(20).max(200);
+const zCode = z.string().trim().min(6, 'Informe o código.').max(20);
 
 export function registerAuthRoutes(app: FastifyInstance, deps: Deps) {
   app.post('/api/auth/login', { config: { public: true } }, async (req, reply) => {
     const body = parse(z.object({ email: zEmail, password: z.string().min(1).max(200) }).strict(), req.body);
-    const { token, user } = await auth.login(deps, body.email, body.password, {
+    const r = await auth.login(deps, body.email, body.password, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+    if ('mfaToken' in r) return { mfaRequired: true, mfaToken: r.mfaToken };
+    setSessionCookie(deps, reply, r.token);
+    return { user: publicUser(r.user), csrfToken: r.user.csrfToken, limits: { maxUploadMb: deps.config.MAX_UPLOAD_MB } };
+  });
+
+  // Segunda etapa: código do aplicativo autenticador (6 dígitos) ou de recuperação (XXXX-XXXX).
+  app.post('/api/auth/login/mfa', { config: { public: true } }, async (req, reply) => {
+    const body = parse(z.object({ mfaToken: zToken, code: zCode }).strict(), req.body);
+    const { token, user } = await mfa.completeLogin(deps, body.mfaToken, body.code, {
       ip: req.ip,
       userAgent: req.headers['user-agent'],
     });
     setSessionCookie(deps, reply, token);
     return { user: publicUser(user), csrfToken: user.csrfToken, limits: { maxUploadMb: deps.config.MAX_UPLOAD_MB } };
+  });
+
+  app.get('/api/auth/mfa', async (req) => mfa.mfaStatus(deps, requireUser(req)));
+
+  app.post('/api/auth/mfa/setup', async (req) => {
+    const body = parse(z.object({ password: z.string().min(1).max(200) }).strict(), req.body);
+    return mfa.startSetup(deps, requireUser(req), body.password);
+  });
+
+  app.post('/api/auth/mfa/confirm', async (req) => {
+    const body = parse(z.object({ code: zCode }).strict(), req.body);
+    return mfa.confirmSetup(deps, requireUser(req), body.code, req.ip);
+  });
+
+  app.post('/api/auth/mfa/disable', async (req) => {
+    const body = parse(z.object({ password: z.string().min(1).max(200), code: zCode }).strict(), req.body);
+    await mfa.disable(deps, requireUser(req), body.password, body.code, req.ip);
+    return { ok: true };
+  });
+
+  app.post('/api/auth/mfa/recovery-codes', async (req) => {
+    const body = parse(z.object({ code: zCode }).strict(), req.body);
+    return mfa.regenerateRecovery(deps, requireUser(req), body.code, req.ip);
   });
 
   app.post('/api/auth/logout', async (req, reply) => {

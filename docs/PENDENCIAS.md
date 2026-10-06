@@ -30,7 +30,7 @@
 - Situações de processo: em andamento, concluído, arquivado (os dois últimos somente leitura).
 - Formatos aceitos (PDF, DOC, DOCX, ODT, PNG, JPG). Limite por arquivo: 10 MB em servidor próprio, 4 MB no Netlify.
 - Sessão: 12 h absolutas, 2 h de inatividade; convite 72 h; recuperação 60 min.
-- Base legal do tratamento e **prazo de retenção** (não implementado prazo automático).
+- Base legal do tratamento e **prazo de retenção** (regra pronta, desligada até a Alpha Select definir o prazo).
 
 ## Hospedagem Netlify + Supabase
 
@@ -44,7 +44,7 @@
 - Sem análise antivírus dos uploads.
 - Limitador de tentativas em memória (uma instância).
 - Sem notificações por e-mail de movimentações e sem atualização em tempo real.
-- Sem MFA.
+- Verificação em duas etapas opcional (nenhum perfil é obrigado).
 - Imagem Docker não foi construída neste ambiente (sem daemon).
 
 ## Situação
@@ -57,9 +57,9 @@ para produção são as configurações externas acima e a validação das premi
 
 | Marco | Situação |
 | --- | --- |
-| 1 — Fundação e carteira B2B | feito (acessos, perfis, empresas, usuários, auditoria). Falta: autenticação em dois fatores (opcional no escopo) |
+| 1 — Fundação e carteira B2B | feito (acessos, perfis, empresas, usuários, auditoria, verificação em duas etapas opcional) |
 | 2 — Talentos, vagas e portal | feito (banco de candidatos, vagas, portal público, consentimento) |
 | 3 — Triagem e envio de leads | feito (ficha de avaliação, aprovação interna, envio individual/lote, duplicidade, SLA) |
 | 4 — Portal cliente e mensagens | feito por e-mail. **WhatsApp depende da conta oficial na Meta** |
 | 5 — Financeiro e cobrança | feito com baixa manual. **Gateway (boleto/Pix/cartão) depende de escolher o fornecedor** |
-| 6 — Indicadores e go-live | relatórios com CSV/PDF feitos (`RELATORIOS.md`). Faltam: prazo de retenção automático (LGPD), área do candidato para atualizar os próprios dados, homologação com usuários |
+| 6 — Indicadores e go-live | feito: relatórios CSV/PDF (`RELATORIOS.md`), retenção automática e área do candidato `/meus-dados` (`SEGURANCA_E_LGPD.md`). Falta: homologação com usuários e decisão do prazo de retenção |

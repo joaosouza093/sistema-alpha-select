@@ -14,6 +14,9 @@ Legenda: ✅ permitido · ❌ negado · 🔸 somente com vínculo ao processo ·
 | Cobranças (ver, criar, baixar, configurar) | ✅ | ❌ | ❌ | ❌ |
 | Relatórios (operação) — equipe só dos processos com acesso | ✅ | ✅ | ❌ | ❌ |
 | Relatórios: blocos financeiro e mensagens | ✅ | ❌ | ❌ | ❌ |
+| Privacidade (regra de retenção, manter candidato) | ✅ | ❌ | ❌ | ❌ |
+| Desligar verificação em duas etapas de outro usuário | ✅ | ❌ | ❌ | ❌ |
+| Ativar/desligar a própria verificação em duas etapas | ✅ | ✅ | ✅ | ✅ |
 | Configurar e publicar vaga no portal | ✅ | ❌ (vê a configuração se vinculado) | ❌ | ❌ |
 | Ver respostas da candidatura pelo portal | ✅ | 🔸 | ❌ | ❌ |
 | Convidar, editar, ativar/desativar usuários | ✅ | ❌ | ❌ | ❌ |

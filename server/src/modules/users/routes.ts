@@ -17,12 +17,14 @@ import {
   revokeSessions,
   sendInviteEmail,
 } from '../auth/service.js';
+import { adminReset as adminResetMfa } from '../auth/mfa.js';
 
 const kinds = ['alpha_admin', 'alpha_staff', 'client_user', 'client_manager'] as const;
 
 const userCols = `u.id, u.email, u.full_name as "fullName", u.kind, u.company_id as "companyId",
   co.name as "companyName", u.is_active as "isActive", u.created_at as "createdAt",
-  u.last_login_at as "lastLoginAt", app.user_access_status(u.id) as "accessStatus"`;
+  u.last_login_at as "lastLoginAt", app.user_access_status(u.id) as "accessStatus",
+  app.user_mfa_enabled(u.id) as "mfaEnabled"`;
 
 export function registerUserRoutes(app: FastifyInstance, deps: Deps) {
   /**
@@ -205,5 +207,19 @@ export function registerUserRoutes(app: FastifyInstance, deps: Deps) {
     });
     const token = await withTx(deps.pools.owner, (db) => createResetToken(db, id, ADMIN_RESET_TTL_MINUTES));
     return { link: resetLink(deps, token), validHours: ADMIN_RESET_TTL_MINUTES / 60 };
+  });
+
+  /** Desliga a verificação em duas etapas de quem perdeu o celular e os códigos de recuperação. */
+  app.post('/api/users/:id/mfa-reset', async (req) => {
+    adminOnly(req);
+    const { id } = parse(z.object({ id: zUuid }), req.params);
+    if (id === requireUser(req).id) throw conflict('Para desligar a sua própria verificação, use Minha conta.');
+    await asUser(deps, req, async (db) => {
+      const { rows } = await db.query('select 1 from users where id = $1', [id]);
+      if (!rows[0]) throw notFound();
+      if (!(await adminResetMfa(deps, id))) throw conflict('Este usuário não usa verificação em duas etapas.');
+      await audit(db, req, 'user.mfa_reset', 'user', id);
+    });
+    return { ok: true };
   });
 }

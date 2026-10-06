@@ -354,3 +354,9 @@ table.table { width: 100%; border-collapse: collapse; }
   .table th, .table td { padding: 4px 6px; font-size: .75rem; }
   .table-wrap { overflow: visible; }
 }
+
+.link-button { background: none; border: none; padding: 0; color: var(--brand-600); text-decoration: underline; cursor: pointer; text-align: left; font: inherit; }
+.qr-box { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.qr-box img { width: 180px; height: 180px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #fff; }
+.secret-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; word-break: break-all; background: var(--surface-2); padding: 6px 8px; border-radius: var(--radius-sm); }
+.recovery-codes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; list-style: none; padding: 0; margin: 0; }

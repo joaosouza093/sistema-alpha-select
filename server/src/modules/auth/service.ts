@@ -58,8 +58,8 @@ export async function login(
   email: string,
   password: string,
   meta: { ip: string; userAgent: string | undefined },
-): Promise<{ token: string; user: AuthUser }> {
-  const { pools, limiters, config } = deps;
+): Promise<{ token: string; user: AuthUser } | { mfaToken: string }> {
+  const { pools, limiters } = deps;
   await limiters.loginIp.consume(`ip:${meta.ip}`);
   await limiters.loginAccount.consume(`acc:${email}`);
 
@@ -110,17 +110,43 @@ export async function login(
   }
 
   await limiters.loginAccount.reset(`acc:${email}`);
+  await pools.owner.query('update user_credentials set failed_attempts = 0, locked_until = null where user_id = $1', [u.id]);
+
+  // Verificação em duas etapas: a senha certa só gera um desafio; a sessão sai depois do código.
+  const mfa = await pools.owner.query('select 1 from user_mfa where user_id = $1 and enabled_at is not null', [u.id]);
+  if (mfa.rowCount) {
+    const mfaToken = newToken();
+    await pools.owner.query('delete from mfa_challenges where user_id = $1 or expires_at < now()', [u.id]);
+    await pools.owner.query(
+      `insert into mfa_challenges (token_hash, user_id, expires_at, user_agent, ip)
+       values ($1, $2, now() + make_interval(mins => $3), $4, $5)`,
+      [sha256(mfaToken), u.id, MFA_CHALLENGE_MINUTES, meta.userAgent?.slice(0, 200) ?? null, meta.ip],
+    );
+    await auditOwner(deps, u.id, 'auth.mfa_challenge', meta.ip);
+    return { mfaToken };
+  }
+  return createSession(deps, { id: u.id, email: u.email, full_name: u.full_name, kind: u.kind, company_id: u.company_id }, meta);
+}
+
+export const MFA_CHALLENGE_MINUTES = 5;
+
+export async function createSession(
+  deps: Deps,
+  u: { id: string; email: string; full_name: string; kind: UserKind; company_id: string | null },
+  meta: { ip: string; userAgent: string | undefined },
+  auditAction = 'auth.login',
+): Promise<{ token: string; user: AuthUser }> {
+  const { pools, config } = deps;
   const token = newToken();
   const csrf = newToken();
   const session = await withTx(pools.owner, async (db) => {
-    await db.query('update user_credentials set failed_attempts = 0, locked_until = null where user_id = $1', [u.id]);
     await db.query('update users set last_login_at = now() where id = $1', [u.id]);
     const s = await db.query<{ id: string }>(
       `insert into sessions (token_hash, csrf_token, user_id, expires_at, user_agent, ip)
        values ($1, $2, $3, now() + make_interval(hours => $4), $5, $6) returning id`,
       [sha256(token), csrf, u.id, config.SESSION_ABSOLUTE_HOURS, meta.userAgent?.slice(0, 200) ?? null, meta.ip],
     );
-    await insertAudit(db, u.id, 'auth.login', 'user', u.id, meta.ip);
+    await insertAudit(db, u.id, auditAction, 'user', u.id, meta.ip);
     return s.rows[0]!;
   });
 

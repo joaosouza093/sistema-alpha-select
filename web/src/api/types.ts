@@ -47,6 +47,7 @@ export interface UserRow {
   createdAt: string;
   lastLoginAt: string | null;
   accessStatus: 'senha_definida' | 'convite_pendente' | 'sem_convite_valido' | null;
+  mfaEnabled: boolean | null;
 }
 
 export interface Permissions {

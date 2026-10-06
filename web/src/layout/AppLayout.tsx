@@ -58,6 +58,7 @@ export function AppLayout() {
               <NavLink to="/cadastros">Cadastros</NavLink>
               <NavLink to="/cobrancas">Cobranças</NavLink>
               <NavLink to="/mensagens">Mensagens</NavLink>
+              <NavLink to="/privacidade">Privacidade (LGPD)</NavLink>
               <NavLink to="/auditoria">Auditoria</NavLink>
             </>
           )}

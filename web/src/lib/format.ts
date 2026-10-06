@@ -112,4 +112,5 @@ export const templateLabel = {
   perfil_enviado: 'Perfil enviado ao cliente',
   entrevista_agendada: 'Entrevista agendada',
   reprovacao: 'Não aprovado',
+  aviso_retencao: 'Aviso de exclusão (retenção)',
 } as const;

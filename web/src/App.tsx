@@ -15,6 +15,8 @@ import { JobsPage } from './pages/public/JobsPage';
 import { JobPage } from './pages/public/JobPage';
 import { TalentPage } from './pages/public/TalentPage';
 import { UnsubscribePage } from './pages/public/UnsubscribePage';
+import { MyDataPage } from './pages/public/MyDataPage';
+import { PrivacyPage } from './pages/admin/PrivacyPage';
 import { MessagesPage } from './pages/admin/MessagesPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ReportsPage } from './pages/ReportsPage';
@@ -53,6 +55,7 @@ export function App() {
       <Route path="/vagas/:slug" element={<JobPage />} />
       <Route path="/trabalhe-conosco" element={<TalentPage />} />
       <Route path="/descadastrar" element={<UnsubscribePage />} />
+      <Route path="/meus-dados" element={<MyDataPage />} />
       <Route
         element={
           <RequireAuth>
@@ -74,6 +77,7 @@ export function App() {
         <Route path="cadastros" element={<RequireAuth admin><SignupsPage /></RequireAuth>} />
         <Route path="cobrancas" element={<RequireAuth admin><BillingPage /></RequireAuth>} />
         <Route path="mensagens" element={<RequireAuth admin><MessagesPage /></RequireAuth>} />
+        <Route path="privacidade" element={<RequireAuth admin><PrivacyPage /></RequireAuth>} />
         <Route path="auditoria" element={<RequireAuth admin><AuditPage /></RequireAuth>} />
         <Route path="conta" element={<AccountPage />} />
         <Route path="*" element={<NotFoundPage />} />

@@ -50,8 +50,11 @@ export async function sendCandidateMessage(
     }
     const vars = { candidato: cand.full_name.split(' ')[0], ...ctx, ...opts.vars };
     const subject = oneLine(render(tpl.subject, vars));
-    const link = `${deps.config.APP_URL.replace(/\/$/, '')}/descadastrar#token=${cand.unsubscribe_token}`;
-    const text = `${render(tpl.body, vars)}\n\n—\nPara não receber mais e-mails sobre processos seletivos: ${link}`;
+    const base = deps.config.APP_URL.replace(/\/$/, '');
+    const link = `${base}/descadastrar#token=${cand.unsubscribe_token}`;
+    const text =
+      `${render(tpl.body, vars)}\n\n—\nConsultar, corrigir ou excluir seus dados: ${base}/meus-dados\n` +
+      `Para não receber mais e-mails sobre processos seletivos: ${link}`;
     let ok = true;
     let error: string | null = null;
     try {

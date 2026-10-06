@@ -19,6 +19,7 @@ URL `https://nobrlidvvbbkgjqztesd.supabase.co`. Já feito a partir da sessão de
 - [x] Extensões `citext` e `pg_trgm` (esquema `extensions`).
 - [x] Papéis `alpha_owner` e `alpha_app` criados **sem senha** (ninguém entra até você definir as senhas).
 - [x] Migrações 0001–0007 aplicadas como `alpha_owner` e registradas em `schema_migrations`.
+- [ ] Migrações 0013 (verificação em duas etapas) e 0014 (retenção e área do candidato): aplicar com `npm run db:migrate`.
 - [x] Bucket `documentos-candidatos` **privado**, limite de 4 MB e tipos permitidos, sem políticas públicas.
 - [x] Verificado: o papel `anon` (API pública do Supabase) tem acesso **negado** a todas as tabelas, à visão e às funções.
 - [x] Security Advisor: só resta o aviso INFO “RLS habilitada sem políticas” em sessões, credenciais,

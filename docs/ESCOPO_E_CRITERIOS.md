@@ -33,3 +33,6 @@ Nenhum dado pessoal das partes do contrato está no código, nas seeds ou nas te
 | R11 | Painel intuitivo | Indicadores reais limitados ao escopo, pendências, movimentações recentes, atalhos | Implementado e testado |
 | R12 | Testes, ajustes e preparação para publicação | Build, tipos, testes de integração e navegador; Dockerfile; documentação | Implementado; publicação depende de ambiente (ver `PENDENCIAS.md`) |
 | R13 | Relatórios e indicadores (Marco 6) | Por empresa, processo, origem, mês e recrutador; motivos; mensagens e financeiro (admin); CSV e PDF; totais reproduzíveis | Implementado e testado (ver `RELATORIOS.md`) |
+| R14 | Verificação em duas etapas (opcional) | Código de aplicativo autenticador no login, códigos de recuperação, sem reutilização, desligamento pelo administrador | Implementado e testado |
+| R15 | Retenção de dados (LGPD) | Regra configurável, aviso por e-mail com renovação, eliminação definitiva auditada, processos ativos preservados | Implementado e testado (desligado por padrão) |
+| R16 | Área do candidato | Acesso por link no e-mail; ver, corrigir, trocar currículo, e-mails, renovar, baixar e excluir os próprios dados | Implementado e testado |

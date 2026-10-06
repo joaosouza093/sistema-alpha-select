@@ -3,6 +3,7 @@ import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { Button, PageHeader, TextField, fieldErrors, usePageTitle, useToast } from '../components/ui';
 import { kindLabel } from '../lib/format';
+import { MfaSection } from './MfaSection';
 
 export function AccountPage() {
   usePageTitle('Minha conta');
@@ -61,6 +62,7 @@ export function AccountPage() {
             </div>
           </form>
         </section>
+        <MfaSection />
       </div>
     </>
   );
