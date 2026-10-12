@@ -144,11 +144,11 @@ cobrança ao WhatsApp do financeiro junto com o e-mail. **Não testado contra a 
 
 ## Navegador: telas novas
 
-`e2e/novos.spec.ts` (7 testes): relatórios com filtro e download do CSV, equipe sem o bloco financeiro; ativação da
+`e2e/novos.spec.ts` (8 testes): relatórios com filtro e download do CSV, equipe sem o bloco financeiro; ativação da
 verificação em duas etapas com QR code e login com código de recuperação; candidatura pelo portal com autorização de
 WhatsApp, visível na ficha do candidato; Meus dados no celular (correção de dados, WhatsApp, sem rolagem horizontal);
 Privacidade começa desligada e é só do administrador; nova cobrança com boleto anexado aparece no Financeiro do
-gestor da empresa (e não para o usuário comum). Rodando várias vezes seguidas, o limite de 30 logins por IP a cada
+gestor da empresa (e não para o usuário comum); comunicado a candidatos selecionados na lista. Rodando várias vezes seguidas, o limite de 30 logins por IP a cada
 15 minutos bloqueia os testes: reinicie o servidor entre as rodadas.
 
 ## Importação de candidatos
@@ -173,3 +173,10 @@ anexos e o recibo de pagamento só com a nota fiscal; o gestor da empresa vê s�
 canceladas) e baixa os anexos; gestor de outra empresa e usuário comum recebem 404/403; só o administrador anexa e
 remove. Contratos: vigência inválida recusada, controle de versão, arquivo do contrato, gestor vê sem as observações
 internas; visão 360° da empresa só para administrador.
+
+## Comunicados
+
+`campaigns.test.ts` (3 testes): envio imediato para candidatos escolhidos e para os de um processo, com {{candidato}},
+{{nome_completo}} e {{vaga}} preenchidos, rodapé de descadastro e registro em message_log; descadastrados e sem e-mail
+ficam como "não enviado"; a tarefa periódica não reenvia; agendado só sai depois do horário, e cancelado não sai; a equipe
+só alcança candidatos que pode ver e só vê os próprios comunicados; usuário de cliente recebe 403.

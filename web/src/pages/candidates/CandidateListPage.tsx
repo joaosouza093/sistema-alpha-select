@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, qs } from '../../api/client';
 import type { CandidateRow, Decision, Page, ProcessRow, Stage, UserRow } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
-import { Empty, ErrorState, Loading, PageHeader, Pagination, SelectField, TextField, usePageTitle } from '../../components/ui';
+import { Button, Empty, ErrorState, Loading, PageHeader, Pagination, SelectField, TextField, usePageTitle } from '../../components/ui';
 import { UFS, decisionLabel, educationLabel, fmtDate, fmtPhone } from '../../lib/format';
 
 function useDebounced<T>(v: T, ms = 300) {
@@ -31,6 +31,10 @@ export function CandidateListPage() {
   const [education, setEducation] = useState('');
   const [tag, setTag] = useState('');
   const [page, setPage] = useState(1);
+  const navigate = useNavigate();
+  // Selecionados para o comunicado (mantidos ao trocar de página ou de filtro).
+  const [selected, setSelected] = useState<Map<string, string>>(new Map());
+  const toggle = (id: string, name: string) => setSelected((m) => { const n = new Map(m); if (n.has(id)) n.delete(id); else n.set(id, name); return n; });
   const dq = useDebounced(q);
   const dcity = useDebounced(city);
   const drole = useDebounced(role);
@@ -90,16 +94,36 @@ export function CandidateListPage() {
             <option value="true">Arquivados</option>
           </SelectField>
         </div>
+        {selected.size > 0 && (
+          <div className="card-body row" style={{ justifyContent: 'space-between', borderBottom: '1px solid var(--border)' }}>
+            <span><strong>{selected.size}</strong> candidato(s) selecionado(s)</span>
+            <span className="row">
+              <Button size="sm" onClick={() => setSelected(new Map())}>Limpar seleção</Button>
+              <Button size="sm" variant="primary" onClick={() => navigate('/comunicados', {
+                state: { campaign: { candidates: [...selected].map(([id, fullName]) => ({ id, fullName })) } },
+              })}>Enviar comunicado</Button>
+            </span>
+          </div>
+        )}
         {list.isLoading ? <Loading /> : list.isError ? <ErrorState error={list.error} onRetry={() => list.refetch()} /> : list.data!.items.length === 0 ? (
           <Empty title="Nenhum candidato encontrado">Ajuste os filtros ou cadastre um novo candidato.</Empty>
         ) : (
           <>
             <div className="table-wrap">
               <table className="table responsive">
-                <thead><tr><th>Nome</th><th>Cargo / área</th><th>Cidade</th><th>E-mail</th><th>Telefone</th><th>Processos</th><th>Documentos</th><th>Atualizado</th></tr></thead>
+                <thead><tr><th className="select-col">
+                  <input type="checkbox" aria-label="Selecionar todos desta página"
+                    checked={list.data!.items.length > 0 && list.data!.items.every((c) => selected.has(c.id))}
+                    onChange={(e) => setSelected((m) => {
+                      const n = new Map(m);
+                      for (const c of list.data!.items) if (e.target.checked) n.set(c.id, c.fullName); else n.delete(c.id);
+                      return n;
+                    })} />
+                </th><th>Nome</th><th>Cargo / área</th><th>Cidade</th><th>E-mail</th><th>Telefone</th><th>Processos</th><th>Documentos</th><th>Atualizado</th></tr></thead>
                 <tbody>
                   {list.data!.items.map((c) => (
                     <tr key={c.id}>
+                      <td className="select-col"><input type="checkbox" aria-label={`Selecionar ${c.fullName}`} checked={selected.has(c.id)} onChange={() => toggle(c.id, c.fullName)} /></td>
                       <td data-label="Nome"><Link to={`/candidatos/${c.id}`}><strong>{c.fullName}</strong></Link>
                         {c.tags?.length ? <div className="tag-list">{c.tags.map((t) => <span key={t} className="tag">{t}</span>)}</div> : null}</td>
                       <td data-label="Cargo / área">{c.desiredRole ?? '—'}</td>

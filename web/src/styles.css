@@ -366,3 +366,5 @@ table.table { width: 100%; border-collapse: collapse; }
 .tag-list { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .tag { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--surface-2, #eef1f5); color: var(--text-muted, #556); font-size: 0.75rem; }
 .list-plain { list-style: none; margin: 0; padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 10px; }
+.select-col { width: 36px; }
+@media (max-width: 760px) { .table.responsive td.select-col { display: block; } }

@@ -2,12 +2,13 @@ import type { Deps } from './lib/context.js';
 import { runBillingNotifications } from './modules/billing/notify.js';
 import { syncGateway } from './modules/billing/asaas.js';
 import { sendFeedbackReminders } from './modules/messages/service.js';
+import { runCampaigns } from './modules/messages/campaigns.js';
 import { runRetention } from './modules/privacy/retention.js';
 
 /**
  * Tarefa periódica (a cada hora): limpeza de sessões, tokens e contadores
  * vencidos, de pedidos de cadastro abandonados, regra de retenção (LGPD) e
- * envio dos e-mails de cobrança.
+ * envio dos comunicados agendados e dos e-mails de cobrança.
  */
 export async function runMaintenance(deps: Deps) {
   await deps.pools.owner.query(
@@ -22,6 +23,7 @@ export async function runMaintenance(deps: Deps) {
      delete from signup_requests where status = 'recusado' and decided_at < now() - interval '90 days';`,
   );
   await sendFeedbackReminders(deps).catch(() => 0);
+  await runCampaigns(deps).catch(() => undefined);
   await runRetention(deps).catch(() => undefined);
   await syncGateway(deps).catch(() => undefined);
   return runBillingNotifications(deps);

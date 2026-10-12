@@ -32,3 +32,17 @@ Corresponde aos Módulos 6 e 7 do documento de escopo. O WhatsApp está em `WHAT
 - Cada envio fica registrado (modelo, destinatário, assunto, data, resultado), sem o texto do e-mail:
   na página Mensagens e no cadastro do candidato. Clientes não veem esse histórico.
 - Sem e-mail configurado no servidor (`SMTP_USER`/`SMTP_PASSWORD`), nada é enviado e nada é registrado.
+
+## Comunicados (mensagem livre para vários candidatos)
+
+- Menu **Comunicados** (equipe Alpha). Destinatários: candidatos marcados na lista de **Candidatos** (caixas de seleção →
+  "Enviar comunicado") e/ou todos os candidatos de um **processo** (botão "Enviar comunicado" no processo), opcionalmente
+  só de uma etapa e só os ainda em avaliação. Máximo de 500 por comunicado.
+- Assunto e mensagem livres, com as variáveis {{candidato}}, {{nome_completo}}, {{vaga}} e {{empresa}}. O rodapé com
+  Meus dados e o link de descadastro entra sozinho.
+- **Enviar agora** ou **Agendar** (data e hora). Agendados saem na rodada automática seguinte ao horário (até 1 hora
+  depois) e podem ser cancelados antes disso.
+- Cada destinatário fica com a situação (enviado, falhou, não enviado: sem e-mail ou descadastrado). Os envios também
+  aparecem no histórico de mensagens do candidato.
+- Somente por **e-mail**: o WhatsApp oficial não aceita texto livre, só modelos aprovados pela Meta.
+- A equipe só alcança candidatos que já pode ver e só vê os próprios comunicados; o administrador vê todos.

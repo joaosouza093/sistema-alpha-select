@@ -30,6 +30,7 @@ import { ImportCandidatesPage } from './pages/candidates/ImportCandidatesPage';
 import { CompaniesPage } from './pages/admin/CompaniesPage';
 import { CompanyPage } from './pages/admin/CompanyPage';
 import { FinancePage } from './pages/FinancePage';
+import { CampaignsPage } from './pages/CampaignsPage';
 import { UsersPage } from './pages/admin/UsersPage';
 import { AuditPage } from './pages/admin/AuditPage';
 import { AccountPage } from './pages/AccountPage';
@@ -75,6 +76,7 @@ export function App() {
         <Route path="candidatos/importar" element={<RequireAuth admin><ImportCandidatesPage /></RequireAuth>} />
         <Route path="candidatos/:id" element={<RequireAuth alpha><CandidatePage /></RequireAuth>} />
         <Route path="candidatos/:id/editar" element={<RequireAuth alpha><CandidateFormPage /></RequireAuth>} />
+        <Route path="comunicados" element={<RequireAuth alpha><CampaignsPage /></RequireAuth>} />
         <Route path="relatorios" element={<RequireAuth alpha><ReportsPage /></RequireAuth>} />
         <Route path="clientes" element={<RequireAuth admin><CompaniesPage /></RequireAuth>} />
         <Route path="clientes/:id" element={<RequireAuth admin><CompanyPage /></RequireAuth>} />
