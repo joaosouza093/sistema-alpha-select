@@ -215,4 +215,21 @@ test.describe('telas novas', () => {
     await page.getByRole('button', { name: 'Importar 2 candidato(s)' }).click();
     await expect(page.getByText('2 candidato(s) importado(s)').first()).toBeVisible();
   });
+
+  test('comunicado: seleciona candidatos na lista e envia por e-mail', async ({ page }) => {
+    const c = creds();
+    await login(page, c.admin);
+    await page.goto('/candidatos');
+    await page.getByRole('checkbox', { name: /^Selecionar (?!todos)/ }).first().check();
+    await page.getByRole('checkbox', { name: /^Selecionar (?!todos)/ }).nth(1).check();
+    await expect(page.getByText('2 candidato(s) selecionado(s)')).toBeVisible();
+    await page.getByRole('button', { name: 'Enviar comunicado' }).click();
+    await expect(page.getByRole('heading', { name: 'Novo comunicado' })).toBeVisible();
+    await expect(page.getByText('2 candidato(s) escolhido(s):')).toBeVisible();
+    await page.getByLabel('Assunto').fill('Atualização do banco de talentos');
+    await page.getByLabel('Mensagem').fill('Olá, {{candidato}}. Temos novas vagas abertas no portal.');
+    await page.getByRole('button', { name: 'Enviar agora' }).click();
+    await expect(page.getByText(/e-mail\(s\) enviado\(s\)/)).toBeVisible();
+    await expect(page.getByRole('row', { name: /Atualização do banco de talentos/ })).toBeVisible();
+  });
 });

@@ -113,6 +113,7 @@ export const templateLabel = {
   entrevista_agendada: 'Entrevista agendada',
   reprovacao: 'Não aprovado',
   aviso_retencao: 'Aviso de exclusão (retenção)',
+  comunicado: 'Comunicado',
 } as const;
 
 export const UFS = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI',

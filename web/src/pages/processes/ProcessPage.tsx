@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '../../api/client';
 import type { Board, Member, Process, ProcessStatus, UserKind } from '../../api/types';
@@ -22,6 +22,7 @@ export function ProcessPage() {
   const tab = (params.get('aba') as Tab) || 'quadro';
   const [adding, setAdding] = useState(false);
   const { isAlpha } = useAuth();
+  const navigate = useNavigate();
   const board = useQuery({ queryKey: ['board', id], queryFn: () => api.get<Board>(`/api/processes/${id}/board`) });
 
   if (board.isLoading) return <Loading />;
@@ -48,11 +49,16 @@ export function ProcessPage() {
           </span>
         }
         actions={
-          perms.canAddCandidates && process.status === 'em_andamento' && (
-            <Button variant="primary" onClick={() => setAdding(true)}>
-              Incluir candidato
-            </Button>
-          )
+          <>
+            {isAlpha && (
+              <Button onClick={() => navigate('/comunicados', { state: { campaign: { processId: process.id } } })}>Enviar comunicado</Button>
+            )}
+            {perms.canAddCandidates && process.status === 'em_andamento' && (
+              <Button variant="primary" onClick={() => setAdding(true)}>
+                Incluir candidato
+              </Button>
+            )}
+          </>
         }
       />
       {process.status !== 'em_andamento' && (
