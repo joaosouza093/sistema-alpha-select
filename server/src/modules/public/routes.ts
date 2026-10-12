@@ -9,6 +9,7 @@ import { zEmail, zOptionalPhone, zOptionalText, zText } from '../../lib/normaliz
 import { receiveUpload } from '../../lib/upload.js';
 import { insertAudit } from '../auth/service.js';
 import type { ScreeningQuestion } from '../jobs/routes.js';
+import { PORTAL_REQUIRED, PROFILE_COLUMNS, PROFILE_KEYS, requireFields, zProfile } from '../candidates/profile.js';
 import { sendCandidateMessage } from '../messages/service.js';
 
 /**
@@ -17,7 +18,7 @@ import { sendCandidateMessage } from '../messages/service.js';
  * expõe identificadores internos, respostas esperadas ou dados de candidatos.
  */
 
-export const CONSENT_VERSION = 'portal-v2'; // v2: aviso cita a área Meus dados e a retenção
+export const CONSENT_VERSION = 'portal-v3'; // v2: aviso cita a área Meus dados e a retenção; v3: nascimento, endereço e formação
 const RESUME_EXTENSIONS = ['pdf', 'doc', 'docx', 'odt'];
 
 const publicCols = `p.public_slug as slug, p.title, p.job_location as location, p.work_model as "workModel",
@@ -27,12 +28,11 @@ const publicCols = `p.public_slug as slug, p.title, p.job_location as location, 
 
 const publishedWhere = `p.publication = 'publicada' and p.status = 'em_andamento' and c.is_active`;
 
-const zApplication = z
-  .object({
+const zApplicationBase = zProfile
+  .extend({
     fullName: zText(2, 160),
     email: zEmail,
     phone: zOptionalPhone,
-    city: zOptionalText(120),
     salaryExpectation: z.number().min(0).max(10_000_000).nullish().transform((v) => v ?? null),
     answers: z.array(z.object({ id: z.string().max(16), answer: z.enum(['sim', 'nao']) }).strict()).max(10).default([]),
     acceptPrivacy: z.literal(true, { message: 'É necessário aceitar o aviso de privacidade.' }),
@@ -42,8 +42,10 @@ const zApplication = z
     website: z.string().max(200).optional(),
   })
   .strict();
+/** Obrigatórios no portal: os pedidos pela Alpha Select (out/2026), além de nome e e-mail. */
+const zApplication = requireFields(zApplicationBase, ['phone', ...PORTAL_REQUIRED]);
 
-type ApplicationInput = z.infer<typeof zApplication>;
+type ApplicationInput = z.infer<typeof zApplicationBase>;
 
 export function registerPublicRoutes(app: FastifyInstance, deps: Deps) {
   const owner = deps.pools.owner;
@@ -133,10 +135,12 @@ export function registerPublicRoutes(app: FastifyInstance, deps: Deps) {
       const result = await withTx(owner, async (db) => {
         if (target && (await alreadyApplied(db, target.processId, data.email))) return 'duplicate' as const;
         const cand = await db.query<{ id: string }>(
-          `insert into candidates (full_name, email, phone, salary_expectation, city, source, consent_at, consent_version,
-                                  whatsapp_opt_in_at)
-           values ($1, $2, $3, $4, $5, 'portal', now(), $6, case when $7 and $3::text is not null then now() end) returning id`,
-          [data.fullName, data.email, data.phone, data.salaryExpectation, data.city, CONSENT_VERSION, data.whatsappOptIn],
+          `insert into candidates (full_name, email, phone, salary_expectation, source, consent_at, consent_version,
+                                  whatsapp_opt_in_at, ${PROFILE_KEYS.map((k) => PROFILE_COLUMNS[k]).join(', ')})
+           values ($1, $2, $3, $4, 'portal', now(), $5, case when $6 and $3::text is not null then now() end,
+                   ${PROFILE_KEYS.map((_, i) => `$${i + 7}`).join(', ')}) returning id`,
+          [data.fullName, data.email, data.phone, data.salaryExpectation, CONSENT_VERSION, data.whatsappOptIn,
+            ...PROFILE_KEYS.map((k) => data[k])],
         );
         const candidateId = cand.rows[0]!.id;
         const storageKey = deps.storage.newKey();

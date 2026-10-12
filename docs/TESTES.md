@@ -144,10 +144,11 @@ cobrança ao WhatsApp do financeiro junto com o e-mail. **Não testado contra a 
 
 ## Navegador: telas novas
 
-`e2e/novos.spec.ts` (5 testes): relatórios com filtro e download do CSV, equipe sem o bloco financeiro; ativação da
+`e2e/novos.spec.ts` (7 testes): relatórios com filtro e download do CSV, equipe sem o bloco financeiro; ativação da
 verificação em duas etapas com QR code e login com código de recuperação; candidatura pelo portal com autorização de
 WhatsApp, visível na ficha do candidato; Meus dados no celular (correção de dados, WhatsApp, sem rolagem horizontal);
-Privacidade começa desligada e é só do administrador. Rodando várias vezes seguidas, o limite de 30 logins por IP a cada
+Privacidade começa desligada e é só do administrador; nova cobrança com boleto anexado aparece no Financeiro do
+gestor da empresa (e não para o usuário comum). Rodando várias vezes seguidas, o limite de 30 logins por IP a cada
 15 minutos bloqueia os testes: reinicie o servidor entre as rodadas.
 
 ## Importação de candidatos
@@ -156,3 +157,19 @@ Privacidade começa desligada e é só do administrador. Rodando várias vezes s
 com erros, repetidos e já cadastrados sem gravar nada; importação grava só as linhas válidas, com origem e auditoria, e
 o mesmo arquivo de novo não duplica; só administrador; planilha sem coluna Nome recusada. No navegador
 (`e2e/novos.spec.ts`): arquivo no formato do Excel (Windows-1252) com acentos, prévia e importação.
+
+## Ficha completa do candidato
+
+`candidate-profile.test.ts` (3 testes): o formulário público exige telefone, data de nascimento, cidade, UF, CEP,
+cargo/área de interesse e escolaridade (lista exata dos campos faltantes); UF, data e LinkedIn inválidos recusados;
+equipe edita perfil e etiquetas; filtros combinados (UF, cidade, cargo, escolaridade, etiqueta); importação reconhece
+as colunas novas.
+
+## Boleto, nota fiscal, contratos e Financeiro do cliente
+
+`billing-files.test.ts` (3 testes): cobrança criada sem e-mail imediato, boleto (só PDF) e nota fiscal (PDF ou XML)
+anexados e substituídos; conteúdo que não confere com a extensão recusado; o e-mail de nova cobrança sai com os dois
+anexos e o recibo de pagamento só com a nota fiscal; o gestor da empresa vê só as cobranças da própria empresa (sem as
+canceladas) e baixa os anexos; gestor de outra empresa e usuário comum recebem 404/403; só o administrador anexa e
+remove. Contratos: vigência inválida recusada, controle de versão, arquivo do contrato, gestor vê sem as observações
+internas; visão 360° da empresa só para administrador.

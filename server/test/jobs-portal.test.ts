@@ -3,6 +3,7 @@ import { withUser } from '../src/lib/db.js';
 import {
   Agent,
   PDF,
+  PORTAL_PROFILE,
   addMember,
   bootstrapAdmin,
   createCompany,
@@ -38,7 +39,7 @@ function applyBody(data: Record<string, unknown>, file: Buffer = PDF, filename =
 }
 
 function candidateData(over: Record<string, unknown> = {}) {
-  return { fullName: 'Pessoa Candidata', email: `${uniq('portal')}@example.test`, phone: '11988887777', acceptPrivacy: true, ...over };
+  return { fullName: 'Pessoa Candidata', email: `${uniq('portal')}@example.test`, phone: '11988887777', acceptPrivacy: true, ...PORTAL_PROFILE, ...over };
 }
 
 async function apply(slug: string, data: Record<string, unknown>, file: Buffer = PDF, filename?: string, mime?: string) {

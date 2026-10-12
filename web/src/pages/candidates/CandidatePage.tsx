@@ -9,9 +9,16 @@ import {
   Tabs, usePageTitle, useToast,
 } from '../../components/ui';
 import { DocumentPreview } from '../../components/DocumentPreview';
-import { docKindLabel, fmtDateTime, fmtMoney, fmtPhone, fmtSize, templateLabel } from '../../lib/format';
+import { docKindLabel, educationLabel, educationStatusLabel, fmtCep, fmtDateTime, fmtDay, fmtMoney, fmtPhone, fmtSize, templateLabel } from '../../lib/format';
 
 type Tab = 'dados' | 'participacoes' | 'documentos';
+
+function fmtAddress(c: Candidate) {
+  const street = [c.addressStreet, c.addressNumber].filter(Boolean).join(', ');
+  const line1 = [street, c.addressComplement, c.addressDistrict].filter(Boolean).join(' · ');
+  const line2 = [c.city, c.state].filter(Boolean).join('/');
+  return [line1, line2, c.postalCode ? `CEP ${fmtCep(c.postalCode)}` : null].filter(Boolean).join(' — ');
+}
 
 export function CandidatePage() {
   usePageTitle('Candidato');
@@ -84,7 +91,20 @@ function DataTab({ c }: { c: Candidate }) {
             <dt>Telefone</dt><dd>{fmtPhone(c.phone)}{c.whatsappOptInAt && <> <span className="badge badge-success">aceita WhatsApp desde {fmtDateTime(c.whatsappOptInAt)}</span></>}</dd>
             <dt>Pretensão salarial</dt><dd>{fmtMoney(c.salaryExpectation)}</dd>
             <dt>Observações internas</dt><dd className="pre-wrap">{c.notes || '—'}</dd>
-            {c.city && <><dt>Cidade</dt><dd>{c.city}</dd></>}
+            {c.birthDate && <><dt>Nascimento</dt><dd>{fmtDay(c.birthDate)}</dd></>}
+            {(c.city || c.state || c.addressStreet || c.postalCode) && (
+              <><dt>Endereço</dt><dd>{fmtAddress(c)}</dd></>
+            )}
+            {c.desiredRole && <><dt>Cargo / área de interesse</dt><dd>{c.desiredRole}</dd></>}
+            {c.linkedinUrl && <><dt>LinkedIn</dt><dd><a href={c.linkedinUrl} target="_blank" rel="noopener noreferrer">{c.linkedinUrl.replace(/^https:\/\/(www\.)?/, '')}</a></dd></>}
+            {(c.educationLevel || c.course) && (
+              <><dt>Formação</dt><dd>
+                {[c.educationLevel && educationLabel[c.educationLevel], c.course, c.institution, c.educationStatus && educationStatusLabel[c.educationStatus]].filter(Boolean).join(' · ')}
+              </dd></>
+            )}
+            {c.tags && c.tags.length > 0 && (
+              <><dt>Etiquetas</dt><dd className="row" style={{ gap: 6 }}>{c.tags.map((t) => <span key={t} className="badge badge-brand">{t}</span>)}</dd></>
+            )}
             <dt>Cadastrado por</dt>
             <dd>
               {c.source === 'portal' ? 'O próprio candidato, pelo portal de vagas' : c.source === 'importacao' ? `Importado de planilha por ${c.createdByName ?? '—'}` : c.createdByName ?? '—'} em {fmtDateTime(c.createdAt)}

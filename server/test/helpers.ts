@@ -221,3 +221,9 @@ export async function upload(agent: Agent, candidateId: string, filename: string
 export const PDF = Buffer.from(
   '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[]/Count 0>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n',
 );
+
+/** Campos que o formulário público exige além de nome, e-mail e telefone. */
+export const PORTAL_PROFILE = {
+  birthDate: '1990-05-10', city: 'São Paulo', state: 'SP', postalCode: '01310-100',
+  desiredRole: 'Analista de Dados', educationLevel: 'superior',
+} as const;

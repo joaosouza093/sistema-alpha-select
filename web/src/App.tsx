@@ -28,18 +28,20 @@ import { CandidateFormPage } from './pages/candidates/CandidateFormPage';
 import { CandidatePage } from './pages/candidates/CandidatePage';
 import { ImportCandidatesPage } from './pages/candidates/ImportCandidatesPage';
 import { CompaniesPage } from './pages/admin/CompaniesPage';
+import { CompanyPage } from './pages/admin/CompanyPage';
+import { FinancePage } from './pages/FinancePage';
 import { UsersPage } from './pages/admin/UsersPage';
 import { AuditPage } from './pages/admin/AuditPage';
 import { AccountPage } from './pages/AccountPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
-function RequireAuth({ children, alpha, admin }: { children: ReactNode; alpha?: boolean; admin?: boolean }) {
+function RequireAuth({ children, alpha, admin, manager }: { children: ReactNode; alpha?: boolean; admin?: boolean; manager?: boolean }) {
   const { user, loading, isAlpha, isAdmin } = useAuth();
   const loc = useLocation();
   if (loading) return <Loading />;
   if (!user) return <Navigate to="/entrar" replace state={{ from: loc.pathname }} />;
   // Proteção de interface apenas; a autorização efetiva é feita no servidor e no banco.
-  if ((admin && !isAdmin) || (alpha && !isAlpha)) return <NotFoundPage />;
+  if ((admin && !isAdmin) || (alpha && !isAlpha) || (manager && user.kind !== 'client_manager')) return <NotFoundPage />;
   return <>{children}</>;
 }
 
@@ -75,6 +77,8 @@ export function App() {
         <Route path="candidatos/:id/editar" element={<RequireAuth alpha><CandidateFormPage /></RequireAuth>} />
         <Route path="relatorios" element={<RequireAuth alpha><ReportsPage /></RequireAuth>} />
         <Route path="clientes" element={<RequireAuth admin><CompaniesPage /></RequireAuth>} />
+        <Route path="clientes/:id" element={<RequireAuth admin><CompanyPage /></RequireAuth>} />
+        <Route path="financeiro" element={<RequireAuth manager><FinancePage /></RequireAuth>} />
         <Route path="usuarios" element={<RequireAuth admin><UsersPage /></RequireAuth>} />
         <Route path="cadastros" element={<RequireAuth admin><SignupsPage /></RequireAuth>} />
         <Route path="cobrancas" element={<RequireAuth admin><BillingPage /></RequireAuth>} />

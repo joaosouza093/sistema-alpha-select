@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, qs } from '../../api/client';
 import type { BillingSettings, NoticeKind, BillingSummary, ChargeDetail, ChargeRow, ChargeSituacao, Company, Page } from '../../api/types';
@@ -6,6 +7,7 @@ import {
   Alert, Button, Checkbox, ConfirmDialog, Empty, ErrorState, Loading, Modal, PageHeader, Pagination, SelectField, TextArea, TextField,
   fieldErrors, usePageTitle, useToast,
 } from '../../components/ui';
+import { BillingFileLink, BillingFilePicker, BillingFilesEditor, uploadBillingFile } from '../../components/BillingFiles';
 import { fmtCents, fmtDateTime, fmtDay, noticeLabel, parseMoneyToCents, situacaoLabel } from '../../lib/format';
 
 const situacaoBadge: Record<ChargeSituacao, string> = {
@@ -15,7 +17,7 @@ const situacaoBadge: Record<ChargeSituacao, string> = {
   cancelado: '',
 };
 
-function SituacaoBadge({ s }: { s: ChargeSituacao }) {
+export function SituacaoBadge({ s }: { s: ChargeSituacao }) {
   return <span className={`badge ${situacaoBadge[s]}`}>{situacaoLabel[s]}</span>;
 }
 
@@ -25,7 +27,8 @@ export function BillingPage() {
   usePageTitle('Cobranças');
   const [page, setPage] = useState(1);
   const [situacao, setSituacao] = useState('');
-  const [companyId, setCompanyId] = useState('');
+  const [params] = useSearchParams();
+  const [companyId, setCompanyId] = useState(params.get('empresa') ?? '');
   const [q, setQ] = useState('');
   const [creating, setCreating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -109,6 +112,9 @@ export function BillingPage() {
                           {c.remindersPaused && c.status === 'pendente' && <> <span className="badge">Avisos pausados</span></>}
                           {c.gatewayId && <> <span className="badge badge-info">Asaas</span></>}
                           {c.gatewayError && c.gatewayPending && <> <span className="badge badge-danger" title={c.gatewayError}>Erro no Asaas</span></>}
+                          {c.files.length > 0 && (
+                            <div className="small">{c.files.map((f, i) => <span key={f.id}>{i > 0 && ' · '}<BillingFileLink file={f} /></span>)}</div>
+                          )}
                         </td>
                         <td data-label="Valor" style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtCents(c.amountCents)}</td>
                         <td data-label="Vencimento">{fmtDay(c.dueDate)}</td>
@@ -156,6 +162,8 @@ function NewChargeModal({ companies, onClose }: { companies: Company[]; onClose:
   const [dueDate, setDueDate] = useState('');
   const [recurrence, setRecurrence] = useState<'nenhuma' | 'mensal'>('nenhuma');
   const [paymentLink, setPaymentLink] = useState('');
+  const [boleto, setBoleto] = useState<File | null>(null);
+  const [nf, setNf] = useState<File | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const cents = parseMoneyToCents(amount);
@@ -164,6 +172,8 @@ function NewChargeModal({ companies, onClose }: { companies: Company[]; onClose:
     [companies, filter],
   );
   const count = all ? companies.length : selected.size;
+  const single = !all && selected.size === 1;
+  const files = single ? ([['boleto', boleto], ['nota_fiscal', nf]] as const).filter(([, f]) => f) : [];
   const noEmail = companies.filter((c) => (all || selected.has(c.id)) && !c.billingEmail);
 
   const toggle = (id: string) =>
@@ -178,17 +188,34 @@ function NewChargeModal({ companies, onClose }: { companies: Company[]; onClose:
     setBusy(true);
     setErrors({});
     try {
-      const r = await api.post<{ count: number; emails: { sent: number; failed: number; pending: number } }>('/api/billing/charges', {
+      type Emails = { sent: number; failed: number; pending: number };
+      const r = await api.post<{ ids: string[]; count: number; emails: Emails | null }>('/api/billing/charges', {
         ...(all ? { allActive: true } : { companyIds: [...selected] }),
         description,
         amountCents: cents,
         dueDate,
         recurrence,
         paymentLink: paymentLink || null,
+        deferNotice: files.length > 0,
       });
-      const pend = r.emails.pending + r.emails.failed;
+      let emails = r.emails;
+      if (files.length) {
+        // Anexa antes do e-mail de "nova cobrança", para que ele já vá com o boleto e a NF.
+        const failed: string[] = [];
+        for (const [kind, f] of files) {
+          try {
+            await uploadBillingFile(`/api/billing/charges/${r.ids[0]}/files`, f!, kind);
+          } catch (e) {
+            failed.push(`${kind === 'boleto' ? 'boleto' : 'nota fiscal'}: ${e instanceof Error ? e.message : 'falha no envio'}`);
+          }
+        }
+        emails = (await api.post<{ emails: Emails }>('/api/billing/charges/notify', { ids: r.ids })).emails;
+        if (failed.length) toast.error(new Error(`Cobrança criada, mas o anexo falhou (${failed.join('; ')}). Anexe de novo na cobrança.`));
+      }
+      const e = emails ?? { sent: 0, failed: 0, pending: 0 };
+      const pend = e.pending + e.failed;
       toast.success(
-        `${r.count} cobrança(s) criada(s). ${r.emails.sent} e-mail(s) enviado(s)${pend ? `; ${pend} sairá(ão) na próxima rodada automática` : ''}.`,
+        `${r.count} cobrança(s) criada(s). ${e.sent} e-mail(s) enviado(s)${pend ? `; ${pend} sairá(ão) na próxima rodada automática` : ''}.`,
       );
       await refresh();
       onClose();
@@ -242,6 +269,15 @@ function NewChargeModal({ companies, onClose }: { companies: Company[]; onClose:
         </SelectField>
         <TextField label="Link de pagamento" value={paymentLink} onChange={(e) => setPaymentLink(e.target.value)} error={errors.paymentLink}
           placeholder="https://..." hint="Opcional (boleto ou link do banco). A chave Pix vem das Configurações." />
+        {single ? (
+          <div className="grid grid-2">
+            <BillingFilePicker id="novo-boleto" kind="boleto" file={boleto} onChange={setBoleto} />
+            <BillingFilePicker id="nova-nf" kind="nota_fiscal" file={nf} onChange={setNf} />
+          </div>
+        ) : (
+          <span className="muted small">Boleto em PDF e nota fiscal: escolha uma empresa para anexar aqui, ou anexe depois em cada cobrança.</span>
+        )}
+        {files.length > 0 && <span className="muted small">O e-mail da cobrança sai com os arquivos anexados, e a empresa também os vê em Financeiro.</span>}
       </div>
     </Modal>
   );
@@ -340,6 +376,12 @@ function ChargeModal({ id, onClose, emailEnabled, today }: { id: string; onClose
               <span className="muted small">O pagamento pelo Asaas dá baixa automática; use este botão se ela demorar.</span>
             </div>
           )}
+          <div>
+            <h3 style={{ margin: '0 0 8px' }}>Boleto e nota fiscal</h3>
+            <BillingFilesEditor uploadUrl={`/api/billing/charges/${id}/files`} kinds={['boleto', 'nota_fiscal']} files={c.files}
+              disabled={c.status === 'cancelado'} onChanged={refresh} />
+            {pending && c.files.length > 0 && emailEnabled && <p className="muted small" style={{ margin: '6px 0 0' }}>Use “Enviar e-mail agora” para mandar os arquivos à empresa.</p>}
+          </div>
           {pending && (
             <div className="row">
               <Checkbox label="Pausar e-mails automáticos desta cobrança" checked={c.remindersPaused} disabled={busy}

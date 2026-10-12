@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api, ApiError } from '../../api/client';
 import { Alert, Button, Checkbox, TextField, fieldErrors } from '../../components/ui';
 import { parseMoneyToCents } from '../../lib/format';
+import { ProfileFields, emptyProfile, portalProfileComplete, profilePayload, type ProfileValues } from '../../components/ProfileFields';
 
 const ACCEPT = '.pdf,.doc,.docx,.odt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text';
 
@@ -12,7 +13,8 @@ const ACCEPT = '.pdf,.doc,.docx,.odt,application/pdf,application/msword,applicat
  */
 export function ApplyForm({ endpoint, questions = [], title }: { endpoint: string; questions?: { id: string; text: string }[]; title: string }) {
   const opts = useQuery({ queryKey: ['auth-options'], queryFn: () => api.get<{ maxUploadMb?: number }>('/api/auth/options'), staleTime: Infinity });
-  const [f, setF] = useState({ fullName: '', email: '', phone: '', city: '', salary: '' });
+  const [f, setF] = useState({ fullName: '', email: '', phone: '', salary: '' });
+  const [profile, setProfile] = useState<ProfileValues>(emptyProfile);
   const [answers, setAnswers] = useState<Record<string, 'sim' | 'nao'>>({});
   const [file, setFile] = useState<File | null>(null);
   const [accept, setAccept] = useState(false);
@@ -28,7 +30,8 @@ export function ApplyForm({ endpoint, questions = [], title }: { endpoint: strin
   const tooBig = !!file && file.size > maxMb * 1024 * 1024;
   const salaryCents = f.salary ? parseMoneyToCents(f.salary) : null;
   const allAnswered = questions.every((q) => answers[q.id]);
-  const ready = f.fullName.trim().length >= 2 && f.email && file && !tooBig && accept && allAnswered && (!f.salary || salaryCents !== null);
+  const ready = f.fullName.trim().length >= 2 && f.email && f.phone.trim() && portalProfileComplete(profile) && file && !tooBig && accept && allAnswered
+    && (!f.salary || salaryCents !== null);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -40,7 +43,7 @@ export function ApplyForm({ endpoint, questions = [], title }: { endpoint: strin
       fullName: f.fullName,
       email: f.email,
       phone: f.phone || null,
-      city: f.city || null,
+      ...profilePayload(profile),
       salaryExpectation: salaryCents !== null ? salaryCents / 100 : null,
       answers: questions.map((q) => ({ id: q.id, answer: answers[q.id] })),
       acceptPrivacy: accept,
@@ -66,16 +69,23 @@ export function ApplyForm({ endpoint, questions = [], title }: { endpoint: strin
   return (
     <form className="stack" onSubmit={submit} noValidate aria-label={title}>
       {error && <Alert>{error}</Alert>}
+      <h3 className="form-section">Dados pessoais</h3>
       <TextField label="Nome completo" value={f.fullName} onChange={set('fullName')} autoComplete="name" maxLength={160} required error={errors.fullName} />
-      <TextField label="E-mail" type="email" value={f.email} onChange={set('email')} autoComplete="email" required error={errors.email} />
-      <TextField label="Telefone / WhatsApp" type="tel" value={f.phone} onChange={set('phone')} autoComplete="tel" error={errors.phone} hint="Opcional." />
+      <div className="grid grid-2">
+        <TextField label="E-mail" type="email" value={f.email} onChange={set('email')} autoComplete="email" required error={errors.email} />
+        <TextField label="Telefone / WhatsApp" type="tel" value={f.phone} onChange={set('phone')} autoComplete="tel" required error={errors.phone} />
+      </div>
       {f.phone && (
         <Checkbox checked={whatsapp} onChange={(e) => setWhatsapp(e.target.checked)}
           label="Quero receber avisos sobre esta candidatura pelo WhatsApp (para cancelar, é só responder SAIR)." />
       )}
-      <TextField label="Cidade" value={f.city} onChange={set('city')} autoComplete="address-level2" maxLength={120} error={errors.city} hint="Opcional." />
+      <ProfileFields value={profile} onChange={setProfile} errors={errors} required sections={['personal', 'address']} />
+      <h3 className="form-section">Informações profissionais</h3>
+      <ProfileFields value={profile} onChange={setProfile} errors={errors} required sections={['professional']} />
       <TextField label="Pretensão salarial (R$)" value={f.salary} onChange={set('salary')} inputMode="decimal"
         error={f.salary && salaryCents === null ? 'Valor inválido.' : errors.salaryExpectation} hint="Opcional." />
+      <h3 className="form-section">Formação</h3>
+      <ProfileFields value={profile} onChange={setProfile} errors={errors} required framed={false} sections={['education']} />
       {questions.map((q) => (
         <fieldset key={q.id} className="question">
           <legend>{q.text} <span aria-hidden>*</span></legend>
@@ -89,6 +99,7 @@ export function ApplyForm({ endpoint, questions = [], title }: { endpoint: strin
           </div>
         </fieldset>
       ))}
+      <h3 className="form-section">Currículo</h3>
       <div className="field">
         <label htmlFor="curriculo">Currículo <span aria-hidden>*</span></label>
         <input id="curriculo" ref={fileRef} type="file" accept={ACCEPT} className="input" onChange={(e) => setFile(e.target.files?.[0] ?? null)} required />
@@ -103,7 +114,7 @@ export function ApplyForm({ endpoint, questions = [], title }: { endpoint: strin
       <details className="privacy">
         <summary>Aviso de privacidade</summary>
         <p>
-          A Alpha Select usa seus dados (nome, contatos, cidade, pretensão, currículo e respostas) para analisar sua candidatura e
+          A Alpha Select usa seus dados (nome, contatos, data de nascimento, endereço, área de interesse, formação, LinkedIn, pretensão, currículo e respostas) para analisar sua candidatura e
           para futuras oportunidades compatíveis do banco de talentos. Seus dados só são apresentados a uma empresa contratante
           se o seu perfil avançar no processo. Você pode consultar, corrigir, baixar ou excluir seus dados a qualquer momento em{' '}
           <a href="/meus-dados" target="_blank" rel="noreferrer">Meus dados</a>. Se não houver atividade no seu cadastro por um

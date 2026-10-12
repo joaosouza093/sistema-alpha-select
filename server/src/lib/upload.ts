@@ -31,9 +31,11 @@ const ALLOWED: Record<string, { mimes: string[]; detected: string[]; inline: boo
     detected: ['application/vnd.oasis.opendocument.text'],
     inline: false,
   },
+  // XML da nota fiscal eletrônica. Somente onde for pedido explicitamente; nunca exibido no navegador.
+  xml: { mimes: ['application/xml', 'text/xml'], detected: ['application/xml'], inline: false },
 };
 
-export const ALLOWED_EXTENSIONS = Object.keys(ALLOWED);
+export const ALLOWED_EXTENSIONS = Object.keys(ALLOWED).filter((e) => e !== 'xml');
 
 export const INLINE_MIMES = new Set(['application/pdf', 'image/png', 'image/jpeg']);
 
@@ -46,6 +48,19 @@ export function sanitizeName(name: string): string {
 export function contentDisposition(type: 'inline' | 'attachment', name: string) {
   const ascii = name.replace(/[^\x20-\x7E]/g, '_').replace(/["\\]/g, '_');
   return `${type}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(name)}`;
+}
+
+/** XML sem a declaração "<?xml": texto começando com "<" e sem bytes nulos. */
+async function looksLikeXml(file: string) {
+  const fh = await open(file, 'r');
+  try {
+    const buf = Buffer.alloc(4096);
+    const { bytesRead } = await fh.read(buf, 0, 4096, 0);
+    const head = buf.subarray(0, bytesRead);
+    return !head.includes(0) && /^(\uFEFF)?\s*<[?!A-Za-z]/.test(head.toString('utf8'));
+  } finally {
+    await fh.close();
+  }
 }
 
 async function hasPdfHeader(file: string) {
@@ -103,10 +118,11 @@ export async function receiveUpload(
     }
     if (size === 0) throw badRequest('Arquivo vazio.');
     const detected = await fileTypeFromFile(tmp);
-    if (!detected || !rule.detected.includes(detected.mime)) {
+    const xmlOk = ext === 'xml' && !detected && (await looksLikeXml(tmp));
+    if (!xmlOk && (!detected || !rule.detected.includes(detected.mime))) {
       throw new AppError(415, 'unsupported', 'O conteúdo do arquivo não corresponde à extensão informada.');
     }
-    if (detected.mime === 'application/pdf' && !(await hasPdfHeader(tmp))) {
+    if (detected?.mime === 'application/pdf' && !(await hasPdfHeader(tmp))) {
       throw new AppError(415, 'unsupported', 'PDF inválido.');
     }
     return { originalName, mime: rule.mimes[0]!, size, sha256: hash.digest('hex') };

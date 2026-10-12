@@ -94,3 +94,17 @@ Asaas**. Taxas do Asaas (por boleto, Pix ou cartão) são cobradas pelo próprio
 Acesso: somente administradores (servidor + RLS). Equipe e clientes recebem 403 e o banco não
 devolve nenhuma linha a eles. Todas as ações ficam na auditoria; o conteúdo dos e-mails não é
 gravado, só o tipo, destinatário, data e resultado.
+
+## Boleto, nota fiscal e contratos
+
+- **Nova cobrança** para uma empresa: campos **Boleto** (PDF) e **Nota fiscal** (PDF ou XML). O e-mail de nova cobrança
+  sai já com os arquivos anexados. Para cobranças em lote, anexe depois em cada cobrança.
+- Na cobrança aberta: **Anexar / Substituir / Remover** boleto e nota fiscal. "Enviar e-mail agora" manda os anexos.
+  Lembretes e avisos de atraso levam o boleto e a NF; o recibo de pagamento leva a NF.
+- **Empresas clientes → nome da empresa**: visão 360° (processos, candidatos, leads enviados, usuários, financeiro,
+  atividade recente) e **contratos**: plano, modalidade (mensalidade, pacote de vagas, taxa de sucesso), valor,
+  vigência, situação, responsável na Alpha, observações internas e o arquivo do contrato assinado.
+- **Financeiro** (menu do **gestor** da empresa cliente): cobranças da própria empresa com boleto, nota fiscal e link de
+  pagamento, e os contratos (sem as observações internas). Usuários comuns da empresa não veem o financeiro.
+
+Arquivos ficam no mesmo armazenamento privado dos currículos e só são entregues pelo servidor, após conferir a permissão.

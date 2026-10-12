@@ -4,6 +4,7 @@ import { Alert, Button, Checkbox, ConfirmDialog, Loading, TextField, fieldErrors
 import { fmtDate, fmtDateTime, fmtPhone, fmtSize, parseMoneyToCents } from '../../lib/format';
 import { readHashToken } from '../auth/AuthShell';
 import { PublicLayout } from './PublicLayout';
+import { ProfileFields, profileFrom, profilePayload } from '../../components/ProfileFields';
 
 interface MyData {
   fullName: string;
@@ -11,6 +12,19 @@ interface MyData {
   phone: string | null;
   city: string | null;
   salaryExpectation: number | null;
+  birthDate: string | null;
+  addressStreet: string | null;
+  addressNumber: string | null;
+  addressComplement: string | null;
+  addressDistrict: string | null;
+  state: string | null;
+  postalCode: string | null;
+  desiredRole: string | null;
+  linkedinUrl: string | null;
+  educationLevel: string | null;
+  course: string | null;
+  institution: string | null;
+  educationStatus: string | null;
   consentAt: string | null;
   emailOptOutAt: string | null;
   whatsappOptInAt: string | null;
@@ -223,9 +237,9 @@ function ProfileForm({ data, capi, onDone }: CardProps) {
   const [f, setF] = useState({
     fullName: data.fullName,
     phone: data.phone ? fmtPhone(data.phone) : '',
-    city: data.city ?? '',
     salary: data.salaryExpectation == null ? '' : String(data.salaryExpectation).replace('.', ','),
   });
+  const [profile, setProfile] = useState(() => profileFrom(data));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
@@ -237,7 +251,7 @@ function ProfileForm({ data, capi, onDone }: CardProps) {
     setErrors({});
     try {
       await capi.patch('/api/public/my-data', {
-        fullName: f.fullName, phone: f.phone || null, city: f.city || null, salaryExpectation: cents === null ? null : cents / 100,
+        ...profilePayload(profile), fullName: f.fullName, phone: f.phone || null, salaryExpectation: cents === null ? null : cents / 100,
       });
       await onDone('Dados atualizados.');
     } catch (err) {
@@ -254,8 +268,12 @@ function ProfileForm({ data, capi, onDone }: CardProps) {
         <TextField label="Nome completo" value={f.fullName} onChange={set('fullName')} maxLength={160} error={errors.fullName} required />
         <TextField label="E-mail" value={data.email} disabled hint="O e-mail identifica seu cadastro. Para trocar, fale com a Alpha Select." />
         <TextField label="Telefone / WhatsApp" type="tel" value={f.phone} onChange={set('phone')} error={errors.phone} />
-        <TextField label="Cidade" value={f.city} onChange={set('city')} maxLength={120} error={errors.city} />
+        <ProfileFields value={profile} onChange={setProfile} errors={errors} sections={['personal', 'address']} />
+        <h3 className="form-section">Informações profissionais</h3>
+        <ProfileFields value={profile} onChange={setProfile} errors={errors} sections={['professional']} />
         <TextField label="Pretensão salarial (R$)" inputMode="decimal" value={f.salary} onChange={set('salary')} error={errors.salaryExpectation} />
+        <h3 className="form-section">Formação</h3>
+        <ProfileFields value={profile} onChange={setProfile} errors={errors} sections={['education']} framed={false} />
         {data.records > 1 && <p className="muted small" style={{ margin: 0 }}>Encontramos {data.records} cadastros com seu e-mail; a correção vale para todos.</p>}
         <div><Button type="submit" variant="primary" loading={busy} disabled={f.fullName.trim().length < 2}>Salvar</Button></div>
       </form>

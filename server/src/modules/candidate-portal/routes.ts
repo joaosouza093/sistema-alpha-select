@@ -11,6 +11,7 @@ import { receiveUpload } from '../../lib/upload.js';
 import { insertAudit } from '../auth/service.js';
 import { eraseCandidates } from '../candidates/erase.js';
 import { CONSENT_VERSION } from '../public/routes.js';
+import { PROFILE_COLUMNS, PROFILE_KEYS, profileSelect, zProfile } from '../candidates/profile.js';
 
 /**
  * Área do candidato: acesso aos próprios dados por link enviado ao e-mail
@@ -110,7 +111,7 @@ export function registerCandidatePortalRoutes(app: FastifyInstance, deps: Deps) 
     const c = await owner.query(
       `select full_name as "fullName", email::text as email, phone, city, salary_expectation as "salaryExpectation",
               consent_at as "consentAt", email_opt_out_at as "emailOptOutAt", created_at as "createdAt",
-              whatsapp_opt_in_at as "whatsappOptInAt"
+              whatsapp_opt_in_at as "whatsappOptInAt", ${profileSelect('candidates')}
          from candidates where id = $1`,
       [ids[0]],
     );
@@ -159,11 +160,10 @@ export function registerCandidatePortalRoutes(app: FastifyInstance, deps: Deps) 
 
   app.patch('/api/public/my-data', pub, async (req) => {
     const body = parse(
-      z
-        .object({
+      zProfile
+        .extend({
           fullName: zText(2, 160),
           phone: zOptionalPhone,
-          city: zOptionalText(120),
           salaryExpectation: z.number().min(0).max(10_000_000).nullish().transform((v) => v ?? null),
         })
         .strict(),
@@ -172,8 +172,10 @@ export function registerCandidatePortalRoutes(app: FastifyInstance, deps: Deps) 
     await withTx(owner, async (db) => {
       const { ids } = await resolve(req, db);
       await db.query(
-        `update candidates set full_name = $2, phone = $3, city = $4, salary_expectation = $5 where id = any($1::uuid[])`,
-        [ids, body.fullName, body.phone, body.city, body.salaryExpectation],
+        `update candidates set full_name = $2, phone = $3, salary_expectation = $4,
+                ${PROFILE_KEYS.map((k, i) => `${PROFILE_COLUMNS[k]} = $${i + 5}`).join(', ')}
+          where id = any($1::uuid[])`,
+        [ids, body.fullName, body.phone, body.salaryExpectation, ...PROFILE_KEYS.map((k) => body[k])],
       );
       for (const id of ids) await insertAudit(db, null, 'candidate.self_updated', 'candidate', id, req.ip);
     });
@@ -268,7 +270,7 @@ export function registerCandidatePortalRoutes(app: FastifyInstance, deps: Deps) 
     const cands = await owner.query(
       `select full_name as nome, email::text as email, phone as telefone, city as cidade,
               salary_expectation as "pretensaoSalarial", source as origem, consent_at as "consentimentoEm",
-              email_opt_out_at as "descadastroEmailEm", whatsapp_opt_in_at as "whatsappAutorizadoEm", created_at as "cadastradoEm", updated_at as "atualizadoEm"
+              email_opt_out_at as "descadastroEmailEm", whatsapp_opt_in_at as "whatsappAutorizadoEm", ${profileSelect('candidates')}, created_at as "cadastradoEm", updated_at as "atualizadoEm"
          from candidates where id = any($1::uuid[]) order by created_at`,
       [ids],
     );

@@ -2,10 +2,17 @@ import nodemailer from 'nodemailer';
 import type SMTPTransport from 'nodemailer/lib/smtp-transport/index.js';
 import type { Config } from '../config.js';
 
+export interface MailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType: string;
+}
+
 export interface MailMessage {
   to: string;
   subject: string;
   text: string;
+  attachments?: MailAttachment[];
 }
 
 export interface Mailer {
@@ -34,7 +41,7 @@ export class SmtpMailer implements Mailer {
     this.transport = nodemailer.createTransport(options);
   }
   async send(msg: MailMessage) {
-    await this.transport.sendMail({ from: this.from, to: msg.to, subject: msg.subject, text: msg.text });
+    await this.transport.sendMail({ from: this.from, to: msg.to, subject: msg.subject, text: msg.text, attachments: msg.attachments });
   }
 }
 

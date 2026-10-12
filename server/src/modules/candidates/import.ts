@@ -8,6 +8,7 @@ import { AppError, forbidden } from '../../lib/errors.js';
 import { parse } from '../../lib/validate.js';
 import { headerKey, parseCsv } from '../../lib/csv.js';
 import { cleanText, normalizeEmail, normalizePhone, zText } from '../../lib/normalize.js';
+import { EDUCATION_LEVELS, UFS } from './profile.js';
 
 /**
  * Importação de candidatos por planilha (CSV), somente administrador.
@@ -18,7 +19,8 @@ import { cleanText, normalizeEmail, normalizePhone, zText } from '../../lib/norm
 export const MAX_IMPORT_ROWS = 5000;
 const MAX_CHARS = 3_000_000;
 
-type Field = 'fullName' | 'email' | 'phone' | 'city' | 'salary' | 'notes';
+type Field = 'fullName' | 'email' | 'phone' | 'city' | 'salary' | 'notes' | 'birthDate' | 'state' | 'postalCode'
+  | 'desiredRole' | 'linkedinUrl' | 'educationLevel' | 'tags';
 const ALIASES: Record<Field, string[]> = {
   fullName: ['nome', 'nomecompleto', 'name', 'candidato', 'nomedocandidato'],
   email: ['email', 'emailpessoal', 'mail'],
@@ -26,7 +28,41 @@ const ALIASES: Record<Field, string[]> = {
   city: ['cidade', 'municipio', 'city'],
   salary: ['pretensao', 'pretensaosalarial', 'pretensaosalarialr', 'salario', 'salariopretendido'],
   notes: ['observacoes', 'observacao', 'obs', 'notas', 'comentarios'],
+  birthDate: ['nascimento', 'datanascimento', 'datadenascimento', 'dtnascimento'],
+  state: ['uf', 'estado'],
+  postalCode: ['cep'],
+  desiredRole: ['cargo', 'area', 'areadeinteresse', 'cargoarea', 'cargoareadeinteresse', 'cargopretendido', 'funcao'],
+  linkedinUrl: ['linkedin'],
+  educationLevel: ['escolaridade', 'nivel', 'niveldeescolaridade', 'formacao'],
+  tags: ['etiquetas', 'tags', 'competencias', 'habilidades'],
 };
+
+/** "Superior completo", "Ensino médio", "Pós" → código; não reconhecida → vazio (não impede a linha). */
+function educationFrom(v: string): (typeof EDUCATION_LEVELS)[number] | null {
+  const k = headerKey(v);
+  if (!k) return null;
+  if ((EDUCATION_LEVELS as readonly string[]).includes(v)) return v as (typeof EDUCATION_LEVELS)[number];
+  if (k.includes('doutor')) return 'doutorado';
+  if (k.includes('mestr')) return 'mestrado';
+  if (k.includes('pos') || k.includes('mba') || k.includes('especializ')) return 'pos_graduacao';
+  if (k.includes('tecnic')) return 'tecnico';
+  const incomplete = k.includes('incomplet') || k.includes('cursando');
+  if (k.includes('superior') || k.includes('graduac') || k.includes('faculdade')) return incomplete ? 'superior_incompleto' : 'superior';
+  if (k.includes('medio')) return incomplete ? 'medio_incompleto' : 'medio';
+  if (k.includes('fundamental')) return incomplete ? 'fundamental_incompleto' : 'fundamental';
+  return null;
+}
+
+/** "31/12/1990" ou "1990-12-31" → "1990-12-31". */
+function dateFrom(v: string): string | null | 'invalid' {
+  if (!v) return null;
+  const br = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  const iso = br ? `${br[3]}-${br[2]!.padStart(2, '0')}-${br[1]!.padStart(2, '0')}` : v;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return 'invalid';
+  const d = new Date(`${iso}T12:00:00Z`);
+  if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== iso || iso < '1900-01-01' || iso > new Date().toISOString().slice(0, 10)) return 'invalid';
+  return iso;
+}
 
 export interface ImportRow {
   line: number;
@@ -36,6 +72,13 @@ export interface ImportRow {
   city: string | null;
   salary: number | null;
   notes: string | null;
+  birthDate: string | null;
+  state: string | null;
+  postalCode: string | null;
+  desiredRole: string | null;
+  linkedinUrl: string | null;
+  educationLevel: string | null;
+  tags: string[];
   status: 'ok' | 'erro' | 'ja_cadastrado' | 'repetido';
   problems: string[];
 }
@@ -88,8 +131,24 @@ async function analyze(db: Db, csv: string) {
     const salary = parseSalary(cell(r, 'salary'));
     if (salary === 'invalid') problems.push('Pretensão inválida');
     const notes = cell(r, 'notes').slice(0, 10000) || null;
+    const birth = dateFrom(cell(r, 'birthDate'));
+    if (birth === 'invalid') problems.push('Data de nascimento inválida');
+    const uf = cell(r, 'state').toUpperCase();
+    if (uf && !(UFS as readonly string[]).includes(uf)) problems.push('UF inválida');
+    const cep = cell(r, 'postalCode').replace(/\D/g, '');
+    if (cep && cep.length !== 8) problems.push('CEP inválido');
+    const li = cell(r, 'linkedinUrl');
+    const linkedinUrl = li ? (/^https?:\/\//i.test(li) ? li.replace(/^http:/i, 'https:') : `https://${li}`) : null;
+    const tags = [...new Set(cell(r, 'tags').split(/[,|]/).map((t) => t.trim().toLowerCase()).filter((t) => t && t.length <= 40))].slice(0, 20);
     return {
       line: i + 2, fullName, email, phone, city, salary: salary === 'invalid' ? null : salary, notes,
+      birthDate: birth === 'invalid' ? null : birth,
+      state: uf && (UFS as readonly string[]).includes(uf) ? uf : null,
+      postalCode: cep.length === 8 ? cep : null,
+      desiredRole: cell(r, 'desiredRole').slice(0, 120) || null,
+      linkedinUrl: linkedinUrl && /^https:\/\/([a-z]{2,3}\.)?linkedin\.com\//i.test(linkedinUrl) && linkedinUrl.length <= 300 ? linkedinUrl : null,
+      educationLevel: educationFrom(cell(r, 'educationLevel')),
+      tags,
       status: problems.length ? 'erro' : 'ok', problems,
     };
   });
@@ -175,11 +234,17 @@ export function registerCandidateImportRoutes(app: FastifyInstance, deps: Deps) 
       for (let i = 0; i < ok.length; i += 500) {
         const part = ok.slice(i, i + 500);
         await db.query(
-          `insert into candidates (full_name, email, phone, city, salary_expectation, notes, source, created_by)
-           select n, e, p, c, s, o, 'importacao', $7
-             from unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::numeric[], $6::text[]) as t(n, e, p, c, s, o)`,
+          `insert into candidates (full_name, email, phone, city, salary_expectation, notes, source, created_by,
+                                   birth_date, state, postal_code, desired_role, linkedin_url, education_level, tags)
+           select n, e, p, c, s, o, 'importacao', $7, b::date, uf, cep, cargo, li, esc,
+                  coalesce((select array_agg(x) from jsonb_array_elements_text(tg) x), '{}')
+             from unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::numeric[], $6::text[], $8::text[], $9::text[],
+                         $10::text[], $11::text[], $12::text[], $13::text[], $14::jsonb[])
+                  as t(n, e, p, c, s, o, b, uf, cep, cargo, li, esc, tg)`,
           [part.map((x) => x.fullName), part.map((x) => x.email), part.map((x) => x.phone), part.map((x) => x.city),
-            part.map((x) => x.salary), part.map((x) => x.notes), user.id],
+            part.map((x) => x.salary), part.map((x) => x.notes), user.id, part.map((x) => x.birthDate), part.map((x) => x.state),
+            part.map((x) => x.postalCode), part.map((x) => x.desiredRole), part.map((x) => x.linkedinUrl),
+            part.map((x) => x.educationLevel), part.map((x) => JSON.stringify(x.tags))],
         );
       }
       await audit(db, req, 'candidate.imported', null, batch, null, { origin: body.origin, ...r.summary });
