@@ -172,8 +172,9 @@ function NewChargeModal({ companies, onClose }: { companies: Company[]; onClose:
     [companies, filter],
   );
   const count = all ? companies.length : selected.size;
-  const single = !all && selected.size === 1;
-  const files = single ? ([['boleto', boleto], ['nota_fiscal', nf]] as const).filter(([, f]) => f) : [];
+  // Boleto e NF são de uma empresa: com várias empresas, anexa-se depois em cada cobrança.
+  const multi = all || selected.size > 1;
+  const files = multi ? [] : ([['boleto', boleto], ['nota_fiscal', nf]] as const).filter(([, f]) => f);
   const noEmail = companies.filter((c) => (all || selected.has(c.id)) && !c.billingEmail);
 
   const toggle = (id: string) =>
@@ -269,14 +270,11 @@ function NewChargeModal({ companies, onClose }: { companies: Company[]; onClose:
         </SelectField>
         <TextField label="Link de pagamento" value={paymentLink} onChange={(e) => setPaymentLink(e.target.value)} error={errors.paymentLink}
           placeholder="https://..." hint="Opcional (boleto ou link do banco). A chave Pix vem das Configurações." />
-        {single ? (
-          <div className="grid grid-2">
-            <BillingFilePicker id="novo-boleto" kind="boleto" file={boleto} onChange={setBoleto} />
-            <BillingFilePicker id="nova-nf" kind="nota_fiscal" file={nf} onChange={setNf} />
-          </div>
-        ) : (
-          <span className="muted small">Boleto em PDF e nota fiscal: escolha uma empresa para anexar aqui, ou anexe depois em cada cobrança.</span>
-        )}
+        <div className="grid grid-2">
+          <BillingFilePicker id="novo-boleto" kind="boleto" file={boleto} onChange={setBoleto} disabled={multi} />
+          <BillingFilePicker id="nova-nf" kind="nota_fiscal" file={nf} onChange={setNf} disabled={multi} />
+        </div>
+        {multi && <span className="muted small">Com várias empresas, anexe o boleto e a nota fiscal depois, em cada cobrança.</span>}
         {files.length > 0 && <span className="muted small">O e-mail da cobrança sai com os arquivos anexados, e a empresa também os vê em Financeiro.</span>}
       </div>
     </Modal>

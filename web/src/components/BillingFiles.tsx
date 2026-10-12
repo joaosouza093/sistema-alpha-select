@@ -37,11 +37,13 @@ export function BillingFileLink({ file, label }: { file: BillingFile; label?: st
 }
 
 /** Seletor de arquivo simples (usado antes de a cobrança existir). */
-export function BillingFilePicker({ id, kind, file, onChange }: { id: string; kind: BillingFileKind; file: File | null; onChange: (f: File | null) => void }) {
+export function BillingFilePicker({ id, kind, file, onChange, disabled }: {
+  id: string; kind: BillingFileKind; file: File | null; onChange: (f: File | null) => void; disabled?: boolean;
+}) {
   return (
     <div className="field">
       <label htmlFor={id}>{billingFileLabel[kind]}</label>
-      <input id={id} type="file" className="input" accept={billingFileAccept[kind]} onChange={(e) => onChange(e.target.files?.[0] ?? null)} />
+      <input id={id} type="file" className="input" accept={billingFileAccept[kind]} disabled={disabled} onChange={(e) => onChange(e.target.files?.[0] ?? null)} />
       <span className="hint">{file ? `${file.name} (${fmtSize(file.size)})` : `Opcional. ${billingFileHint[kind]}.`}</span>
     </div>
   );
