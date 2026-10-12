@@ -1,4 +1,5 @@
 import type { Deps } from '../../lib/context.js';
+import { chargeAttachments } from './files.js';
 import { sendWhatsAppTemplate, whatsappConfigured, WhatsAppError } from '../../lib/whatsapp.js';
 
 /**
@@ -76,6 +77,7 @@ export function composeNotice(
   c: { company_name: string; description: string; amount_cents: number; due_date: string; payment_link: string | null },
   s: BillingSettings,
   today?: string,
+  withAttachments = false,
 ) {
   const valor = fmtCents(c.amount_cents);
   const venc = fmtDay(c.due_date);
@@ -110,6 +112,7 @@ export function composeNotice(
       intro = 'Segue a cobrança abaixo.';
   }
   const lines = [`Olá, ${c.company_name}.`, '', intro, '', `Descrição: ${c.description}`, `Valor: ${valor}`, `Vencimento: ${venc}`];
+  if (withAttachments) lines.push('', 'Documentos em anexo. Eles também ficam disponíveis no sistema, em Financeiro.');
   if (kind !== 'pagamento') {
     if (c.payment_link) lines.push('', `Pagar pelo link: ${c.payment_link}`);
     if (s.pix_key) lines.push('', `Pix: ${s.pix_key}${s.beneficiary ? ` (favorecido: ${s.beneficiary})` : ''}`);
@@ -161,10 +164,12 @@ export async function sendNotice(
       [chargeId, kind, to, !error, error, channel],
     );
   if (billingEmailEnabled(deps)) {
-    const msg = composeNotice(kind, c, s, today);
+    // Boleto vai junto enquanto a cobrança está em aberto; a nota fiscal, em todos os avisos.
+    const attachments = await chargeAttachments(deps, chargeId, kind === 'pagamento' ? ['nota_fiscal'] : ['boleto', 'nota_fiscal']);
+    const msg = composeNotice(kind, c, s, today, attachments.length > 0);
     let error: string | null = null;
     try {
-      await deps.mailer.send({ to: c.billing_email, ...msg });
+      await deps.mailer.send({ to: c.billing_email, ...msg, ...(attachments.length ? { attachments } : {}) });
     } catch (e) {
       const code = (e as { code?: string; responseCode?: number }).code ?? (e as { responseCode?: number }).responseCode;
       error = `falha no envio${code ? ` (${String(code).slice(0, 40)})` : ''}`;

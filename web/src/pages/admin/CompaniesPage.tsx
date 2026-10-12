@@ -40,7 +40,7 @@ export function CompaniesPage() {
               <tbody>
                 {list.data!.items.map((c) => (
                   <tr key={c.id}>
-                    <td data-label="Empresa"><strong>{c.name}</strong>{c.cnpj && <div className="muted small">CNPJ {fmtCnpj(c.cnpj)}</div>}</td>
+                    <td data-label="Empresa"><Link to={`/clientes/${c.id}`}><strong>{c.name}</strong></Link>{c.cnpj && <div className="muted small">CNPJ {fmtCnpj(c.cnpj)}</div>}</td>
                     <td data-label="E-mail de cobrança">{c.billingEmail ?? <span className="muted">—</span>}</td>
                     <td data-label="Situação">{c.isActive ? <span className="badge badge-success">Ativa</span> : <span className="badge">Inativa</span>}</td>
                     <td data-label="Processos"><Link to={`/processos?empresa=${c.id}`}>{c.processCount}</Link></td>
@@ -67,7 +67,7 @@ export function CompaniesPage() {
   );
 }
 
-function CompanyModal({ company, onClose }: { company: Company | null; onClose: () => void }) {
+export function CompanyModal({ company, onClose }: { company: Company | null; onClose: () => void }) {
   const qc = useQueryClient();
   const toast = useToast();
   const [name, setName] = useState(company?.name ?? '');

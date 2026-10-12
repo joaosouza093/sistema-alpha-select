@@ -34,7 +34,9 @@ const client = new pg.Client({ connectionString: config.DATABASE_OWNER_URL, ssl:
 await client.connect();
 // Considera apenas registros criados há mais de 10 min para não disputar com uploads em andamento.
 const { rows } = await client.query<{ id: string; storage_key: string; recent: boolean }>(
-  "select id, storage_key, created_at > now() - interval '10 minutes' as recent from documents",
+  `select id, storage_key, created_at > now() - interval '10 minutes' as recent from documents
+   union all
+   select id, storage_key, created_at > now() - interval '10 minutes' as recent from billing_files`,
 );
 await client.end();
 

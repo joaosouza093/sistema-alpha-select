@@ -8,6 +8,7 @@ import { Where } from '../../lib/sql.js';
 import { likePattern, zOptionalEmail, zOptionalText, zPage, zText, zUuid } from '../../lib/normalize.js';
 import { billingEmailEnabled, loadSettings, runBillingNotifications, sendNotice, todaySP } from './notify.js';
 import { whatsappConfigured } from '../../lib/whatsapp.js';
+import { chargeFilesJson } from './files.js';
 import { AsaasError, applyPayment, asaasConfigured, asaasEnvironment, fetchPayment, gatewayActive, syncGateway, webhookAuthorized } from './asaas.js';
 
 const zDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida.').refine((v) => !Number.isNaN(Date.parse(v)), 'Data inválida.');
@@ -26,7 +27,8 @@ const chargeCols = `c.id, c.company_id as "companyId", co.name as "companyName",
   c.gateway_dirty as "gatewayPending", c.paid_via as "paidVia",
   case when c.status = 'pendente' and c.due_date < $1::date then 'vencida' else c.status::text end as situacao,
   (select json_build_object('kind', n.kind, 'sentAt', n.sent_at, 'ok', n.ok)
-     from charge_notifications n where n.charge_id = c.id order by n.sent_at desc limit 1) as "lastNotice"`;
+     from charge_notifications n where n.charge_id = c.id order by n.sent_at desc limit 1) as "lastNotice",
+  ${chargeFilesJson('c')} as files`;
 
 export function registerBillingRoutes(app: FastifyInstance, deps: Deps) {
   const adminOnly = (req: FastifyRequest) => {
@@ -142,6 +144,8 @@ export function registerBillingRoutes(app: FastifyInstance, deps: Deps) {
           recurrence: z.enum(['nenhuma', 'mensal']).default('nenhuma'),
           paymentLink: zLink,
           billingEmail: zOptionalEmail,
+          // A tela envia o boleto/NF logo depois de criar: o e-mail sai em seguida, já com os anexos (POST .../notify).
+          deferNotice: z.boolean().default(false),
         })
         .strict()
         .refine((b) => b.allActive || (b.companyIds && b.companyIds.length > 0), {
@@ -191,9 +195,16 @@ export function registerBillingRoutes(app: FastifyInstance, deps: Deps) {
     });
     // Gera boleto/Pix no Asaas antes do e-mail, para que o link de pagamento vá junto.
     const gateway = useGateway ? await syncGateway(deps, { chargeIds: ids, budgetMs: 6000 }).catch(() => null) : null;
-    const sent = await sendSoon(ids);
+    const sent = body.deferNotice ? null : await sendSoon(ids);
     reply.code(201);
     return { ids, count: ids.length, emails: sent, gateway };
+  });
+
+  /** Envia agora os avisos devidos (ex.: "nova cobrança") das cobranças indicadas, pelas regras normais. */
+  app.post('/api/billing/charges/notify', async (req) => {
+    adminOnly(req);
+    const body = parse(z.object({ ids: z.array(zUuid).min(1).max(500) }).strict(), req.body);
+    return { emails: await sendSoon(body.ids) };
   });
 
   app.patch('/api/billing/charges/:id', async (req) => {

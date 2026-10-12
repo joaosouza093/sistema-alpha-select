@@ -65,6 +65,35 @@ test.describe('telas novas', () => {
     await expect(page.getByRole('heading', { name: 'Financeiro por empresa' })).toHaveCount(0);
   });
 
+  test('cobrança com boleto anexado aparece no Financeiro do gestor da empresa', async ({ page }) => {
+    const c = creds();
+    await login(page, c.admin);
+    await page.getByRole('link', { name: 'Cobranças' }).click();
+    await page.getByRole('button', { name: 'Nova cobrança' }).click();
+    const desc = `Recrutamento e seleção ${randomBytes(3).toString('hex')}`;
+    await page.getByLabel(`Empresa Demo Alfa ${c.suffix}`).check();
+    await page.getByLabel('Descrição').fill(desc);
+    await page.getByLabel('Valor (R$)').fill('1.500,00');
+    await page.getByLabel('Vencimento').fill(new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10));
+    await page.getByLabel('Boleto').setInputFiles({
+      name: 'boleto.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n'),
+    });
+    await page.getByRole('button', { name: 'Criar cobrança' }).click();
+    await expect(page.getByText(/1 cobrança\(s\) criada\(s\)/)).toBeVisible();
+    await expect(page.getByRole('row', { name: new RegExp(desc) }).getByRole('link', { name: 'Boleto' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Sair' }).click();
+    await login(page, c.gestorAlfa);
+    await page.getByRole('link', { name: 'Financeiro' }).click();
+    const row = page.getByRole('row', { name: new RegExp(desc) });
+    await expect(row).toBeVisible();
+    await expect(row.getByRole('link', { name: 'Boleto' })).toHaveAttribute('href', /\/api\/billing\/files\/.+\/content/);
+    // Usuário comum da empresa não tem o menu Financeiro.
+    await page.getByRole('button', { name: 'Sair' }).click();
+    await login(page, c.rhAlfa);
+    await expect(page.getByRole('link', { name: 'Financeiro' })).toHaveCount(0);
+  });
+
   test('verificação em duas etapas: ativar com QR e entrar com o código', async ({ page }) => {
     const c = creds();
     await login(page, c.gestorAlfa);
@@ -114,7 +143,7 @@ test.describe('telas novas', () => {
     await visitor.getByLabel('Telefone / WhatsApp').fill('(11) 98765-4321');
     await visitor.getByLabel('Data de nascimento').fill('1992-03-15');
     await visitor.getByLabel('CEP').fill('01310100');
-    await visitor.getByLabel('Cidade').fill('São Paulo');
+    await visitor.getByRole('textbox', { name: 'Cidade' }).fill('São Paulo');
     await visitor.getByLabel('Estado (UF)').selectOption('SP');
     await visitor.getByLabel('Cargo / Área de interesse').fill('Analista Financeiro');
     await visitor.getByLabel('Escolaridade').selectOption('superior');

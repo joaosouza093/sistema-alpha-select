@@ -340,6 +340,7 @@ export interface ChargeRow {
   gatewayError: string | null;
   gatewayPending: boolean;
   paidVia: 'manual' | 'asaas' | null;
+  files: BillingFile[];
 }
 
 export interface ChargeDetail extends ChargeRow {
@@ -515,4 +516,64 @@ export interface Report {
     byCompany: { id: string; name: string; billedCents: number; paidCents: number; overdueCents: number; openCents: number; avgPayDelayDays: number | null }[];
     totals: { billedCents: number; paidCents: number; overdueCents: number; openCents: number; complianceRate: number | null };
   };
+}
+
+export type BillingFileKind = 'boleto' | 'nota_fiscal' | 'contrato';
+export interface BillingFile {
+  id: string;
+  kind: BillingFileKind;
+  name: string;
+  size: number;
+  createdAt: string;
+}
+
+export type ContractModality = 'mensalidade' | 'pacote' | 'sucesso' | 'outro';
+export type ContractStatus = 'ativo' | 'suspenso' | 'encerrado';
+export interface Contract {
+  id: string;
+  companyId: string;
+  companyName?: string;
+  plan: string;
+  modality: ContractModality;
+  amountCents: number | null;
+  startDate: string;
+  endDate: string | null;
+  status: ContractStatus;
+  ownerId?: string | null;
+  ownerName?: string | null;
+  notes?: string | null;
+  version?: number;
+  file: BillingFile | null;
+}
+
+export interface ClientCharge {
+  id: string;
+  description: string;
+  amountCents: number;
+  dueDate: string;
+  paymentLink: string | null;
+  paidAt: string | null;
+  situacao: ChargeSituacao;
+  files: BillingFile[];
+}
+
+export interface ClientFinance {
+  summary: { openCents: number; openCount: number; overdueCents: number; overdueCount: number };
+  charges: ClientCharge[];
+  contracts: Contract[];
+  today: string;
+}
+
+export interface CompanyOverview {
+  company: Company;
+  users: { id: string; fullName: string; email: string; kind: string; isActive: boolean; lastLoginAt: string | null }[];
+  processes: { id: string; title: string; status: 'em_andamento' | 'concluido' | 'arquivado'; createdAt: string; candidates: number; leads: number }[];
+  pipeline: { openProcesses: number; doneProcesses: number; candidates: number; approved: number };
+  leads: { total: number; lastSentAt: string | null; last30: number };
+  messages: { total: number; lastSentAt: string | null };
+  finance: { openCents: number; overdueCents: number; overdueCount: number; paidCents: number };
+  charges: ClientCharge[];
+  contracts: Contract[];
+  activity: { action: string; occurredAt: string; actorName: string | null }[];
+  today: string;
 }

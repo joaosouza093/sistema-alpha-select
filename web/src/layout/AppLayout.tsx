@@ -50,6 +50,7 @@ export function AppLayout() {
           <NavLink to="/processos">Processos seletivos</NavLink>
           {isAlpha && <NavLink to="/candidatos">Candidatos</NavLink>}
           {isAlpha && <NavLink to="/relatorios">Relatórios</NavLink>}
+          {user?.kind === 'client_manager' && <NavLink to="/financeiro">Financeiro</NavLink>}
           {isAdmin && (
             <>
               <div className="nav-section">Administração</div>

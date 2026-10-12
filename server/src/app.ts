@@ -21,6 +21,8 @@ import { registerDashboardRoutes } from './modules/dashboard/routes.js';
 import { registerAuditRoutes } from './modules/audit/routes.js';
 import { registerSignupRoutes } from './modules/signup/routes.js';
 import { registerBillingRoutes } from './modules/billing/routes.js';
+import { registerBillingFileRoutes } from './modules/billing/files.js';
+import { registerContractRoutes } from './modules/billing/contracts.js';
 import { registerJobRoutes } from './modules/jobs/routes.js';
 import { registerPublicRoutes } from './modules/public/routes.js';
 import { registerLeadRoutes } from './modules/leads/routes.js';
@@ -161,6 +163,8 @@ export async function buildApp(deps: Deps): Promise<FastifyInstance> {
   registerAuditRoutes(app, deps);
   registerSignupRoutes(app, deps);
   registerBillingRoutes(app, deps);
+  registerBillingFileRoutes(app, deps);
+  registerContractRoutes(app, deps);
   registerJobRoutes(app, deps);
   registerPublicRoutes(app, deps);
   registerLeadRoutes(app, deps);

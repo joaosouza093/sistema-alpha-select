@@ -131,3 +131,7 @@ export const educationLabel = {
 } as const;
 export const educationStatusLabel = { concluido: 'Concluído', cursando: 'Cursando', trancado: 'Trancado', incompleto: 'Incompleto' } as const;
 export const fmtCep = (v: string | null | undefined) => (v && /^\d{8}$/.test(v) ? `${v.slice(0, 5)}-${v.slice(5)}` : v || '—');
+
+export const modalityLabel = { mensalidade: 'Mensalidade', pacote: 'Pacote de vagas', sucesso: 'Taxa de sucesso', outro: 'Outro' } as const;
+export const contractStatusLabel = { ativo: 'Ativo', suspenso: 'Suspenso', encerrado: 'Encerrado' } as const;
+export const contractStatusBadge = { ativo: 'badge-success', suspenso: 'badge-warning', encerrado: '' } as const;
