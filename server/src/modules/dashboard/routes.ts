@@ -23,7 +23,9 @@ export function registerDashboardRoutes(app: FastifyInstance, deps: Deps) {
            from stages s
            left join (applications a join processes p on p.id = a.process_id and p.status = 'em_andamento')
              on a.stage_id = s.id and a.decision = 'pendente'
-          group by s.id, s.name, s.position order by s.position`,
+          group by s.id, s.name, s.position, s.is_active
+         having s.is_active or count(a.id) > 0
+          order by s.position`,
       );
       const mine = await db.query(
         `select a.id, s.full_name as "candidateName", p.title as "processTitle", st.name as "stageName",
@@ -96,11 +98,4 @@ export function registerDashboardRoutes(app: FastifyInstance, deps: Deps) {
       };
     });
   });
-
-  app.get('/api/stages', async (req) =>
-    asUser(deps, req, async (db) => {
-      const { rows } = await db.query('select id, key, name, position from stages order by position');
-      return { items: rows };
-    }),
-  );
 }

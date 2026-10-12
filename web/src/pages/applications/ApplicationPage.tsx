@@ -299,7 +299,7 @@ function StageTab({ a, stages }: { a: Application; stages: Stage[] }) {
   const [busy, setBusy] = useState(false);
   const open = a.process.status === 'em_andamento';
   const perms = a.permissions;
-  const isApprovalStage = stages.find((s) => s.id === a.stageId)?.key === 'aprovacao';
+  const isApprovalStage = !!stages.find((s) => s.id === a.stageId)?.isApproval;
 
   const saveDecision = async () => {
     if (!decision) return;
@@ -328,9 +328,9 @@ function StageTab({ a, stages }: { a: Application; stages: Stage[] }) {
         <div className="card-header"><h2>Etapa atual</h2></div>
         <div className="card-body stack">
           <ol className="row" style={{ listStyle: 'none', padding: 0, margin: 0, gap: 6 }} aria-label="Etapas do fluxo">
-            {stages.map((s) => (
+            {stages.map((s, i) => (
               <li key={s.id} className={`badge ${s.id === a.stageId ? 'badge-brand' : ''}`} aria-current={s.id === a.stageId ? 'step' : undefined}>
-                {s.position}. {s.name}
+                {i + 1}. {s.name}
               </li>
             ))}
           </ol>

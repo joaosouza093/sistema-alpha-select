@@ -24,7 +24,7 @@
 - Matriz de permissões (ver `PERMISSOES.md`), em especial:
   escopo da equipe sobre o banco de talentos; quem cria processos; se clientes podem
   mover livremente entre etapas vizinhas; se Gestor/CEO é sempre da empresa cliente.
-- Etapas fixas (RH Externo, RH Interno, CEO/Gestor, Aprovação) para todos os processos;
+- Etapas iguais para todos os processos, configuráveis pelo administrador (Administração → Etapas do processo); padrão: RH Externo, RH Interno, CEO/Gestor, Aprovação;
   movimentação apenas para a etapa vizinha (administrador pode pular).
 - Decisões possíveis: Em avaliação, Aprovado (só na etapa Aprovação), Não aprovado, Desistiu.
 - Situações de processo: em andamento, concluído, arquivado (os dois últimos somente leitura).

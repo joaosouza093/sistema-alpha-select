@@ -106,7 +106,7 @@ export function registerApplicationRoutes(app: FastifyInstance, deps: Deps) {
     const { id } = parse(z.object({ id: zUuid }), req.params);
     const body = parse(
       z
-        .object({ toStageId: z.number().int().min(1).max(20), expectedVersion: zVersion, ownerId: zUuid.nullish() })
+        .object({ toStageId: z.number().int().min(1).max(32767), expectedVersion: zVersion, ownerId: zUuid.nullish() })
         .strict(),
       req.body,
     );

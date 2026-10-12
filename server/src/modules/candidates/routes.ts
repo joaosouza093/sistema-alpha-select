@@ -67,7 +67,7 @@ export function registerCandidateRoutes(app: FastifyInstance, deps: Deps) {
       zPage.extend({
         q: z.string().max(100).optional(),
         processId: zUuid.optional(),
-        stageId: z.coerce.number().int().min(1).max(20).optional(),
+        stageId: z.coerce.number().int().min(1).max(32767).optional(),
         ownerId: zUuid.optional(),
         decision: z.enum(['pendente', 'aprovado', 'reprovado', 'desistiu']).optional(),
         archived: z.enum(['true', 'false']).default('false'),
@@ -85,7 +85,8 @@ export function registerCandidateRoutes(app: FastifyInstance, deps: Deps) {
       if (q.q) {
         const digits = q.q.replace(/\D/g, '');
         const pat = likePattern(q.q);
-        if (digits.length >= 4) {
+        // Telefone só quando o texto parece telefone: um e-mail ou nome com números não deve casar com telefones.
+        if (digits.length >= 4 && /^[\d\s()+.-]+$/.test(q.q.trim())) {
           const dp = w.param(`%${digits}%`);
           w.add(`(c.full_name ilike ? or c.email::text ilike ? or c.phone like ${dp})`, pat);
         } else {

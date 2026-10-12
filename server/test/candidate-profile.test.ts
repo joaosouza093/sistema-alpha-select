@@ -62,6 +62,10 @@ describe('perfil completo do candidato', () => {
     expect(await ids('state=RJ&role=front&education=pos_graduacao&tag=react')).toContain(id);
     expect(await ids('state=SP&tag=react')).not.toContain(id);
     expect(await ids(`tag=${encodeURIComponent('inglês fluente')}&city=niter`)).toContain(id);
+    // Busca por e-mail com números não casa com telefones; por telefone continua funcionando.
+    const phoneId = await createCandidate(admin, { fullName: 'Telefone Parecido', phone: '(11) 92345-6789' });
+    expect(await ids(`q=${encodeURIComponent('pessoa2345@example.test')}`)).not.toContain(phoneId);
+    expect(await ids(`q=${encodeURIComponent('92345-6789')}`)).toContain(phoneId);
     const tags = json(await admin.get('/api/candidates/tags')).items.map((t: any) => t.tag);
     expect(tags).toContain('inglês fluente');
   });

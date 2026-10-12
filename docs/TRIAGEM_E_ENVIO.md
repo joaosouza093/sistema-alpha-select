@@ -37,5 +37,5 @@ Corresponde ao Módulo 5 / Marco 3 do documento de escopo.
 
 ## Fora desta entrega
 
-- Etapas totalmente configuráveis por processo (hoje as 4 etapas são fixas, conforme o escopo original).
+- Etapas diferentes por processo: as etapas são configuráveis pelo administrador, mas valem para todos os processos.
 - Agenda de entrevistas (Módulo 6).
