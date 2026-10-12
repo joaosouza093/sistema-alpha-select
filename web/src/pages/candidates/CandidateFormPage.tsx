@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '../../api/client';
 import type { Candidate } from '../../api/types';
+import { ProfileFields, emptyProfile, profileFrom, profilePayload, type ProfileValues } from '../../components/ProfileFields';
 import { Alert, Button, ErrorState, Loading, PageHeader, TextArea, TextField, fieldErrors, usePageTitle, useToast } from '../../components/ui';
 
 interface Dup {
@@ -24,6 +25,9 @@ export function CandidateFormPage() {
   const [phone, setPhone] = useState('');
   const [salary, setSalary] = useState('');
   const [notes, setNotes] = useState('');
+  const [profile, setProfile] = useState<ProfileValues>(emptyProfile);
+  const [tags, setTags] = useState('');
+  const tagList = useQuery({ queryKey: ['candidate-tags'], queryFn: () => api.get<{ items: { tag: string; count: number }[] }>('/api/candidates/tags') });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [dup, setDup] = useState<Dup | null>(null);
   const [busy, setBusy] = useState(false);
@@ -36,6 +40,8 @@ export function CandidateFormPage() {
     setPhone(c.phone ?? '');
     setSalary(c.salaryExpectation !== null ? String(c.salaryExpectation).replace('.', ',') : '');
     setNotes(c.notes ?? '');
+    setProfile(profileFrom(c));
+    setTags((c.tags ?? []).join(', '));
   }, [existing.data]);
 
   // Verificação antecipada de duplicidade (não bloqueia o cadastro).
@@ -53,7 +59,10 @@ export function CandidateFormPage() {
     e.preventDefault();
     setBusy(true);
     setErrors({});
-    const payload = { fullName, email: email || null, phone: phone || null, salaryExpectation: salary || null, notes: notes || null };
+    const payload = {
+      fullName, email: email || null, phone: phone || null, salaryExpectation: salary || null, notes: notes || null,
+      ...profilePayload(profile), tags: tags.split(',').map((t) => t.trim()).filter(Boolean),
+    };
     try {
       if (editing) {
         await api.patch(`/api/candidates/${id}`, { ...payload, expectedVersion: existing.data!.version });
@@ -92,6 +101,10 @@ export function CandidateFormPage() {
             <TextField label="Telefone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} onBlur={checkDup} error={errors.phone} hint="Ex.: (11) 91234-5678" autoComplete="off" />
             <TextField label="Pretensão salarial (R$)" inputMode="decimal" value={salary} onChange={(e) => setSalary(e.target.value)} error={errors.salaryExpectation} hint="Ex.: 7.500,00" autoComplete="off" />
           </div>
+          <ProfileFields value={profile} onChange={setProfile} errors={errors} />
+          <TextField label="Etiquetas" value={tags} onChange={(e) => setTags(e.target.value)} list="tag-suggestions" error={errors.tags}
+            hint="Separe por vírgula. Ex.: inglês fluente, react, liderança. Servem para filtrar o banco de talentos." />
+          <datalist id="tag-suggestions">{tagList.data?.items.map((t) => <option key={t.tag} value={t.tag} />)}</datalist>
           <TextArea label="Observações internas" value={notes} onChange={(e) => setNotes(e.target.value)} error={errors.notes} maxLength={10000}
             hint="Visíveis somente à equipe da Alpha Select. Nunca são compartilhadas com clientes." />
           {dup && (

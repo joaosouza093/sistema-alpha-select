@@ -16,6 +16,7 @@ import {
 } from '../../lib/normalize.js';
 import { Where } from '../../lib/sql.js';
 import { eraseCandidates } from './erase.js';
+import { EDUCATION_LEVELS, PROFILE_COLUMNS, PROFILE_KEYS, UFS, profileSelect, zProfile, zTags } from './profile.js';
 
 const zSalary = z
   .union([z.number(), z.string(), z.null()])
@@ -70,6 +71,11 @@ export function registerCandidateRoutes(app: FastifyInstance, deps: Deps) {
         ownerId: zUuid.optional(),
         decision: z.enum(['pendente', 'aprovado', 'reprovado', 'desistiu']).optional(),
         archived: z.enum(['true', 'false']).default('false'),
+        state: z.enum(UFS).optional(),
+        city: z.string().max(120).optional(),
+        role: z.string().max(120).optional(),
+        education: z.enum(EDUCATION_LEVELS).optional(),
+        tag: z.string().max(40).optional(),
       }),
       req.query,
     );
@@ -86,6 +92,11 @@ export function registerCandidateRoutes(app: FastifyInstance, deps: Deps) {
           w.add('(c.full_name ilike ? or c.email::text ilike ?)', pat);
         }
       }
+      if (q.state) w.add('c.state = ?', q.state);
+      if (q.city?.trim()) w.add('c.city ilike ?', likePattern(q.city));
+      if (q.role?.trim()) w.add('c.desired_role ilike ?', likePattern(q.role));
+      if (q.education) w.add('c.education_level = ?', q.education);
+      if (q.tag?.trim()) w.add('? = any(c.tags)', q.tag.trim().toLowerCase());
       const appFilters: string[] = [];
       if (q.processId) appFilters.push(`a.process_id = ${w.param(q.processId)}`);
       if (q.stageId) appFilters.push(`a.stage_id = ${w.param(q.stageId)}`);
@@ -99,6 +110,7 @@ export function registerCandidateRoutes(app: FastifyInstance, deps: Deps) {
       const off = w.param((q.page - 1) * q.pageSize);
       const { rows } = await db.query(
         `select c.id, c.full_name as "fullName", c.email, c.phone, c.updated_at as "updatedAt",
+                c.city, c.state, c.desired_role as "desiredRole", c.tags,
                 (select count(*)::int from applications a where a.candidate_id = c.id) as "applicationCount",
                 (select count(*)::int from documents d where d.candidate_id = c.id) as "documentCount"
            from candidates c ${w.clause}
@@ -120,7 +132,10 @@ export function registerCandidateRoutes(app: FastifyInstance, deps: Deps) {
 
   app.post('/api/candidates', async (req, reply) => {
     alphaOnly(req);
-    const body = parse(z.object({ ...candidateFields, confirmDuplicate: z.boolean().default(false) }).strict(), req.body);
+    const body = parse(
+      zProfile.extend({ ...candidateFields, tags: zTags.default([]), confirmDuplicate: z.boolean().default(false) }).strict(),
+      req.body,
+    );
     const id = await asUser(deps, req, async (db, user) => {
       if (!body.confirmDuplicate) {
         const dup = await findDuplicates(db, body.email, body.phone, null);
@@ -132,9 +147,11 @@ export function registerCandidateRoutes(app: FastifyInstance, deps: Deps) {
         }
       }
       const { rows } = await db.query<{ id: string }>(
-        `insert into candidates (full_name, email, phone, salary_expectation, notes, created_by)
-         values ($1, $2, $3, $4, $5, $6) returning id`,
-        [body.fullName, body.email, body.phone, body.salaryExpectation, body.notes, user.id],
+        `insert into candidates (full_name, email, phone, salary_expectation, notes, created_by, tags,
+                                 ${PROFILE_KEYS.map((k) => PROFILE_COLUMNS[k]).join(', ')})
+         values ($1, $2, $3, $4, $5, $6, $7, ${PROFILE_KEYS.map((_, i) => `$${i + 8}`).join(', ')}) returning id`,
+        [body.fullName, body.email, body.phone, body.salaryExpectation, body.notes, user.id, body.tags,
+          ...PROFILE_KEYS.map((k) => body[k])],
       );
       await audit(db, req, 'candidate.created', 'candidate', rows[0]!.id, null, {
         confirmedDuplicate: body.confirmDuplicate,
@@ -145,6 +162,18 @@ export function registerCandidateRoutes(app: FastifyInstance, deps: Deps) {
     return { id };
   });
 
+  /** Etiquetas já usadas (para sugerir ao digitar e filtrar). */
+  app.get('/api/candidates/tags', async (req) => {
+    alphaOnly(req);
+    return asUser(deps, req, async (db) => {
+      const { rows } = await db.query(
+        `select t as tag, count(*)::int as count from candidates c, unnest(c.tags) t
+          where c.archived_at is null group by t order by count(*) desc, t limit 200`,
+      );
+      return { items: rows };
+    });
+  });
+
   app.get('/api/candidates/:id', async (req) => {
     alphaOnly(req);
     const { id } = parse(z.object({ id: zUuid }), req.params);
@@ -153,7 +182,7 @@ export function registerCandidateRoutes(app: FastifyInstance, deps: Deps) {
         `select c.id, c.full_name as "fullName", c.email, c.phone, c.salary_expectation as "salaryExpectation",
                 c.notes, c.version, c.archived_at as "archivedAt", c.created_at as "createdAt",
                 c.updated_at as "updatedAt", u.full_name as "createdByName",
-                c.source, c.city, c.consent_at as "consentAt", c.email_opt_out_at as "emailOptOutAt",
+                c.source, c.consent_at as "consentAt", c.email_opt_out_at as "emailOptOutAt", c.tags, ${profileSelect('c')},
                 c.whatsapp_opt_in_at as "whatsappOptInAt"
            from candidates c left join users u on u.id = c.created_by where c.id = $1`,
         [id],
@@ -195,7 +224,9 @@ export function registerCandidateRoutes(app: FastifyInstance, deps: Deps) {
           salaryExpectation: candidateFields.salaryExpectation,
           notes: candidateFields.notes.optional(),
           archived: z.boolean().optional(),
+          tags: zTags.optional(),
         })
+        .merge(zProfile.partial())
         .strict(),
       req.body,
     );
@@ -215,6 +246,8 @@ export function registerCandidateRoutes(app: FastifyInstance, deps: Deps) {
       if (has('phone')) set('phone', body.phone ?? null);
       if (has('salaryExpectation')) set('salary_expectation', body.salaryExpectation);
       if (has('notes')) set('notes', body.notes ?? null);
+      for (const k of PROFILE_KEYS) if (has(k)) set(PROFILE_COLUMNS[k], body[k] ?? null);
+      if (body.tags !== undefined) set('tags', body.tags);
       if (body.archived !== undefined) sets.push(`archived_at = ${body.archived ? 'now()' : 'null'}`);
       if (!sets.length) return { ok: true };
       const { rowCount } = await db.query(
@@ -241,7 +274,7 @@ export function registerCandidateRoutes(app: FastifyInstance, deps: Deps) {
       const cand = await db.query(
         `select full_name as "nome", email, phone as "telefone", salary_expectation as "pretensaoSalarial",
                 notes as "observacoesInternas", created_at as "cadastradoEm", updated_at as "atualizadoEm",
-                archived_at as "arquivadoEm"
+                archived_at as "arquivadoEm", tags as "etiquetas", ${profileSelect('candidates')}
            from candidates where id = $1`,
         [id],
       );

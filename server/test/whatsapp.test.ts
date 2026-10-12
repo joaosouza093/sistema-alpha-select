@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { sendCandidateMessage } from '../src/modules/messages/service.js';
-import { Agent, PDF, bootstrapAdmin, createCandidate, createCompany, createProcess, json, setupApp, uniq, type TestCtx } from './helpers.js';
+import { Agent, PDF, PORTAL_PROFILE, bootstrapAdmin, createCandidate, createCompany, createProcess, json, setupApp, uniq, type TestCtx } from './helpers.js';
 import { startFakeWhatsApp } from './fake-whatsapp.js';
 
 const TOKEN = 'token-whatsapp-de-teste';
@@ -78,9 +78,9 @@ describe('WhatsApp', () => {
     await setTemplate('candidatura_recebida', 'candidatura_recebida_v1');
     const { slug } = await publishedJob();
     const before = wa.sent.length;
-    const yes = applyBody({ fullName: 'Ana Teste Silva', email: `${uniq('wa')}@example.test`, phone: '(11) 98888-1111', acceptPrivacy: true, whatsappOptIn: true });
+    const yes = applyBody({ fullName: 'Ana Teste Silva', email: `${uniq('wa')}@example.test`, phone: '(11) 98888-1111', acceptPrivacy: true, whatsappOptIn: true, ...PORTAL_PROFILE });
     expect((await new Agent(ctx).request('POST', `/api/public/jobs/${slug}/apply`, yes.payload, yes.headers)).statusCode).toBe(201);
-    const no = applyBody({ fullName: 'Bia Teste', email: `${uniq('wa')}@example.test`, phone: '(11) 98888-2222', acceptPrivacy: true });
+    const no = applyBody({ fullName: 'Bia Teste', email: `${uniq('wa')}@example.test`, phone: '(11) 98888-2222', acceptPrivacy: true, ...PORTAL_PROFILE });
     expect((await new Agent(ctx).request('POST', `/api/public/jobs/${slug}/apply`, no.payload, no.headers)).statusCode).toBe(201);
     const msgs = wa.sent.slice(before);
     expect(msgs).toHaveLength(1);

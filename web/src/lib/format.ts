@@ -114,3 +114,20 @@ export const templateLabel = {
   reprovacao: 'Não aprovado',
   aviso_retencao: 'Aviso de exclusão (retenção)',
 } as const;
+
+export const UFS = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI',
+  'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'] as const;
+export const educationLabel = {
+  fundamental_incompleto: 'Fundamental incompleto',
+  fundamental: 'Fundamental completo',
+  medio_incompleto: 'Médio incompleto',
+  medio: 'Médio completo',
+  tecnico: 'Técnico',
+  superior_incompleto: 'Superior incompleto',
+  superior: 'Superior completo',
+  pos_graduacao: 'Pós-graduação / MBA',
+  mestrado: 'Mestrado',
+  doutorado: 'Doutorado',
+} as const;
+export const educationStatusLabel = { concluido: 'Concluído', cursando: 'Cursando', trancado: 'Trancado', incompleto: 'Incompleto' } as const;
+export const fmtCep = (v: string | null | undefined) => (v && /^\d{8}$/.test(v) ? `${v.slice(0, 5)}-${v.slice(5)}` : v || '—');

@@ -143,6 +143,10 @@ export interface CandidateRow {
   updatedAt: string;
   applicationCount: number;
   documentCount: number;
+  city?: string | null;
+  state?: string | null;
+  desiredRole?: string | null;
+  tags?: string[];
 }
 
 export interface DocumentRow {
@@ -186,6 +190,20 @@ export interface Candidate {
   emailOptOutAt?: string | null;
   consentAt?: string | null;
   whatsappOptInAt?: string | null;
+  birthDate?: string | null;
+  addressStreet?: string | null;
+  addressNumber?: string | null;
+  addressComplement?: string | null;
+  addressDistrict?: string | null;
+  state?: string | null;
+  postalCode?: string | null;
+  desiredRole?: string | null;
+  linkedinUrl?: string | null;
+  educationLevel?: keyof typeof import('../lib/format').educationLabel | null;
+  course?: string | null;
+  institution?: string | null;
+  educationStatus?: keyof typeof import('../lib/format').educationStatusLabel | null;
+  tags?: string[];
   applications: CandidateApplication[];
   documents: DocumentRow[];
 }

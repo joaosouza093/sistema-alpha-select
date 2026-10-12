@@ -112,6 +112,12 @@ test.describe('telas novas', () => {
     await visitor.getByLabel('Nome completo').fill('Pessoa Fictícia do Portal');
     await visitor.getByLabel('E-mail').fill(email);
     await visitor.getByLabel('Telefone / WhatsApp').fill('(11) 98765-4321');
+    await visitor.getByLabel('Data de nascimento').fill('1992-03-15');
+    await visitor.getByLabel('CEP').fill('01310100');
+    await visitor.getByLabel('Cidade').fill('São Paulo');
+    await visitor.getByLabel('Estado (UF)').selectOption('SP');
+    await visitor.getByLabel('Cargo / Área de interesse').fill('Analista Financeiro');
+    await visitor.getByLabel('Escolaridade').selectOption('superior');
     await visitor.getByLabel(/receber avisos sobre esta candidatura pelo WhatsApp/).check();
     await visitor.locator('#curriculo').setInputFiles({
       name: 'curriculo.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n'),

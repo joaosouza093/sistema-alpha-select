@@ -26,9 +26,10 @@ const statusBadge: Record<PreviewRow['status'], [string, string]> = {
   ja_cadastrado: ['Já cadastrado', 'badge-warning'],
   repetido: ['Repetido no arquivo', 'badge-warning'],
 };
-const columnLabel: Record<string, string> = { fullName: 'Nome', email: 'E-mail', phone: 'Telefone', city: 'Cidade', salary: 'Pretensão', notes: 'Observações' };
+const columnLabel: Record<string, string> = { fullName: 'Nome', email: 'E-mail', phone: 'Telefone', city: 'Cidade', salary: 'Pretensão', notes: 'Observações',
+  birthDate: 'Data de nascimento', state: 'UF', postalCode: 'CEP', desiredRole: 'Cargo / Área', linkedinUrl: 'LinkedIn', educationLevel: 'Escolaridade', tags: 'Etiquetas' };
 
-const TEMPLATE = 'Nome;E-mail;Telefone;Cidade;Pretensão salarial;Observações\r\nMaria Exemplo;maria@exemplo.com;(11) 98888-7777;São Paulo;5.000,00;Indicação\r\n';
+const TEMPLATE = 'Nome;E-mail;Telefone;Data de nascimento;CEP;Cidade;UF;Cargo / Área de interesse;Escolaridade;LinkedIn;Pretensão salarial;Etiquetas;Observações\r\nMaria Exemplo;maria@exemplo.com;(11) 98888-7777;15/03/1990;01310-100;São Paulo;SP;Analista Financeiro;Superior completo;linkedin.com/in/maria;5.000,00;excel, inglês;Indicação\r\n';
 
 /** O Excel em português costuma salvar CSV em Windows-1252; aceita esse formato e UTF-8. */
 async function readText(file: File) {
@@ -111,7 +112,7 @@ export function ImportCandidatesPage() {
           <div className="card-body stack">
             <ol style={{ margin: 0, paddingLeft: 18 }}>
               <li>Salve a planilha como <strong>CSV</strong> (no Excel: Arquivo → Salvar como → CSV). Uma linha por candidato.</li>
-              <li>Colunas reconhecidas: Nome (obrigatória), E-mail, Telefone, Cidade, Pretensão salarial, Observações. As demais são ignoradas.</li>
+              <li>Colunas reconhecidas: Nome (obrigatória), E-mail, Telefone, Data de nascimento, CEP, Cidade, UF, Cargo / Área de interesse, Escolaridade, LinkedIn, Pretensão salarial, Etiquetas (separadas por vírgula) e Observações. As demais são ignoradas.</li>
               <li>Até 5.000 candidatos por arquivo. Quem já está cadastrado (mesmo e-mail ou telefone) não é importado de novo.</li>
             </ol>
             <div className="row">
