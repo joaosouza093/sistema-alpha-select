@@ -28,6 +28,7 @@ import { registerPublicRoutes } from './modules/public/routes.js';
 import { registerLeadRoutes } from './modules/leads/routes.js';
 import { registerMessageRoutes } from './modules/messages/routes.js';
 import { registerCampaignRoutes } from './modules/messages/campaigns.js';
+import { registerStageRoutes } from './modules/stages/routes.js';
 import { registerReportRoutes } from './modules/reports/routes.js';
 import { registerPrivacyRoutes } from './modules/privacy/routes.js';
 import { registerWhatsAppRoutes } from './modules/whatsapp/routes.js';
@@ -171,6 +172,7 @@ export async function buildApp(deps: Deps): Promise<FastifyInstance> {
   registerLeadRoutes(app, deps);
   registerMessageRoutes(app, deps);
   registerCampaignRoutes(app, deps);
+  registerStageRoutes(app, deps);
   registerReportRoutes(app, deps);
   registerPrivacyRoutes(app, deps);
   registerWhatsAppRoutes(app, deps);

@@ -31,6 +31,7 @@ import { CompaniesPage } from './pages/admin/CompaniesPage';
 import { CompanyPage } from './pages/admin/CompanyPage';
 import { FinancePage } from './pages/FinancePage';
 import { CampaignsPage } from './pages/CampaignsPage';
+import { StagesPage } from './pages/admin/StagesPage';
 import { UsersPage } from './pages/admin/UsersPage';
 import { AuditPage } from './pages/admin/AuditPage';
 import { AccountPage } from './pages/AccountPage';
@@ -81,6 +82,7 @@ export function App() {
         <Route path="clientes" element={<RequireAuth admin><CompaniesPage /></RequireAuth>} />
         <Route path="clientes/:id" element={<RequireAuth admin><CompanyPage /></RequireAuth>} />
         <Route path="financeiro" element={<RequireAuth manager><FinancePage /></RequireAuth>} />
+        <Route path="etapas" element={<RequireAuth admin><StagesPage /></RequireAuth>} />
         <Route path="usuarios" element={<RequireAuth admin><UsersPage /></RequireAuth>} />
         <Route path="cadastros" element={<RequireAuth admin><SignupsPage /></RequireAuth>} />
         <Route path="cobrancas" element={<RequireAuth admin><BillingPage /></RequireAuth>} />

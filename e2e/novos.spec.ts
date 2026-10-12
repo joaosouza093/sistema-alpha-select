@@ -226,10 +226,33 @@ test.describe('telas novas', () => {
     await page.getByRole('button', { name: 'Enviar comunicado' }).click();
     await expect(page.getByRole('heading', { name: 'Novo comunicado' })).toBeVisible();
     await expect(page.getByText('2 candidato(s) escolhido(s):')).toBeVisible();
-    await page.getByLabel('Assunto').fill('Atualização do banco de talentos');
+    const assunto = `Atualização do banco de talentos ${randomBytes(3).toString('hex')}`;
+    await page.getByLabel('Assunto').fill(assunto);
     await page.getByLabel('Mensagem').fill('Olá, {{candidato}}. Temos novas vagas abertas no portal.');
     await page.getByRole('button', { name: 'Enviar agora' }).click();
     await expect(page.getByText(/e-mail\(s\) enviado\(s\)/)).toBeVisible();
-    await expect(page.getByRole('row', { name: /Atualização do banco de talentos/ })).toBeVisible();
+    await expect(page.getByRole('row', { name: new RegExp(assunto) })).toBeVisible();
+  });
+
+  test('etapas: administrador cria etapa, ela aparece no quadro e é excluída', async ({ page }) => {
+    const c = creds();
+    await login(page, c.admin);
+    await page.getByRole('link', { name: 'Etapas do processo' }).click();
+    const nome = `Teste técnico ${randomBytes(2).toString('hex')}`;
+    await page.getByRole('button', { name: 'Nova etapa' }).click();
+    await page.getByLabel('Nome da etapa').fill(nome);
+    await page.getByRole('button', { name: 'Salvar' }).click();
+    await expect(page.getByText(`4. ${nome}`)).toBeVisible();
+    await expect(page.getByText('5. Aprovação')).toBeVisible();
+
+    await page.getByRole('link', { name: 'Processos seletivos' }).click();
+    await page.getByRole('link', { name: 'Analista Administrativo (demo)' }).first().click();
+    await expect(page.getByRole('heading', { name: nome })).toBeVisible();
+
+    await page.goto('/etapas');
+    await page.getByRole('listitem').filter({ hasText: nome }).getByRole('button', { name: 'Excluir' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Excluir' }).click();
+    await expect(page.getByText(nome)).toHaveCount(0);
+    await expect(page.getByText('4. Aprovação')).toBeVisible();
   });
 });

@@ -23,6 +23,8 @@ export interface Stage {
   key: string;
   name: string;
   position: number;
+  isActive?: boolean;
+  isApproval?: boolean;
 }
 
 export interface Company {

@@ -196,7 +196,7 @@ export function registerLeadRoutes(app: FastifyInstance, deps: Deps) {
       }
 
       const batchId = rows.length > 1 ? randomUUID() : null;
-      const stage2 = await db.query<{ id: number }>('select id from stages order by position offset 1 limit 1');
+      const stage2 = await db.query<{ id: number }>('select id from stages where is_active order by position offset 1 limit 1');
       for (const item of body.items) {
         const r = rows.find((x) => x.id === item.applicationId)!;
         const up = await db.query(

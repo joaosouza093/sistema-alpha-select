@@ -144,11 +144,11 @@ cobrança ao WhatsApp do financeiro junto com o e-mail. **Não testado contra a 
 
 ## Navegador: telas novas
 
-`e2e/novos.spec.ts` (8 testes): relatórios com filtro e download do CSV, equipe sem o bloco financeiro; ativação da
+`e2e/novos.spec.ts` (9 testes): relatórios com filtro e download do CSV, equipe sem o bloco financeiro; ativação da
 verificação em duas etapas com QR code e login com código de recuperação; candidatura pelo portal com autorização de
 WhatsApp, visível na ficha do candidato; Meus dados no celular (correção de dados, WhatsApp, sem rolagem horizontal);
 Privacidade começa desligada e é só do administrador; nova cobrança com boleto anexado aparece no Financeiro do
-gestor da empresa (e não para o usuário comum); comunicado a candidatos selecionados na lista. Rodando várias vezes seguidas, o limite de 30 logins por IP a cada
+gestor da empresa (e não para o usuário comum); comunicado a candidatos selecionados na lista; etapa criada pelo administrador aparece no quadro e é excluída. Rodando várias vezes seguidas, o limite de 30 logins por IP a cada
 15 minutos bloqueia os testes: reinicie o servidor entre as rodadas.
 
 ## Importação de candidatos
@@ -180,3 +180,11 @@ internas; visão 360° da empresa só para administrador.
 {{nome_completo}} e {{vaga}} preenchidos, rodapé de descadastro e registro em message_log; descadastrados e sem e-mail
 ficam como "não enviado"; a tarefa periódica não reenvia; agendado só sai depois do horário, e cancelado não sai; a equipe
 só alcança candidatos que pode ver e só vê os próprios comunicados; usuário de cliente recebe 403.
+
+## Etapas configuráveis
+
+`stages.test.ts` (2 testes): administrador cria (entra antes da aprovação), renomeia, reordena (precisa enviar todas) e
+desativa; nome repetido recusado; sem ser administrador, só move para a etapa ativa vizinha (inclusive a nova); aprovação
+só na etapa de aprovação; não desativa etapa com candidato em avaliação nem a de aprovação; etapa usada não pode ser
+excluída (fica no histórico), nunca usada pode; com a etapa desativada no meio, as vizinhas passam a ser adjacentes;
+nova primeira etapa recebe os novos candidatos e sair dela marca o envio ao cliente; equipe recebe 403.

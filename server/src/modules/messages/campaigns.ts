@@ -168,7 +168,7 @@ export function registerCampaignRoutes(app: FastifyInstance, deps: Deps) {
           body: zText(10, 5000),
           candidateIds: z.array(zUuid).max(MAX_RECIPIENTS).default([]),
           processId: zUuid.nullish(),
-          stageId: z.number().int().min(1).max(10).nullish(),
+          stageId: z.number().int().min(1).max(32767).nullish(),
           onlyPending: z.boolean().default(false),
           scheduledAt: z.iso.datetime({ offset: true, message: 'Data inválida.' }).nullish(),
         })

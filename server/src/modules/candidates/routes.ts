@@ -67,7 +67,7 @@ export function registerCandidateRoutes(app: FastifyInstance, deps: Deps) {
       zPage.extend({
         q: z.string().max(100).optional(),
         processId: zUuid.optional(),
-        stageId: z.coerce.number().int().min(1).max(20).optional(),
+        stageId: z.coerce.number().int().min(1).max(32767).optional(),
         ownerId: zUuid.optional(),
         decision: z.enum(['pendente', 'aprovado', 'reprovado', 'desistiu']).optional(),
         archived: z.enum(['true', 'false']).default('false'),

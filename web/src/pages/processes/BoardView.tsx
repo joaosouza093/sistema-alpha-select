@@ -64,7 +64,7 @@ export function BoardView({ board }: { board: Board }) {
         {canMove ? 'Arraste um cartão para a coluna vizinha ou use os botões do cartão (acessíveis por teclado).' : 'Você pode consultar o quadro; movimentações dependem de permissão.'}
       </p>
       <div className="board">
-        {stages.map((s) => {
+        {stages.map((s, i) => {
           const col = cards.filter((c) => c.stageId === s.id);
           return (
             <section
@@ -87,7 +87,7 @@ export function BoardView({ board }: { board: Board }) {
             >
               <div className="column-header">
                 <h2 id={`col-${s.id}`} style={{ fontSize: '.95rem' }}>
-                  {s.position}. {s.name}
+                  {i + 1}. {s.name}{s.isActive === false && <span className="muted small"> (desativada)</span>}
                 </h2>
                 <span className="badge">{col.length}</span>
               </div>

@@ -57,6 +57,7 @@ export function AppLayout() {
               <div className="nav-section">Administração</div>
               <NavLink to="/clientes">Empresas clientes</NavLink>
               <NavLink to="/usuarios">Usuários e convites</NavLink>
+              <NavLink to="/etapas">Etapas do processo</NavLink>
               <NavLink to="/cadastros">Cadastros</NavLink>
               <NavLink to="/cobrancas">Cobranças</NavLink>
               <NavLink to="/mensagens">Mensagens</NavLink>

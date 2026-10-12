@@ -22,8 +22,11 @@ export function MoveDialog(p: Props) {
   const { isAdmin } = useAuth();
   const toast = useToast();
   const qc = useQueryClient();
+  // Só etapas ativas recebem candidatos; vizinhas pela ordem das ativas (desativada atual: qualquer uma).
+  const active = p.stages.filter((s) => s.isActive !== false);
   const current = p.stages.find((s) => s.id === p.currentStageId)!;
-  const allowed = p.stages.filter((s) => s.id !== p.currentStageId && (isAdmin || Math.abs(s.position - current.position) === 1));
+  const idx = active.findIndex((s) => s.id === p.currentStageId);
+  const allowed = active.filter((s, i) => s.id !== p.currentStageId && (isAdmin || idx < 0 || Math.abs(i - idx) === 1));
   const [target, setTarget] = useState<number>(
     p.initialTargetId && allowed.some((s) => s.id === p.initialTargetId) ? p.initialTargetId : allowed.find((s) => s.position > current.position)?.id ?? allowed[0]?.id ?? 0,
   );

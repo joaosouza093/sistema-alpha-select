@@ -256,7 +256,13 @@ export function registerProcessRoutes(app: FastifyInstance, deps: Deps) {
     return asUser(deps, req, async (db, user) => {
       const process = await loadProcess(db, id);
       const permissions = await processPermissions(db, user, id);
-      const stages = await db.query('select id, key, name, position from stages order by position');
+      // Etapas ativas, mais as desativadas que ainda têm candidatos neste processo.
+      const stages = await db.query(
+        `select id, key, name, position, is_active as "isActive", is_approval as "isApproval" from stages s
+          where s.is_active or exists (select 1 from applications a where a.process_id = $1 and a.stage_id = s.id)
+          order by position`,
+        [id],
+      );
       const { rows } = await db.query(
         `select a.id, a.stage_id as "stageId", a.decision, a.version, a.stage_changed_at as "stageChangedAt",
                 a.owner_id as "ownerId", app.person_label(a.owner_id) as "ownerName", s.full_name as "candidateName",

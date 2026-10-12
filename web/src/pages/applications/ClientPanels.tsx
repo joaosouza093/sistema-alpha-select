@@ -21,7 +21,7 @@ export function FeedbackCard({ a, stages }: { a: Application; stages: Stage[] })
   const open = a.process.status === 'em_andamento' && a.decision === 'pendente';
   const idx = stages.findIndex((s) => s.id === a.stageId);
   const next = stages[idx + 1];
-  const atApproval = stages[idx]?.key === 'aprovacao';
+  const atApproval = !!stages[idx]?.isApproval;
   if (!open || !(p.canMoveStage || p.canDecide || p.canComment)) return null;
 
   const run = async (fn: () => Promise<unknown>, ok: string) => {

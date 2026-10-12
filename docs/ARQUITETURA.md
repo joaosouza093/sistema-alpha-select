@@ -65,7 +65,7 @@ vazamento — isso foi verificado nos testes de mutação (ver `TESTES.md`).
 | `companies` | Empresas clientes | Nome único; desativar revoga acesso dos usuários |
 | `users` | Usuários (sem credenciais) | `kind` ∈ admin/equipe/cliente/gestor; cliente ⇔ empresa (CHECK); último admin protegido |
 | `user_credentials`, `sessions`, `invites`, `password_resets` | Autenticação | Sem acesso para `alpha_app`; tokens guardados apenas como hash SHA-256 |
-| `stages` | Etapas do fluxo | 4 etapas iniciais, ordenadas |
+| `stages` | Etapas do fluxo | 4 etapas iniciais; o administrador cria, renomeia, reordena e desativa (`is_active`, `is_approval`) |
 | `processes` | Processos por empresa | Empresa imutável; versão para concorrência |
 | `process_members` | Participantes autorizados | Usuário de cliente só em processo da própria empresa (gatilho); flags `can_move_stage`, `can_decide`, `can_comment` |
 | `candidates` | Cadastro interno Alpha | Clientes nunca leem esta tabela |
