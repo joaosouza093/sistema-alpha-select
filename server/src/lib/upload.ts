@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
-import { open, rm } from 'node:fs/promises';
+import { open, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import type { MultipartFile } from '@fastify/multipart';
-import { fileTypeFromFile } from 'file-type';
+import { fileTypeFromBuffer } from 'file-type';
 import type { Deps } from './context.js';
 import { AppError, badRequest } from './errors.js';
 import { cleanText } from './normalize.js';
@@ -63,6 +63,16 @@ async function looksLikeXml(file: string) {
   }
 }
 
+/**
+ * Tipo pela assinatura do conteúdo. Não usa
+ * fileTypeFromFile: ela carrega o leitor de arquivos em tempo de execução e o
+ * empacotador das funções do Netlify não o inclui (todo upload falhava lá).
+ */
+async function detectType(file: string) {
+  // O arquivo já passou pelo limite de tamanho (4 MB no Netlify); DOCX/ODT são ZIP e precisam do conteúdo.
+  return fileTypeFromBuffer(await readFile(file));
+}
+
 async function hasPdfHeader(file: string) {
   const fh = await open(file, 'r');
   try {
@@ -117,7 +127,7 @@ export async function receiveUpload(
       throw new AppError(413, 'too_large', `Arquivo acima do limite de ${deps.config.MAX_UPLOAD_MB} MB.`);
     }
     if (size === 0) throw badRequest('Arquivo vazio.');
-    const detected = await fileTypeFromFile(tmp);
+    const detected = await detectType(tmp);
     const xmlOk = ext === 'xml' && !detected && (await looksLikeXml(tmp));
     if (!xmlOk && (!detected || !rule.detected.includes(detected.mime))) {
       throw new AppError(415, 'unsupported', 'O conteúdo do arquivo não corresponde à extensão informada.');

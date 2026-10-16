@@ -7,6 +7,19 @@ import { mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
+
+// file-type: fileTypeFromFile/fileTypeFromStream carregam 'strtok3' em tempo de execução,
+// que o empacotador do Netlify não inclui — todo upload falhava em produção. Use fileTypeFromBuffer.
+let offenders = '';
+try {
+  offenders = execFileSync('grep', ['-rlE', 'fileTypeFrom(File|Stream|Blob)[[:space:]]*[(,}]', 'server/src'], { encoding: 'utf8' }).trim();
+} catch {
+  /* grep sem ocorrências: tudo certo */
+}
+if (offenders) {
+  console.error('FALHA file-type: use fileTypeFromBuffer em ' + offenders);
+  process.exit(1);
+}
 const out = path.join(root, '.netlify-runtime-check');
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
