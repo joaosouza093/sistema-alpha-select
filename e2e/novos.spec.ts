@@ -255,4 +255,61 @@ test.describe('telas novas', () => {
     await expect(page.getByText(nome)).toHaveCount(0);
     await expect(page.getByText('4. Aprovação')).toBeVisible();
   });
+
+  test('admissão: aprovado preenche os dados pessoais com o termo e a equipe vê na ficha', async ({ page }) => {
+    const url = ownerUrl();
+    test.skip(!url, 'sem acesso ao banco de desenvolvimento');
+    const c = creds();
+    await login(page, c.admin);
+    const email = `admissao.${c.suffix}.${randomBytes(3).toString('hex')}@exemplo.invalid`;
+    const cand = await apiCall<{ id: string }>(page, 'POST', '/api/candidates', { fullName: 'Pessoa Aprovada Teste', email, confirmDuplicate: true });
+    const procs = await apiCall<{ items: { id: string }[] }>(page, 'GET', '/api/processes?status=em_andamento');
+    const app = await apiCall<{ id: string }>(page, 'POST', '/api/applications', { candidateId: cand.id, processId: procs.items[0]!.id });
+    const stages = await apiCall<{ items: { id: number }[] }>(page, 'GET', '/api/stages');
+    for (const s of stages.items.slice(1)) {
+      const a = await apiCall<{ version: number }>(page, 'GET', `/api/applications/${app.id}`);
+      await apiCall(page, 'POST', `/api/applications/${app.id}/move`, { toStageId: s.id, expectedVersion: a.version });
+    }
+    const a = await apiCall<{ version: number }>(page, 'GET', `/api/applications/${app.id}`);
+    await apiCall(page, 'POST', `/api/applications/${app.id}/decision`, { decision: 'aprovado', expectedVersion: a.version });
+
+    const token = randomBytes(32).toString('base64url');
+    const db = new pg.Client({ connectionString: url! });
+    await db.connect();
+    await db.query(
+      `insert into candidate_access_tokens (token_hash, email, purpose, expires_at) values ($1, $2, 'admissao', now() + interval '1 hour')`,
+      [createHash('sha256').update(token).digest(), email],
+    );
+    await db.end();
+
+    const visitor = await page.context().browser()!.newPage();
+    await visitor.goto(`/meus-dados#token=${token}`);
+    await expect(visitor.getByRole('heading', { name: 'Dados pessoais para admissão' })).toBeVisible();
+    const form = visitor.locator('section', { has: visitor.getByRole('heading', { name: 'Dados pessoais para admissão' }) });
+    await form.getByLabel('Data de nascimento').fill('1991-02-03');
+    await form.getByLabel('Sexo').selectOption('feminino');
+    await form.getByLabel('Estado civil').selectOption('solteiro');
+    await form.getByLabel('Naturalidade (cidade)').fill('Santos');
+    await form.getByLabel('Naturalidade (UF)').selectOption('SP');
+    await form.getByLabel('CPF').fill('52998224725');
+    await form.getByRole('textbox', { name: 'RG', exact: true }).fill('11.222.333-4');
+    await form.getByLabel('Órgão emissor do RG').fill('SSP');
+    await form.getByLabel('UF do RG').selectOption('SP');
+    await form.getByLabel('Data de emissão do RG').fill('2012-01-15');
+    await form.getByLabel('Endereço completo').fill('Rua das Palmeiras, 50, Centro, Santos/SP, 11010-000');
+    await form.getByLabel('Telefone celular').fill('(13) 98888-1234');
+    await form.getByLabel('Nome completo da mãe').fill('Joana Teste');
+    await expect(form.getByRole('button', { name: 'Enviar dados' })).toBeDisabled();
+    await form.getByLabel(/declaro que as informações fornecidas são verdadeiras/).check();
+    await form.getByRole('button', { name: 'Enviar dados' }).click();
+    await expect(visitor.getByText('Dados para admissão enviados. Obrigado!')).toBeVisible();
+    await visitor.close();
+
+    await page.goto(`/candidatos/${cand.id}`);
+    await expect(page.getByText('529.982.247-25')).toBeVisible();
+    await expect(page.getByText('Joana Teste')).toBeVisible();
+    await page.getByRole('tab', { name: /Documentos/ }).click();
+    await expect(page.getByLabel('Tipo').locator('option', { hasText: 'Antecedentes criminais' })).toHaveCount(1);
+    await expect(page.getByLabel('Tipo').locator('option', { hasText: 'Processos' })).toHaveCount(1);
+  });
 });

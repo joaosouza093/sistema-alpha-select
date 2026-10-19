@@ -144,7 +144,7 @@ cobrança ao WhatsApp do financeiro junto com o e-mail. **Não testado contra a 
 
 ## Navegador: telas novas
 
-`e2e/novos.spec.ts` (9 testes): relatórios com filtro e download do CSV, equipe sem o bloco financeiro; ativação da
+`e2e/novos.spec.ts` (10 testes): relatórios com filtro e download do CSV, equipe sem o bloco financeiro; ativação da
 verificação em duas etapas com QR code e login com código de recuperação; candidatura pelo portal com autorização de
 WhatsApp, visível na ficha do candidato; Meus dados no celular (correção de dados, WhatsApp, sem rolagem horizontal);
 Privacidade começa desligada e é só do administrador; nova cobrança com boleto anexado aparece no Financeiro do
@@ -188,3 +188,11 @@ desativa; nome repetido recusado; sem ser administrador, só move para a etapa a
 só na etapa de aprovação; não desativa etapa com candidato em avaliação nem a de aprovação; etapa usada não pode ser
 excluída (fica no histórico), nunca usada pode; com a etapa desativada no meio, as vizinhas passam a ser adjacentes;
 nova primeira etapa recebe os novos candidatos e sair dela marca o envio ao cliente; equipe recebe 403.
+
+## Dados pessoais para admissão
+
+`admission.test.ts` (4 testes): CPF com dígitos verificadores; antes da aprovação o formulário não aparece nem aceita envio
+e a equipe não gera link; ao aprovar, o candidato recebe o link por e-mail; termo LGPD obrigatório e gravado com o texto
+exato; CPF inválido recusado; reenvio corrige; equipe Alpha lê, exportações do titular incluem os dados; cliente não lê
+(API e banco) e equipe sem acesso ao candidato também não; categorias "Antecedentes criminais" e "Processos" nos documentos.
+No navegador: candidato aprovado preenche o formulário (botão só libera com o termo marcado) e a equipe vê na ficha.

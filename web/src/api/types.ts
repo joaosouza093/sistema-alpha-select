@@ -153,7 +153,7 @@ export interface CandidateRow {
 
 export interface DocumentRow {
   id: string;
-  kind: 'curriculo' | 'documento' | 'outro';
+  kind: 'curriculo' | 'documento' | 'antecedentes_criminais' | 'processos' | 'outro';
   name: string;
   mimeType: string;
   size: number;
@@ -578,4 +578,26 @@ export interface CompanyOverview {
   contracts: Contract[];
   activity: { action: string; occurredAt: string; actorName: string | null }[];
   today: string;
+}
+
+export interface AdmissionData {
+  fullName: string;
+  birthDate: string;
+  sex: 'feminino' | 'masculino' | 'outro' | 'nao_informado';
+  maritalStatus: 'solteiro' | 'casado' | 'uniao_estavel' | 'divorciado' | 'separado' | 'viuvo';
+  nationality: string;
+  birthplaceCity: string;
+  birthplaceState: string;
+  cpf: string;
+  rg: string;
+  rgIssuer: string;
+  rgState: string;
+  rgIssueDate: string;
+  address: string;
+  mobilePhone: string;
+  motherName: string;
+  fatherName: string | null;
+  consentAt: string;
+  submittedAt: string;
+  updatedAt: string;
 }

@@ -1,3 +1,4 @@
+import { admissionSelect } from './admission.js';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { Deps } from '../../lib/context.js';
@@ -310,12 +311,14 @@ export function registerCandidateRoutes(app: FastifyInstance, deps: Deps) {
            from documents d where d.candidate_id = $1 order by d.created_at`,
         [id],
       );
+      const adm = await db.query(`select ${admissionSelect} from candidate_admission_data where candidate_id = $1`, [id]);
       await audit(db, req, 'candidate.exported', 'candidate', id);
       return {
         geradoEm: new Date().toISOString(),
         candidato: cand.rows[0],
         participacoes: apps.rows,
         documentos: docs.rows,
+        dadosParaAdmissao: adm.rows[0] ?? null,
       };
     });
     reply

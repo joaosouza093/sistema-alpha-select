@@ -12,6 +12,7 @@ import { insertAudit } from '../auth/service.js';
 import { eraseCandidates } from '../candidates/erase.js';
 import { CONSENT_VERSION } from '../public/routes.js';
 import { PROFILE_COLUMNS, PROFILE_KEYS, profileSelect, zProfile } from '../candidates/profile.js';
+import { ADMISSION_CONSENT, admissionSelect, approvedCandidate, zAdmission } from '../candidates/admission.js';
 
 /**
  * Área do candidato: acesso aos próprios dados por link enviado ao e-mail
@@ -28,7 +29,7 @@ export function candidatePortalLink(deps: Deps, token: string) {
 }
 
 /** Cria um token de acesso aos dados do e-mail (usado também pelo aviso de retenção). */
-export async function createCandidateToken(db: Db, email: string, purpose: 'acesso' | 'retencao', minutes: number) {
+export async function createCandidateToken(db: Db, email: string, purpose: 'acesso' | 'retencao' | 'admissao', minutes: number) {
   const token = newToken();
   // Um link novo invalida os anteriores do mesmo tipo para aquele e-mail.
   await db.query('delete from candidate_access_tokens where email = $1 and purpose = $2', [email, purpose]);
@@ -139,6 +140,11 @@ export function registerCandidatePortalRoutes(app: FastifyInstance, deps: Deps) 
       [ids],
     );
     const r = ret.rows[0];
+    // Dados para admissão: só depois da aprovação em algum processo.
+    const approvedId = await approvedCandidate(owner, ids);
+    const adm = approvedId
+      ? await owner.query(`select ${admissionSelect} from candidate_admission_data where candidate_id = $1`, [approvedId])
+      : null;
     const deletionScheduledFor = r?.enabled && r.notice_at ? new Date(r.notice_at.getTime() + r.notice_days * 86_400_000) : null;
     return {
       ...c.rows[0],
@@ -155,7 +161,36 @@ export function registerCandidatePortalRoutes(app: FastifyInstance, deps: Deps) 
       documents: docs.rows,
       messages: msgs.rows,
       deletionScheduledFor,
+      admission: { available: !!approvedId, data: adm?.rows[0] ?? null, consentText: ADMISSION_CONSENT },
     };
+  });
+
+  /** Formulário de dados pessoais para admissão (candidato aprovado). */
+  app.put('/api/public/my-data/admission', pub, async (req) => {
+    await deps.limiters.tokenIp.consume(`cand-adm:${req.ip}`);
+    const { ids } = await resolve(req);
+    const body = parse(zAdmission, req.body);
+    const candidateId = await approvedCandidate(owner, ids);
+    if (!candidateId) throw new AppError(403, 'forbidden', 'O formulário fica disponível depois da aprovação no processo seletivo.');
+    await withTx(owner, async (db) => {
+      await db.query(
+        `insert into candidate_admission_data (candidate_id, full_name, birth_date, sex, marital_status, nationality, birthplace_city,
+           birthplace_state, cpf, rg, rg_issuer, rg_state, rg_issue_date, address, mobile_phone, mother_name, father_name,
+           consent_text, consent_at)
+         values ($1, $2, $3::date, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::date, $14, $15, $16, $17, $18, now())
+         on conflict (candidate_id) do update set full_name = excluded.full_name, birth_date = excluded.birth_date, sex = excluded.sex,
+           marital_status = excluded.marital_status, nationality = excluded.nationality, birthplace_city = excluded.birthplace_city,
+           birthplace_state = excluded.birthplace_state, cpf = excluded.cpf, rg = excluded.rg, rg_issuer = excluded.rg_issuer,
+           rg_state = excluded.rg_state, rg_issue_date = excluded.rg_issue_date, address = excluded.address,
+           mobile_phone = excluded.mobile_phone, mother_name = excluded.mother_name, father_name = excluded.father_name,
+           consent_text = excluded.consent_text, consent_at = now(), updated_at = now()`,
+        [candidateId, body.fullName, body.birthDate, body.sex, body.maritalStatus, body.nationality, body.birthplaceCity,
+          body.birthplaceState, body.cpf, body.rg, body.rgIssuer, body.rgState, body.rgIssueDate, body.address, body.mobilePhone,
+          body.motherName, body.fatherName, ADMISSION_CONSENT],
+      );
+      await insertAudit(db, null, 'candidate.admission_submitted', 'candidate', candidateId, req.ip);
+    });
+    return { ok: true };
   });
 
   app.patch('/api/public/my-data', pub, async (req) => {
@@ -291,6 +326,7 @@ export function registerCandidatePortalRoutes(app: FastifyInstance, deps: Deps) 
          from message_log where candidate_id = any($1::uuid[]) order by sent_at`,
       [ids],
     );
+    const adm = await owner.query(`select ${admissionSelect} from candidate_admission_data where candidate_id = any($1::uuid[])`, [ids]);
     await insertAudit(owner as unknown as Db, null, 'candidate.self_exported', 'candidate', ids[0]!, req.ip);
     reply
       .header('Content-Type', 'application/json; charset=utf-8')
@@ -302,6 +338,7 @@ export function registerCandidatePortalRoutes(app: FastifyInstance, deps: Deps) 
         candidaturas: apps.rows.map(({ decision, sent, ...a }) => ({ ...a, situacao: appStatus(a.situacaoDoProcesso, decision, sent) })),
         documentos: docs.rows,
         mensagens: msgs.rows,
+        dadosParaAdmissao: adm.rows,
         observacao:
           'Avaliações e anotações internas da equipe não são exibidas aqui. Para uma cópia completa, peça à Alpha Select.',
       },

@@ -4,6 +4,9 @@ import { Alert, Button, Checkbox, ConfirmDialog, Loading, TextField, fieldErrors
 import { fmtDate, fmtDateTime, fmtPhone, fmtSize, parseMoneyToCents } from '../../lib/format';
 import { readHashToken } from '../auth/AuthShell';
 import { PublicLayout } from './PublicLayout';
+import type { AdmissionData } from '../../api/types';
+import { UFS, maritalLabel, sexLabel, fmtCpf } from '../../lib/format';
+import { SelectField, TextArea } from '../../components/ui';
 import { ProfileFields, profileFrom, profilePayload } from '../../components/ProfileFields';
 
 interface MyData {
@@ -34,6 +37,7 @@ interface MyData {
   documents: { name: string; size: number; createdAt: string }[];
   messages: { subject: string; sentAt: string }[];
   deletionScheduledFor: string | null;
+  admission: { available: boolean; data: AdmissionData | null; consentText: string };
 }
 
 const STORAGE_KEY = 'alpha-candidate-token';
@@ -165,6 +169,7 @@ function Portal({ token, onExit }: { token: string; onExit: () => void }) {
         </Alert>
       )}
 
+      {data.admission.available && <AdmissionCard data={data} capi={capi} onDone={done} />}
       <ConsentCard data={data} capi={capi} onDone={done} />
       <ProfileForm data={data} capi={capi} onDone={done} />
       <ResumeCard data={data} token={token} onDone={done} />
@@ -397,6 +402,100 @@ function PrivacyCard({ capi, onErased }: { capi: Capi; onErased: () => void }) {
           message="Todos os seus dados, currículos e candidaturas na Alpha Select serão apagados definitivamente. Esta ação não pode ser desfeita."
           confirmLabel="Excluir definitivamente" requireText="EXCLUIR" onConfirm={erase} onCancel={() => setConfirming(false)} />
       )}
+    </section>
+  );
+}
+
+const maskCpf = (v: string) => {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  return d.replace(/^(\d{3})(\d)/, '$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d{1,2})$/, '.$1-$2');
+};
+
+/** Dados pessoais para admissão: aparece só depois da aprovação no processo seletivo. */
+function AdmissionCard({ data, capi, onDone }: CardProps) {
+  const d = data.admission.data;
+  const [f, setF] = useState({
+    fullName: d?.fullName ?? data.fullName, birthDate: d?.birthDate ?? data.birthDate ?? '', sex: d?.sex ?? '', maritalStatus: d?.maritalStatus ?? '',
+    nationality: d?.nationality ?? 'Brasileira', birthplaceCity: d?.birthplaceCity ?? '', birthplaceState: d?.birthplaceState ?? '',
+    cpf: d?.cpf ? fmtCpf(d.cpf) : '', rg: d?.rg ?? '', rgIssuer: d?.rgIssuer ?? '', rgState: d?.rgState ?? '', rgIssueDate: d?.rgIssueDate ?? '',
+    address: d?.address ?? '', mobilePhone: d?.mobilePhone ? fmtPhone(d.mobilePhone) : data.phone ? fmtPhone(data.phone) : '',
+    motherName: d?.motherName ?? '', fatherName: d?.fatherName ?? '',
+  });
+  const [accept, setAccept] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+  const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: k === 'cpf' ? maskCpf(e.target.value) : e.target.value });
+  const today = new Date().toISOString().slice(0, 10);
+  const required: (keyof typeof f)[] = ['fullName', 'birthDate', 'sex', 'maritalStatus', 'nationality', 'birthplaceCity', 'birthplaceState', 'cpf', 'rg',
+    'rgIssuer', 'rgState', 'rgIssueDate', 'address', 'mobilePhone', 'motherName'];
+  const complete = required.every((k) => f[k].trim());
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setErrors({});
+    try {
+      await capi.put('/api/public/my-data/admission', { ...f, fatherName: f.fatherName || null, acceptTerms: accept });
+      setAccept(false);
+      await onDone('Dados para admissão enviados. Obrigado!');
+    } catch (err) {
+      setErrors({ _: err instanceof ApiError ? err.message : 'Não foi possível enviar.', ...fieldErrors(err) });
+    } finally {
+      setBusy(false);
+    }
+  };
+  const uf = (k: 'birthplaceState' | 'rgState', label: string) => (
+    <SelectField label={label} value={f[k]} onChange={set(k)} required error={errors[k]}>
+      <option value="">Selecione</option>
+      {UFS.map((u) => <option key={u} value={u}>{u}</option>)}
+    </SelectField>
+  );
+  return (
+    <section className="card">
+      <div className="card-header"><h2>Dados pessoais para admissão</h2></div>
+      <form className="card-body stack" onSubmit={submit} noValidate>
+        <Alert kind={d ? 'success' : 'info'}>
+          {d ? <>Recebemos seus dados em {fmtDateTime(d.updatedAt)}. Se precisar corrigir algo, altere abaixo e envie de novo.</>
+            : <>Você foi aprovado(a) no processo seletivo. Preencha seus dados para a admissão. Eles são vistos somente pela equipe da Alpha Select.</>}
+        </Alert>
+        {errors._ && <Alert>{errors._}</Alert>}
+        <TextField label="Nome completo" value={f.fullName} onChange={set('fullName')} maxLength={160} required error={errors.fullName} autoComplete="name" />
+        <div className="grid grid-3">
+          <TextField label="Data de nascimento" type="date" value={f.birthDate} onChange={set('birthDate')} max={today} required error={errors.birthDate} />
+          <SelectField label="Sexo" value={f.sex} onChange={set('sex')} required error={errors.sex}>
+            <option value="">Selecione</option>
+            {Object.entries(sexLabel).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </SelectField>
+          <SelectField label="Estado civil" value={f.maritalStatus} onChange={set('maritalStatus')} required error={errors.maritalStatus}>
+            <option value="">Selecione</option>
+            {Object.entries(maritalLabel).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </SelectField>
+        </div>
+        <div className="grid grid-3">
+          <TextField label="Nacionalidade" value={f.nationality} onChange={set('nationality')} maxLength={60} required error={errors.nationality} />
+          <TextField label="Naturalidade (cidade)" value={f.birthplaceCity} onChange={set('birthplaceCity')} maxLength={120} required error={errors.birthplaceCity} />
+          {uf('birthplaceState', 'Naturalidade (UF)')}
+        </div>
+        <div className="grid grid-2">
+          <TextField label="CPF" value={f.cpf} onChange={set('cpf')} inputMode="numeric" maxLength={14} required error={errors.cpf} />
+          <TextField label="RG" value={f.rg} onChange={set('rg')} maxLength={20} required error={errors.rg} />
+        </div>
+        <div className="grid grid-3">
+          <TextField label="Órgão emissor do RG" value={f.rgIssuer} onChange={set('rgIssuer')} maxLength={20} placeholder="Ex.: SSP" required error={errors.rgIssuer} />
+          {uf('rgState', 'UF do RG')}
+          <TextField label="Data de emissão do RG" type="date" value={f.rgIssueDate} onChange={set('rgIssueDate')} max={today} required error={errors.rgIssueDate} />
+        </div>
+        <TextArea label="Endereço completo" value={f.address} onChange={set('address')} maxLength={300} rows={2} required error={errors.address}
+          placeholder="Rua, número, complemento, bairro, cidade/UF e CEP" />
+        <TextField label="Telefone celular" type="tel" value={f.mobilePhone} onChange={set('mobilePhone')} required error={errors.mobilePhone} autoComplete="tel" />
+        <div className="grid grid-2">
+          <TextField label="Nome completo da mãe" value={f.motherName} onChange={set('motherName')} maxLength={160} required error={errors.motherName} />
+          <TextField label="Nome do pai" value={f.fatherName} onChange={set('fatherName')} maxLength={160} hint="Opcional." error={errors.fatherName} />
+        </div>
+        <Checkbox checked={accept} onChange={(e) => setAccept(e.target.checked)} label={data.admission.consentText} />
+        {errors.acceptTerms && <span className="error" role="alert">{errors.acceptTerms}</span>}
+        <div><Button type="submit" variant="primary" loading={busy} disabled={!accept || !complete}>Enviar dados</Button></div>
+      </form>
     </section>
   );
 }

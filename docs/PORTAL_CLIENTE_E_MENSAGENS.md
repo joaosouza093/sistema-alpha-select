@@ -46,3 +46,14 @@ Corresponde aos Módulos 6 e 7 do documento de escopo. O WhatsApp está em `WHAT
   aparecem no histórico de mensagens do candidato.
 - Somente por **e-mail**: o WhatsApp oficial não aceita texto livre, só modelos aprovados pela Meta.
 - A equipe só alcança candidatos que já pode ver e só vê os próprios comunicados; o administrador vê todos.
+
+## Dados pessoais para admissão
+
+- Liberados ao candidato **somente depois da aprovação** em um processo seletivo. Ao registrar "Aprovado", o candidato
+  recebe por e-mail um link (válido por 7 dias) para a área **Meus dados**, onde aparece o formulário.
+- Campos: nome completo, data de nascimento, sexo, estado civil, nacionalidade, naturalidade (cidade/UF), CPF (validado),
+  RG, órgão emissor, UF e data de emissão do RG, endereço completo, celular, nome da mãe e nome do pai (opcional).
+- No fim, caixa obrigatória com o termo de consentimento (LGPD) no texto pedido pela Alpha Select; o texto e a data do aceite
+  ficam gravados. O candidato pode corrigir e reenviar.
+- Na ficha do candidato (aba Dados), a equipe Alpha vê os dados e pode **gerar o link** de novo (copiado para enviar pelo
+  WhatsApp quando o e-mail não estiver configurado). Os clientes nunca veem esses dados. Cada consulta fica na auditoria.

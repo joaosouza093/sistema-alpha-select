@@ -1,15 +1,15 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client';
-import type { Candidate, DocumentRow, MessageLogRow, Page, ProcessRow, Stage } from '../../api/types';
+import type { AdmissionData, Candidate, DocumentRow, MessageLogRow, Page, ProcessRow, Stage } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
 import {
   Alert, Button, ConfirmDialog, DecisionBadge, Empty, ErrorState, Loading, Modal, PageHeader, SelectField, StatusBadge,
-  Tabs, usePageTitle, useToast,
+  Tabs, TextField, usePageTitle, useToast,
 } from '../../components/ui';
 import { DocumentPreview } from '../../components/DocumentPreview';
-import { docKindLabel, educationLabel, educationStatusLabel, fmtCep, fmtDateTime, fmtDay, fmtMoney, fmtPhone, fmtSize, templateLabel } from '../../lib/format';
+import { fmtCpf, maritalLabel, sexLabel, docKindLabel, educationLabel, educationStatusLabel, fmtCep, fmtDateTime, fmtDay, fmtMoney, fmtPhone, fmtSize, templateLabel } from '../../lib/format';
 
 type Tab = 'dados' | 'participacoes' | 'documentos';
 
@@ -114,6 +114,7 @@ function DataTab({ c }: { c: Candidate }) {
           </dl>
         </div>
       </section>
+      <AdmissionPanel candidateId={c.id} />
       <MessagesCard candidateId={c.id} />
       <section className="card">
         <div className="card-header"><h2>Ciclo de vida do cadastro</h2></div>
@@ -217,7 +218,7 @@ function DocumentsTab({ c, initialApp }: { c: Candidate; initialApp: string | nu
   const qc = useQueryClient();
   const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [kind, setKind] = useState<'curriculo' | 'documento' | 'outro'>('curriculo');
+  const [kind, setKind] = useState<keyof typeof docKindLabel>('curriculo');
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [preview, setPreview] = useState<DocumentRow | null>(null);
@@ -377,6 +378,77 @@ function MessagesCard({ candidateId }: { candidateId: string }) {
               </li>
             ))}
           </ul>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/** Dados pessoais para admissão (só a equipe Alpha vê; o cliente nunca). */
+function AdmissionPanel({ candidateId }: { candidateId: string }) {
+  const toast = useToast();
+  const q = useQuery({
+    queryKey: ['admission', candidateId],
+    queryFn: () => api.get<{ approved: boolean; hasEmail: boolean; data: AdmissionData | null }>(`/api/candidates/${candidateId}/admission`),
+  });
+  const [link, setLink] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  if (q.isLoading || q.isError || !q.data) return null;
+  const { approved, hasEmail, data: d } = q.data;
+  const makeLink = async () => {
+    setBusy(true);
+    try {
+      const r = await api.post<{ link: string; emailed: boolean }>(`/api/candidates/${candidateId}/admission-link`);
+      setLink(r.link);
+      try {
+        await navigator.clipboard.writeText(r.link);
+      } catch {
+        /* sem permissão de área de transferência: o link aparece na tela */
+      }
+      toast.success(r.emailed ? 'Link enviado por e-mail ao candidato e copiado.' : 'Link gerado e copiado. Envie ao candidato (vale por 7 dias).');
+    } catch (e) {
+      toast.error(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const row = (label: string, value: ReactNode) => <><dt>{label}</dt><dd>{value || '—'}</dd></>;
+  return (
+    <section className="card">
+      <div className="card-header"><h2>Dados pessoais para admissão</h2></div>
+      <div className="card-body stack">
+        {!approved ? (
+          <p className="muted" style={{ margin: 0 }}>O formulário é liberado ao candidato depois da aprovação em um processo seletivo.</p>
+        ) : !d ? (
+          <>
+            <p style={{ margin: 0 }}>Candidato aprovado. Aguardando o preenchimento dos dados pessoais.</p>
+            {hasEmail ? (
+              <div className="row">
+                <Button size="sm" loading={busy} onClick={makeLink}>Gerar link do formulário</Button>
+                <span className="muted small">O link é enviado por e-mail (se configurado) e copiado para você mandar pelo WhatsApp.</span>
+              </div>
+            ) : <p className="muted small" style={{ margin: 0 }}>Cadastre o e-mail do candidato para gerar o link.</p>}
+            {link && <TextField label="Link do formulário (vale por 7 dias)" value={link} readOnly onFocus={(e) => e.currentTarget.select()} />}
+          </>
+        ) : (
+          <>
+            <dl className="dl">
+              {row('Nome completo', d.fullName)}
+              {row('Data de nascimento', fmtDay(d.birthDate))}
+              {row('Sexo', sexLabel[d.sex])}
+              {row('Estado civil', maritalLabel[d.maritalStatus])}
+              {row('Nacionalidade', d.nationality)}
+              {row('Naturalidade', `${d.birthplaceCity}/${d.birthplaceState}`)}
+              {row('CPF', fmtCpf(d.cpf))}
+              {row('RG', `${d.rg} · ${d.rgIssuer}/${d.rgState} · emitido em ${fmtDay(d.rgIssueDate)}`)}
+              {row('Endereço completo', d.address)}
+              {row('Telefone celular', fmtPhone(d.mobilePhone))}
+              {row('Nome da mãe', d.motherName)}
+              {row('Nome do pai', d.fatherName)}
+              {row('Termo LGPD', `Aceito em ${fmtDateTime(d.consentAt)}`)}
+            </dl>
+            <p className="muted small" style={{ margin: 0 }}>Enviado pelo candidato em {fmtDateTime(d.submittedAt)}{d.updatedAt !== d.submittedAt ? `, atualizado em ${fmtDateTime(d.updatedAt)}` : ''}. Visível somente à equipe da Alpha Select.</p>
+          </>
         )}
       </div>
     </section>
