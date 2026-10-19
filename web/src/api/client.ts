@@ -69,6 +69,7 @@ export function candidateApi(token: string) {
     get: <T>(url: string) => request<T>('GET', url, undefined, h),
     post: <T>(url: string, body: unknown = {}) => request<T>('POST', url, body, h),
     patch: <T>(url: string, body: unknown = {}) => request<T>('PATCH', url, body, h),
+    put: <T>(url: string, body: unknown = {}) => request<T>('PUT', url, body, h),
     /** Baixa um arquivo (resposta não-JSON). */
     download: async (url: string, filename: string) => {
       const res = await fetch(url, { headers: h, cache: 'no-store' });

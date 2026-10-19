@@ -28,7 +28,7 @@ export function registerDocumentRoutes(app: FastifyInstance, deps: Deps) {
     if (!part) throw badRequest('Nenhum arquivo enviado.');
 
     const kindField = part.fields.kind as { value?: unknown } | undefined;
-    const kind = parse(z.enum(['curriculo', 'documento', 'outro']).default('curriculo'), kindField?.value ?? undefined);
+    const kind = parse(z.enum(['curriculo', 'documento', 'antecedentes_criminais', 'processos', 'outro']).default('curriculo'), kindField?.value ?? undefined);
     const tmp = storage.tmpPath();
     let committedKey: string | null = null;
 

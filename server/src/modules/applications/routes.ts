@@ -1,3 +1,4 @@
+import { sendAdmissionInvite } from '../candidates/admission.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { Deps } from '../../lib/context.js';
@@ -144,6 +145,11 @@ export function registerApplicationRoutes(app: FastifyInstance, deps: Deps) {
       await audit(db, req, 'application.decision', 'application', id, a.company_id, { decision: body.decision, reason });
       return { ok: true };
     });
+    if (body.decision === 'aprovado') {
+      // Aprovado: libera e envia o link do formulário de dados para admissão.
+      const c = await deps.pools.owner.query<{ candidate_id: string }>('select candidate_id from applications where id = $1', [id]);
+      if (c.rows[0]) await sendAdmissionInvite(deps, c.rows[0].candidate_id, { send: true }).catch(() => undefined);
+    }
     if (body.decision === 'reprovado') {
       const c = await deps.pools.owner.query<{ candidate_id: string }>('select candidate_id from applications where id = $1', [id]);
       if (c.rows[0]) await sendCandidateMessage(deps, 'reprovacao', { candidateId: c.rows[0].candidate_id, applicationId: id });

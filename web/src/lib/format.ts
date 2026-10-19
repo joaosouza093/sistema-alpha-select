@@ -45,7 +45,9 @@ export const decisionLabel: Record<Decision, string> = {
   desistiu: 'Desistiu',
 };
 
-export const docKindLabel = { curriculo: 'Currículo', documento: 'Documento', outro: 'Outro' } as const;
+export const docKindLabel = {
+  curriculo: 'Currículo', documento: 'Documento', antecedentes_criminais: 'Antecedentes criminais', processos: 'Processos', outro: 'Outro',
+} as const;
 
 export const isAlphaKind = (k: UserKind | undefined) => k === 'alpha_admin' || k === 'alpha_staff';
 
@@ -114,6 +116,7 @@ export const templateLabel = {
   reprovacao: 'Não aprovado',
   aviso_retencao: 'Aviso de exclusão (retenção)',
   comunicado: 'Comunicado',
+  dados_admissao: 'Link dos dados para admissão',
 } as const;
 
 export const UFS = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI',
@@ -136,3 +139,9 @@ export const fmtCep = (v: string | null | undefined) => (v && /^\d{8}$/.test(v) 
 export const modalityLabel = { mensalidade: 'Mensalidade', pacote: 'Pacote de vagas', sucesso: 'Taxa de sucesso', outro: 'Outro' } as const;
 export const contractStatusLabel = { ativo: 'Ativo', suspenso: 'Suspenso', encerrado: 'Encerrado' } as const;
 export const contractStatusBadge = { ativo: 'badge-success', suspenso: 'badge-warning', encerrado: '' } as const;
+
+export const sexLabel = { feminino: 'Feminino', masculino: 'Masculino', outro: 'Outro', nao_informado: 'Prefiro não informar' } as const;
+export const maritalLabel = {
+  solteiro: 'Solteiro(a)', casado: 'Casado(a)', uniao_estavel: 'União estável', divorciado: 'Divorciado(a)', separado: 'Separado(a)', viuvo: 'Viúvo(a)',
+} as const;
+export const fmtCpf = (v: string | null | undefined) => (v && /^\d{11}$/.test(v) ? `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6, 9)}-${v.slice(9)}` : v || '—');
