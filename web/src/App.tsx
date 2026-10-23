@@ -37,13 +37,13 @@ import { AuditPage } from './pages/admin/AuditPage';
 import { AccountPage } from './pages/AccountPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
-function RequireAuth({ children, alpha, admin, manager }: { children: ReactNode; alpha?: boolean; admin?: boolean; manager?: boolean }) {
+function RequireAuth({ children, alpha, admin, client }: { children: ReactNode; alpha?: boolean; admin?: boolean; client?: boolean }) {
   const { user, loading, isAlpha, isAdmin } = useAuth();
   const loc = useLocation();
   if (loading) return <Loading />;
   if (!user) return <Navigate to="/entrar" replace state={{ from: loc.pathname }} />;
   // Proteção de interface apenas; a autorização efetiva é feita no servidor e no banco.
-  if ((admin && !isAdmin) || (alpha && !isAlpha) || (manager && user.kind !== 'client_manager')) return <NotFoundPage />;
+  if ((admin && !isAdmin) || (alpha && !isAlpha) || (client && isAlpha)) return <NotFoundPage />;
   return <>{children}</>;
 }
 
@@ -81,7 +81,7 @@ export function App() {
         <Route path="relatorios" element={<RequireAuth alpha><ReportsPage /></RequireAuth>} />
         <Route path="clientes" element={<RequireAuth admin><CompaniesPage /></RequireAuth>} />
         <Route path="clientes/:id" element={<RequireAuth admin><CompanyPage /></RequireAuth>} />
-        <Route path="financeiro" element={<RequireAuth manager><FinancePage /></RequireAuth>} />
+        <Route path="financeiro" element={<RequireAuth client><FinancePage /></RequireAuth>} />
         <Route path="etapas" element={<RequireAuth admin><StagesPage /></RequireAuth>} />
         <Route path="usuarios" element={<RequireAuth admin><UsersPage /></RequireAuth>} />
         <Route path="cadastros" element={<RequireAuth admin><SignupsPage /></RequireAuth>} />

@@ -51,7 +51,7 @@ export function AppLayout() {
           {isAlpha && <NavLink to="/candidatos">Candidatos</NavLink>}
           {isAlpha && <NavLink to="/comunicados">Comunicados</NavLink>}
           {isAlpha && <NavLink to="/relatorios">Relatórios</NavLink>}
-          {user?.kind === 'client_manager' && <NavLink to="/financeiro">Financeiro</NavLink>}
+          {(user?.kind === 'client_manager' || user?.kind === 'client_user') && <NavLink to="/financeiro">Financeiro</NavLink>}
           {isAdmin && (
             <>
               <div className="nav-section">Administração</div>

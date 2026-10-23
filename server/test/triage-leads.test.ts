@@ -10,6 +10,8 @@ import {
   createProcess,
   inviteUser,
   json,
+  multipartBody,
+  PDF,
   setupApp,
   uniq,
   type TestCtx,
@@ -114,6 +116,40 @@ describe('triagem e envio de leads', () => {
     await expect(ctx.owner.query('update applications set sent_at = null where id = $1', [a1])).rejects.toMatchObject({ code: 'AS409' });
     const leads = await ctx.owner.query('select count(*)::int as n from lead_submissions where process_id = $1', [processId]);
     expect(leads.rows[0].n).toBe(2);
+  });
+
+  it('aprovado na triagem recebe o link dos dados de admissão; no envio a Alpha escolhe os documentos do cadastro', async () => {
+    const { processId, client } = await scenario();
+    const email = `${uniq('triado')}@example.test`;
+    const cand = await createCandidate(admin, { email });
+    const app = await createApplication(admin, cand, processId, undefined, { sent: false });
+    const upload = async (candidateId: string, kind: string) => {
+      const { payload, contentType } = multipartBody(`${kind}.pdf`, 'application/pdf', PDF, kind);
+      return json(await admin.request('POST', `/api/candidates/${candidateId}/documents`, payload, { 'content-type': contentType })).id as string;
+    };
+    const cv = await upload(cand, 'curriculo');
+    await upload(cand, 'antecedentes_criminais');
+    const other = await upload(await createCandidate(admin), 'curriculo');
+
+    expect((await evaluate(admin, app, { triageStatus: 'aprovado_interno' })).statusCode).toBe(200);
+    expect(ctx.mailer.outbox.filter((m) => m.to === email && m.subject.includes('Complete seus dados'))).toHaveLength(1);
+    expect(json(await admin.get(`/api/candidates/${cand}/admission`)).approved).toBe(true);
+    // Salvar de novo a mesma triagem não reenvia.
+    expect((await evaluate(admin, app, { triageStatus: 'aprovado_interno', notes: 'ok' })).statusCode).toBe(200);
+    expect(ctx.mailer.outbox.filter((m) => m.to === email && m.subject.includes('Complete seus dados'))).toHaveLength(1);
+
+    const docs = json(await admin.get(`/api/applications/${app}/candidate-documents`)).items;
+    expect(docs).toHaveLength(2);
+    expect(docs.every((d: any) => !d.linked && !d.sharedWithClient)).toBe(true);
+    expect((await client.agent.get(`/api/applications/${app}/candidate-documents`)).statusCode).toBe(403);
+
+    const bad = await admin.post(`/api/processes/${processId}/send-leads`, { items: [sendItem(app, { shareDocuments: false, documentIds: [other] })] });
+    expect(bad.statusCode).toBe(422);
+    const r = await admin.post(`/api/processes/${processId}/send-leads`, { items: [sendItem(app, { shareDocuments: false, documentIds: [cv] })] });
+    expect(r.statusCode).toBe(200);
+    const seen = json(await client.agent.get(`/api/applications/${app}/documents`)).items;
+    expect(seen.map((d: any) => d.id)).toEqual([cv]);
+    expect((await client.agent.get(`/api/documents/${cv}/content`)).statusCode).toBe(200);
   });
 
   it('avisa quando o mesmo candidato já foi enviado à empresa em outro processo', async () => {

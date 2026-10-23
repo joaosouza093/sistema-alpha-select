@@ -8,6 +8,7 @@ import type { AdmissionData } from '../../api/types';
 import { UFS, maritalLabel, sexLabel, fmtCpf } from '../../lib/format';
 import { SelectField, TextArea } from '../../components/ui';
 import { ProfileFields, profileFrom, profilePayload } from '../../components/ProfileFields';
+import { OpenJobsCard } from './QuickApply';
 
 interface MyData {
   fullName: string;
@@ -34,6 +35,7 @@ interface MyData {
   createdAt: string;
   records: number;
   applications: { title: string; company: string | null; appliedAt: string; source: string; status: string }[];
+  appliedJobs: string[];
   documents: { name: string; size: number; createdAt: string }[];
   messages: { subject: string; sentAt: string }[];
   deletionScheduledFor: string | null;
@@ -58,8 +60,12 @@ const store = (t: string | null) => {
 };
 
 /** Área do candidato: acesso por link enviado ao e-mail, sem senha. */
+/** Vaga pedida no link ("Usar meu cadastro" na página da vaga); lida antes do token, que limpa o fragmento. */
+const readHashJob = () => window.location.hash.match(/vaga=([a-z0-9-]{3,120})/)?.[1] ?? null;
+
 export function MyDataPage() {
   usePageTitle('Meus dados');
+  const [job, setJob] = useState<string | null>(readHashJob);
   const [token, setToken] = useState<string | null>(() => {
     const t = readHashToken() ?? readStored();
     if (t) store(t);
@@ -68,6 +74,8 @@ export function MyDataPage() {
   // Link aberto na mesma aba (só o fragmento muda, sem recarregar a página).
   useEffect(() => {
     const onHash = () => {
+      const j = readHashJob();
+      if (j) setJob(j);
       const t = readHashToken();
       if (t) {
         store(t);
@@ -85,7 +93,7 @@ export function MyDataPage() {
   return (
     <PublicLayout>
       <div className="public-content narrow">
-        {token ? <Portal token={token} onExit={exit} /> : <RequestLink />}
+        {token ? <Portal token={token} job={job} onExit={exit} /> : <RequestLink />}
       </div>
     </PublicLayout>
   );
@@ -127,7 +135,7 @@ function RequestLink({ expired }: { expired?: boolean }) {
   );
 }
 
-function Portal({ token, onExit }: { token: string; onExit: () => void }) {
+function Portal({ token, job, onExit }: { token: string; job: string | null; onExit: () => void }) {
   const capi = candidateApi(token);
   const [data, setData] = useState<MyData | null>(null);
   const [error, setError] = useState<unknown>(null);
@@ -170,6 +178,7 @@ function Portal({ token, onExit }: { token: string; onExit: () => void }) {
       )}
 
       {data.admission.available && <AdmissionCard data={data} capi={capi} onDone={done} />}
+      {job && <OpenJobsCard capi={capi} applied={data.appliedJobs} highlight={job} onDone={done} />}
       <ConsentCard data={data} capi={capi} onDone={done} />
       <ProfileForm data={data} capi={capi} onDone={done} />
       <ResumeCard data={data} token={token} onDone={done} />
@@ -192,6 +201,7 @@ function Portal({ token, onExit }: { token: string; onExit: () => void }) {
           )}
         </div>
       </section>
+      {!job && <OpenJobsCard capi={capi} applied={data.appliedJobs} highlight={null} onDone={done} />}
 
       <section className="card">
         <div className="card-header"><h2>Mensagens recebidas</h2></div>
@@ -456,7 +466,7 @@ function AdmissionCard({ data, capi, onDone }: CardProps) {
       <form className="card-body stack" onSubmit={submit} noValidate>
         <Alert kind={d ? 'success' : 'info'}>
           {d ? <>Recebemos seus dados em {fmtDateTime(d.updatedAt)}. Se precisar corrigir algo, altere abaixo e envie de novo.</>
-            : <>Você foi aprovado(a) no processo seletivo. Preencha seus dados para a admissão. Eles são vistos somente pela equipe da Alpha Select.</>}
+            : <>Você foi aprovado(a) em nossa seleção. Preencha seus dados para a admissão. Eles são vistos somente pela equipe da Alpha Select.</>}
         </Alert>
         {errors._ && <Alert>{errors._}</Alert>}
         <TextField label="Nome completo" value={f.fullName} onChange={set('fullName')} maxLength={160} required error={errors.fullName} autoComplete="name" />

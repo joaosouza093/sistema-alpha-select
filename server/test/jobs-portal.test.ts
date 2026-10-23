@@ -109,6 +109,40 @@ describe('vagas e portal público', () => {
     expect(json(await admin.get(`/api/processes/${processId}/board`)).cards).toHaveLength(1);
   });
 
+  it('quem já tem cadastro se candidata a outra vaga pelo link do e-mail, sem preencher tudo de novo', async () => {
+    const first = await publishedJob();
+    const data = candidateData();
+    expect((await apply(first.slug, data)).statusCode).toBe(201);
+    const second = await publishedJob([{ text: 'Tem CNH?', eliminatory: true, expected: 'sim' }]);
+
+    expect((await new Agent(ctx).post('/api/public/my-data/request', { email: data.email, vaga: second.slug })).statusCode).toBe(200);
+    const mail = [...ctx.mailer.outbox].reverse().find((m) => m.to === data.email && m.subject.startsWith('Acesso'))!;
+    expect(mail.text).toContain('sem preencher tudo de novo');
+    const [, token, vaga] = mail.text.match(/meus-dados#token=([A-Za-z0-9_-]+)&vaga=([a-z0-9-]+)/)!;
+    expect(vaga).toBe(second.slug);
+    const c = new Agent(ctx);
+    const hdr = { 'x-candidate-token': token! };
+    expect(json(await c.request('GET', '/api/public/my-data', undefined, hdr)).appliedJobs).toEqual([first.slug]);
+
+    const post = (body: object) => c.request('POST', '/api/public/my-data/apply', body, hdr);
+    expect((await post({ vaga: second.slug, acceptPrivacy: true, answers: [] })).statusCode).toBe(422);
+    expect((await post({ vaga: second.slug, acceptPrivacy: false, answers: [] })).statusCode).toBe(422);
+    expect((await new Agent(ctx).post('/api/public/my-data/apply', { vaga: second.slug, acceptPrivacy: true, answers: [] })).statusCode).toBe(401);
+    const q = json(await new Agent(ctx).get(`/api/public/jobs/${second.slug}`)).questions[0];
+    const ok = await post({ vaga: second.slug, acceptPrivacy: true, answers: [{ id: q.id, answer: 'nao' }] });
+    expect(ok.statusCode).toBe(200);
+    expect((await post({ vaga: second.slug, acceptPrivacy: true, answers: [{ id: q.id, answer: 'sim' }] })).statusCode).toBe(409);
+    expect(json(await c.request('GET', '/api/public/my-data', undefined, hdr)).appliedJobs.sort()).toEqual([first.slug, second.slug].sort());
+
+    // Mesmo cadastro (sem duplicar o candidato), com currículo e triagem eliminatória.
+    const card = json(await admin.get(`/api/processes/${second.processId}/board`)).cards[0];
+    expect(card).toMatchObject({ source: 'portal', screeningFailed: true, documentCount: 1 });
+    const firstCard = json(await admin.get(`/api/processes/${first.processId}/board`)).cards[0];
+    const firstCandidate = json(await admin.get(`/api/applications/${firstCard.id}`)).candidateId;
+    expect(firstCandidate).toMatch(/^[0-9a-f-]{36}$/);
+    expect(json(await admin.get(`/api/applications/${card.id}`)).candidateId).toBe(firstCandidate);
+  });
+
   it('valida perguntas, consentimento, campos extras e arquivo; robô (campo isca) é descartado', async () => {
     const { processId, slug } = await publishedJob([{ text: 'Possui CNH?', eliminatory: false }]);
     expect((await apply(slug, candidateData())).statusCode).toBe(422); // sem resposta

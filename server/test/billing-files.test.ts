@@ -69,7 +69,7 @@ describe('anexos da cobrança (boleto e nota fiscal)', () => {
     expect(recibo.attachments?.map((a) => a.filename)).toEqual(['nf.xml']);
   });
 
-  it('gestor da empresa vê o financeiro e baixa os anexos; outras empresas e usuários comuns não', async () => {
+  it('usuários da empresa (gestor e RH interno) veem o financeiro e baixam os anexos; outras empresas não', async () => {
     const a = await companyWithManager();
     const b = await companyWithManager();
     const r = await admin.post('/api/billing/charges', { companyIds: [a.companyId], description: 'Mensalidade', amountCents: 100_000, dueDate: future(5) });
@@ -89,8 +89,9 @@ describe('anexos da cobrança (boleto e nota fiscal)', () => {
 
     expect(json(await b.manager.get('/api/client/finance')).charges).toEqual([]);
     expect((await b.manager.get(`/api/billing/files/${up.id}/content`)).statusCode).toBe(404);
-    expect((await a.user.get('/api/client/finance')).statusCode).toBe(403);
-    expect((await a.user.get(`/api/billing/files/${up.id}/content`)).statusCode).toBe(404);
+    expect(json(await a.user.get('/api/client/finance')).charges.map((c: any) => c.id)).toEqual([id]);
+    expect((await a.user.get(`/api/billing/files/${up.id}/content`)).statusCode).toBe(200);
+    expect(json(await b.user.get('/api/client/finance')).charges).toEqual([]);
     expect((await send(a.manager, `/api/billing/charges/${id}/files`, filePart('x.pdf', 'application/pdf', PDF, 'boleto'))).statusCode).toBe(403);
     expect((await a.manager.delete(`/api/billing/files/${up.id}`)).statusCode).toBe(403);
     // RLS: mesmo direto no banco, o gestor não lê cobranças de outra empresa.

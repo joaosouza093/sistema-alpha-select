@@ -76,7 +76,8 @@ describe('portal do cliente e mensagens ao candidato', () => {
     expect(json(iv).candidateNotified).toBe('skipped');
     expect(mailsTo(email).length).toBe(before);
     const log = json(await staff.agent.get(`/api/message-log?candidateId=${candidateId}`)).items;
-    expect(log.map((l: { templateKey: string }) => l.templateKey)).toEqual(['perfil_enviado']);
+    // A aprovação na triagem também enviou o link dos dados para admissão.
+    expect(log.map((l: { templateKey: string }) => l.templateKey)).toEqual(['perfil_enviado', 'dados_admissao']);
   });
 
   it('entrevistas: gestor com permissão agenda; sem permissão recebe 403; só a Alpha avisa o candidato', async () => {

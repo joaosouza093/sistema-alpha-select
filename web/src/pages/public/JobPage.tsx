@@ -6,6 +6,7 @@ import { ErrorState, Loading, usePageTitle } from '../../components/ui';
 import { fmtSalaryRange } from '../../lib/format';
 import { PublicLayout } from './PublicLayout';
 import { ApplyForm } from './ApplyForm';
+import { QuickApplyRequest } from './QuickApply';
 import { jobMeta } from './JobsPage';
 
 export function JobPage() {
@@ -38,6 +39,7 @@ export function JobPage() {
             </article>
             <aside className="card card-body" aria-labelledby="candidatar">
               <h2 id="candidatar">Candidate-se</h2>
+              <QuickApplyRequest slug={j.slug} />
               <ApplyForm endpoint={`/api/public/jobs/${j.slug}/apply`} questions={j.questions} title={`Candidatura para ${j.title}`} />
             </aside>
           </div>

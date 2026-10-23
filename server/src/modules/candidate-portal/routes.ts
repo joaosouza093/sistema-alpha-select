@@ -10,7 +10,9 @@ import { zEmail, zOptionalPhone, zOptionalText, zText } from '../../lib/normaliz
 import { receiveUpload } from '../../lib/upload.js';
 import { insertAudit } from '../auth/service.js';
 import { eraseCandidates } from '../candidates/erase.js';
-import { CONSENT_VERSION } from '../public/routes.js';
+import { CONSENT_VERSION, publishedWhere, screenAnswers, zAnswers } from '../public/routes.js';
+import type { ScreeningQuestion } from '../jobs/routes.js';
+import { sendCandidateMessage } from '../messages/service.js';
 import { PROFILE_COLUMNS, PROFILE_KEYS, profileSelect, zProfile } from '../candidates/profile.js';
 import { ADMISSION_CONSENT, admissionSelect, approvedCandidate, zAdmission } from '../candidates/admission.js';
 
@@ -24,8 +26,11 @@ export const ACCESS_TTL_MINUTES = 60;
 const RESUME_EXTENSIONS = ['pdf', 'doc', 'docx', 'odt'];
 const INVALID = new AppError(401, 'invalid_token', 'Link inválido ou expirado. Peça um novo link de acesso.');
 
-export function candidatePortalLink(deps: Deps, token: string) {
-  return `${deps.config.APP_URL.replace(/\/$/, '')}/meus-dados#token=${token}`;
+const zSlug = z.string().regex(/^[a-z0-9-]{3,120}$/);
+
+/** Link da área do candidato; com a vaga, abre direto a candidatura com o cadastro já salvo. */
+export function candidatePortalLink(deps: Deps, token: string, jobSlug?: string | null) {
+  return `${deps.config.APP_URL.replace(/\/$/, '')}/meus-dados#token=${token}${jobSlug ? `&vaga=${jobSlug}` : ''}`;
 }
 
 /** Cria um token de acesso aos dados do e-mail (usado também pelo aviso de retenção). */
@@ -67,7 +72,7 @@ export function registerCandidatePortalRoutes(app: FastifyInstance, deps: Deps) 
   }
 
   app.post('/api/public/my-data/request', pub, async (req) => {
-    const body = parse(z.object({ email: zEmail }).strict(), req.body);
+    const body = parse(z.object({ email: zEmail, vaga: zSlug.nullish() }).strict(), req.body);
     await deps.limiters.resetIp.consume(`cand-ip:${req.ip}`);
     if (deps.config.mailMode === 'manual') {
       return { ok: true, message: 'No momento o acesso pelo e-mail não está disponível. Fale com a Alpha Select para consultar ou corrigir seus dados.' };
@@ -97,8 +102,12 @@ export function registerCandidatePortalRoutes(app: FastifyInstance, deps: Deps) 
           to: body.email,
           subject: 'Acesso aos seus dados — Alpha Select',
           text:
-            `Olá, ${target.full_name.split(' ')[0]}.\n\nUse o link abaixo para ver, corrigir ou excluir os dados que a Alpha Select ` +
-            `guarda sobre você (vale por ${ACCESS_TTL_MINUTES} minutos):\n\n${candidatePortalLink(deps, target.token)}\n\n` +
+            `Olá, ${target.full_name.split(' ')[0]}.\n\n` +
+            (body.vaga
+              ? 'Use o link abaixo para se candidatar com o cadastro que você já tem na Alpha Select, sem preencher tudo de novo. ' +
+                `Pelo mesmo link você pode conferir e atualizar seus dados (vale por ${ACCESS_TTL_MINUTES} minutos):`
+              : `Use o link abaixo para ver, corrigir ou excluir os dados que a Alpha Select guarda sobre você (vale por ${ACCESS_TTL_MINUTES} minutos):`) +
+            `\n\n${candidatePortalLink(deps, target.token, body.vaga)}\n\n` +
             'Se você não pediu este acesso, ignore esta mensagem.\n\nAlpha Select Consultoria de Recursos Humanos',
         })
         .catch(() => undefined);
@@ -116,9 +125,11 @@ export function registerCandidatePortalRoutes(app: FastifyInstance, deps: Deps) 
          from candidates where id = $1`,
       [ids[0]],
     );
-    const apps = await owner.query<{ title: string; company: string | null; created_at: Date; status: string; decision: string; sent: boolean; source: string }>(
+    const apps = await owner.query<{
+      title: string; company: string | null; created_at: Date; status: string; decision: string; sent: boolean; source: string; slug: string | null;
+    }>(
       `select p.title, case when p.show_company then co.name end as company, a.created_at, p.status, a.decision,
-              (a.sent_at is not null) as sent, a.source
+              (a.sent_at is not null) as sent, a.source, p.public_slug as slug
          from applications a join processes p on p.id = a.process_id join companies co on co.id = p.company_id
         where a.candidate_id = any($1::uuid[]) order by a.created_at desc`,
       [ids],
@@ -158,11 +169,70 @@ export function registerCandidatePortalRoutes(app: FastifyInstance, deps: Deps) 
         source: a.source,
         status: appStatus(a.status, a.decision, a.sent),
       })),
+      /** Vagas do portal em que já se candidatou (para não oferecer de novo). */
+      appliedJobs: apps.rows.flatMap((a) => (a.slug ? [a.slug] : [])),
       documents: docs.rows,
       messages: msgs.rows,
       deletionScheduledFor,
       admission: { available: !!approvedId, data: adm?.rows[0] ?? null, consentText: ADMISSION_CONSENT },
     };
+  });
+
+  /**
+   * Candidatura com o cadastro já salvo: o candidato que entrou pelo link do
+   * e-mail só responde às perguntas da vaga. Usa o cadastro e o currículo mais
+   * recentes daquele e-mail.
+   */
+  app.post('/api/public/my-data/apply', pub, async (req) => {
+    await deps.limiters.publicApplyIp.consume(`ip:${req.ip}`);
+    const body = parse(
+      z.object({
+        vaga: zSlug,
+        answers: zAnswers,
+        acceptPrivacy: z.literal(true, { message: 'É necessário aceitar o aviso de privacidade.' }),
+      }).strict(),
+      req.body,
+    );
+    const { email, ids } = await resolve(req);
+    const job = await owner.query<{ id: string; title: string; questions: ScreeningQuestion[] }>(
+      `select p.id, p.title, p.screening_questions as questions
+         from processes p join companies c on c.id = p.company_id
+        where p.public_slug = $1 and ${publishedWhere}`,
+      [body.vaga],
+    );
+    const process = job.rows[0];
+    if (!process) throw new AppError(404, 'not_found', 'Vaga não encontrada ou encerrada.');
+    const { answers, screeningFailed } = screenAnswers(process.questions, body.answers);
+    const candidateId = ids[0]!;
+    const applicationId = await withTx(owner, async (db) => {
+      const dup = await db.query('select 1 from applications where process_id = $1 and candidate_id = any($2::uuid[]) limit 1', [process.id, ids]);
+      if (dup.rowCount) throw new AppError(409, 'conflict', 'Você já se candidatou a esta vaga.');
+      await db.query('update candidates set consent_at = now(), consent_version = $2 where id = $1', [candidateId, CONSENT_VERSION]);
+      const a = await db.query<{ id: string }>(
+        "insert into applications (candidate_id, process_id, source) values ($1, $2, 'portal') returning id",
+        [candidateId, process.id],
+      );
+      const id = a.rows[0]!.id;
+      await db.query(
+        `insert into application_documents (application_id, document_id, candidate_id)
+         select $1, d.id, d.candidate_id from documents d where d.candidate_id = $2 and d.kind = 'curriculo'
+          order by d.created_at desc limit 1`,
+        [id, candidateId],
+      );
+      await db.query(
+        'insert into application_intake (application_id, answers, screening_failed) values ($1, $2::jsonb, $3)',
+        [id, JSON.stringify(answers), screeningFailed],
+      );
+      await insertAudit(db, null, 'portal.application_received', 'application', id, req.ip, { screeningFailed, quick: true });
+      return id;
+    });
+    try {
+      await deps.limiters.signupAccount.consume(`cand:${email}`);
+      await sendCandidateMessage(deps, 'candidatura_recebida', { candidateId, applicationId });
+    } catch {
+      // Aviso limitado ou falho não invalida a candidatura.
+    }
+    return { ok: true, message: `Candidatura enviada para a vaga "${process.title}" com o seu cadastro.` };
   });
 
   /** Formulário de dados pessoais para admissão (candidato aprovado). */

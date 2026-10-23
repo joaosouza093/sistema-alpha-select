@@ -26,7 +26,9 @@ const publicCols = `p.public_slug as slug, p.title, p.job_location as location, 
   case when p.show_company then c.name end as "companyName",
   p.salary_min_cents as "salaryMinCents", p.salary_max_cents as "salaryMaxCents"`;
 
-const publishedWhere = `p.publication = 'publicada' and p.status = 'em_andamento' and c.is_active`;
+export const publishedWhere = `p.publication = 'publicada' and p.status = 'em_andamento' and c.is_active`;
+
+export const zAnswers = z.array(z.object({ id: z.string().max(16), answer: z.enum(['sim', 'nao']) }).strict()).max(10).default([]);
 
 const zApplicationBase = zProfile
   .extend({
@@ -34,7 +36,7 @@ const zApplicationBase = zProfile
     email: zEmail,
     phone: zOptionalPhone,
     salaryExpectation: z.number().min(0).max(10_000_000).nullish().transform((v) => v ?? null),
-    answers: z.array(z.object({ id: z.string().max(16), answer: z.enum(['sim', 'nao']) }).strict()).max(10).default([]),
+    answers: zAnswers,
     acceptPrivacy: z.literal(true, { message: 'É necessário aceitar o aviso de privacidade.' }),
     /** Autoriza avisos sobre a candidatura pelo WhatsApp (opcional; exige telefone). */
     whatsappOptIn: z.boolean().default(false),
@@ -46,6 +48,16 @@ const zApplicationBase = zProfile
 const zApplication = requireFields(zApplicationBase, ['phone', ...PORTAL_REQUIRED]);
 
 type ApplicationInput = z.infer<typeof zApplicationBase>;
+
+/** Respostas às perguntas da vaga, com o resultado das eliminatórias. Exige todas respondidas. */
+export function screenAnswers(questions: ScreeningQuestion[], given: z.infer<typeof zAnswers>) {
+  const answers = questions.map((q) => {
+    const a = given.find((x) => x.id === q.id);
+    return { id: q.id, text: q.text, eliminatory: q.eliminatory, expected: q.expected, answer: a?.answer ?? null };
+  });
+  if (answers.some((a) => a.answer === null)) throw new AppError(422, 'invalid', 'Responda todas as perguntas.');
+  return { answers, screeningFailed: answers.some((a) => a.eliminatory && a.answer !== a.expected) };
+}
 
 export function registerPublicRoutes(app: FastifyInstance, deps: Deps) {
   const owner = deps.pools.owner;
@@ -117,16 +129,14 @@ export function registerPublicRoutes(app: FastifyInstance, deps: Deps) {
       part.file.resume();
       return;
     }
-    const questions = target?.questions ?? [];
-    const answers = questions.map((q) => {
-      const a = data.answers.find((x) => x.id === q.id);
-      return { id: q.id, text: q.text, eliminatory: q.eliminatory, expected: q.expected, answer: a?.answer ?? null };
-    });
-    if (answers.some((a) => a.answer === null)) {
+    let answers: ReturnType<typeof screenAnswers>['answers'];
+    let screeningFailed: boolean;
+    try {
+      ({ answers, screeningFailed } = screenAnswers(target?.questions ?? [], data.answers));
+    } catch (e) {
       part.file.resume();
-      throw new AppError(422, 'invalid', 'Responda todas as perguntas.');
+      throw e;
     }
-    const screeningFailed = answers.some((a) => a.eliminatory && a.answer !== a.expected);
 
     const tmp = deps.storage.tmpPath();
     let committedKey: string | null = null;

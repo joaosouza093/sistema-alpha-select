@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '../api/client';
+import { docKindLabel, fmtSize } from '../lib/format';
 import { Alert, Button, Checkbox, Modal, TextArea, useToast } from './ui';
 
 interface Item {
@@ -11,6 +12,36 @@ interface Item {
   sharePhone: boolean;
   shareSalary: boolean;
   shareDocuments: boolean;
+  /** Documentos do cadastro marcados para o cliente (null enquanto a lista carrega). */
+  documentIds: string[] | null;
+}
+
+interface CandidateDoc { id: string; kind: keyof typeof docKindLabel; name: string; size: number; linked: boolean; sharedWithClient: boolean }
+
+/** Lista os documentos do cadastro do candidato para escolher quais vão ao cliente. */
+function DocumentPicker({ applicationId, value, onChange }: { applicationId: string; value: string[] | null; onChange: (ids: string[]) => void }) {
+  const q = useQuery({
+    queryKey: ['candidate-documents', applicationId],
+    queryFn: () => api.get<{ items: CandidateDoc[] }>(`/api/applications/${applicationId}/candidate-documents`),
+  });
+  const docs = q.data?.items;
+  useEffect(() => {
+    // Padrão: currículo e o que já estava liberado; os demais (ex.: antecedentes) só se marcados.
+    if (docs && value === null) onChange(docs.filter((d) => d.kind === 'curriculo' || d.sharedWithClient).map((d) => d.id));
+  }, [docs, value, onChange]);
+  if (q.isLoading) return <p className="muted small" style={{ margin: 0 }}>Carregando documentos…</p>;
+  if (q.isError) return <p className="muted small" style={{ margin: 0 }}>Não foi possível carregar os documentos.</p>;
+  if (!docs?.length) return <p className="muted small" style={{ margin: 0 }}>Nenhum documento no cadastro do candidato.</p>;
+  const sel = new Set(value ?? []);
+  return (
+    <div className="stack" style={{ gap: 4 }}>
+      <strong className="small">Documentos que o cliente vai ver</strong>
+      {docs.map((d) => (
+        <Checkbox key={d.id} label={`${docKindLabel[d.kind]}: ${d.name} (${fmtSize(d.size)})`} checked={sel.has(d.id)}
+          onChange={(e) => onChange(e.target.checked ? [...sel, d.id] : [...sel].filter((x) => x !== d.id))} />
+      ))}
+    </div>
+  );
 }
 
 /**
@@ -33,7 +64,7 @@ export function SendLeadsModal({
   const [items, setItems] = useState<Item[]>(
     candidates.map((c) => ({
       applicationId: c.applicationId, name: c.name, summary: c.summary ?? '',
-      shareEmail: false, sharePhone: false, shareSalary: false, shareDocuments: true,
+      shareEmail: false, sharePhone: false, shareSalary: false, shareDocuments: false, documentIds: null,
     })),
   );
   const [dups, setDups] = useState<{ name: string; title: string }[] | null>(null);
@@ -44,7 +75,7 @@ export function SendLeadsModal({
     setBusy(true);
     try {
       const r = await api.post<{ count: number }>(`/api/processes/${processId}/send-leads`, {
-        items: items.map(({ name: _n, summary, ...rest }) => ({ ...rest, summary: summary.trim() || null })),
+        items: items.map(({ name: _n, summary, documentIds, ...rest }) => ({ ...rest, documentIds: documentIds ?? [], summary: summary.trim() || null })),
         confirmDuplicate,
       });
       toast.success(`${r.count} candidato(s) enviado(s) ao cliente. Os participantes da empresa foram avisados.`);
@@ -82,8 +113,8 @@ export function SendLeadsModal({
               <Checkbox label="E-mail" checked={it.shareEmail} onChange={(e) => upd(i, { shareEmail: e.target.checked })} />
               <Checkbox label="Telefone" checked={it.sharePhone} onChange={(e) => upd(i, { sharePhone: e.target.checked })} />
               <Checkbox label="Pretensão salarial" checked={it.shareSalary} onChange={(e) => upd(i, { shareSalary: e.target.checked })} />
-              <Checkbox label="Documentos vinculados (currículo)" checked={it.shareDocuments} onChange={(e) => upd(i, { shareDocuments: e.target.checked })} />
             </div>
+            <DocumentPicker applicationId={it.applicationId} value={it.documentIds} onChange={(ids) => upd(i, { documentIds: ids })} />
           </fieldset>
         ))}
       </div>

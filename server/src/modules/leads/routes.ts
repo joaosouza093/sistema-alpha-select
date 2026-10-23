@@ -8,6 +8,7 @@ import { parse } from '../../lib/validate.js';
 import { zOptionalText, zUuid } from '../../lib/normalize.js';
 import { loadProcess, processPermissions } from '../processes/routes.js';
 import { sendCandidateMessage } from '../messages/service.js';
+import { sendAdmissionInvite } from '../candidates/admission.js';
 
 /** Motivos padronizados de reprovação/desistência (os mesmos do banco). */
 export const reasons = [
@@ -82,9 +83,14 @@ export function registerLeadRoutes(app: FastifyInstance, deps: Deps) {
       req.body,
     );
     const score = body.ratings.length ? Math.round((body.ratings.reduce((s, r) => s + r.score, 0) / body.ratings.length) * 100) / 100 : null;
-    return asUser(deps, req, async (db, user) => {
-      const a = await db.query<{ process_id: string; company_id: string; sent_at: Date | null }>(
-        `select a.process_id, p.company_id, a.sent_at from applications a join processes p on p.id = a.process_id where a.id = $1`,
+    const saved = await asUser(deps, req, async (db, user) => {
+      const a = await db.query<{
+        process_id: string; company_id: string; sent_at: Date | null; candidate_id: string; decision: string; triage_status: string | null;
+      }>(
+        `select a.process_id, p.company_id, a.sent_at, a.candidate_id, a.decision, e.triage_status
+           from applications a join processes p on p.id = a.process_id
+           left join application_evaluations e on e.application_id = a.id
+          where a.id = $1`,
         [id],
       );
       const cur = a.rows[0];
@@ -107,8 +113,12 @@ export function registerLeadRoutes(app: FastifyInstance, deps: Deps) {
         if (!up.rowCount) throw staleVersion();
       }
       await audit(db, req, 'application.evaluated', 'application', id, cur.company_id, { triageStatus: body.triageStatus, score });
-      return { ok: true, score };
+      // Aprovado agora na triagem: o candidato recebe o link dos dados para admissão.
+      const newlyApproved = body.triageStatus === 'aprovado_interno' && cur.triage_status !== 'aprovado_interno' && cur.decision === 'pendente';
+      return { score, candidateId: newlyApproved ? cur.candidate_id : null };
     });
+    if (saved.candidateId) await sendAdmissionInvite(deps, saved.candidateId, { send: true }).catch(() => undefined);
+    return { ok: true, score: saved.score };
   });
 
   /**
@@ -132,6 +142,8 @@ export function registerLeadRoutes(app: FastifyInstance, deps: Deps) {
                   sharePhone: z.boolean(),
                   shareSalary: z.boolean(),
                   shareDocuments: z.boolean(),
+                  /** Documentos do cadastro escolhidos para o cliente ver (vinculados e liberados no envio). */
+                  documentIds: z.array(zUuid).max(50).default([]),
                 })
                 .strict(),
             )
@@ -209,12 +221,22 @@ export function registerLeadRoutes(app: FastifyInstance, deps: Deps) {
         if (item.shareDocuments) {
           await db.query('update application_documents set shared_with_client = true where application_id = $1', [r.id]);
         }
+        if (item.documentIds.length) {
+          const docs = await db.query(
+            `insert into application_documents (application_id, document_id, candidate_id, shared_with_client)
+             select $1, d.id, d.candidate_id, true from documents d where d.id = any($2::uuid[]) and d.candidate_id = $3
+             on conflict (application_id, document_id) do update set shared_with_client = true`,
+            [r.id, item.documentIds, r.candidate_id],
+          );
+          if (docs.rowCount !== new Set(item.documentIds).size) throw new AppError(422, 'invalid', `${r.name}: documento não encontrado no cadastro.`);
+        }
         await db.query(
           'insert into lead_submissions (application_id, process_id, batch_id, sent_by) values ($1, $2, $3, $4)',
           [r.id, id, batchId, user.id],
         );
         await audit(db, req, 'lead.sent', 'application', r.id, p.companyId, {
           shareEmail: item.shareEmail, sharePhone: item.sharePhone, shareSalary: item.shareSalary, shareDocuments: item.shareDocuments,
+          documents: item.documentIds.length,
         });
       }
       return { process: p, count: rows.length, sent: rows.map((r) => ({ applicationId: r.id, candidateId: r.candidate_id })) };

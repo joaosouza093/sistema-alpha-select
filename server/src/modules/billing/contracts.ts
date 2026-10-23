@@ -132,11 +132,11 @@ export function registerContractRoutes(app: FastifyInstance, deps: Deps) {
 
   /**
    * Financeiro da empresa cliente: cobranças (sem as canceladas), boleto e
-   * nota fiscal, e contratos. Somente o gestor da empresa (RLS limita à própria).
+   * nota fiscal, e contratos. Usuários da empresa cliente (RLS limita à própria).
    */
   app.get('/api/client/finance', async (req) => {
     const u = requireUser(req);
-    if (u.kind !== 'client_manager') throw forbidden('Disponível para o gestor da empresa.');
+    if (u.kind !== 'client_manager' && u.kind !== 'client_user') throw forbidden('Disponível para os usuários da empresa cliente.');
     const today = await todaySP(deps);
     return asUser(deps, req, async (db) => {
       const charges = await db.query(
