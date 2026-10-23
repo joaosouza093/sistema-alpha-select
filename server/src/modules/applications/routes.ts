@@ -333,6 +333,25 @@ export function registerApplicationRoutes(app: FastifyInstance, deps: Deps) {
     });
   });
 
+  /** Equipe Alpha: todos os documentos do cadastro do candidato, com a situação nesta participação (para o envio ao cliente). */
+  app.get('/api/applications/:id/candidate-documents', async (req) => {
+    if (!isAlpha(requireUser(req))) throw forbidden();
+    const { id } = parse(z.object({ id: zUuid }), req.params);
+    return asUser(deps, req, async (db) => {
+      await loadApp(db, id);
+      const { rows } = await db.query(
+        `select d.id, d.kind, d.original_name as "name", d.size_bytes as "size", d.created_at as "createdAt",
+                ad.document_id is not null as "linked", coalesce(ad.shared_with_client, false) as "sharedWithClient"
+           from applications a
+           join documents d on d.candidate_id = a.candidate_id
+           left join application_documents ad on ad.application_id = a.id and ad.document_id = d.id
+          where a.id = $1 order by d.created_at desc`,
+        [id],
+      );
+      return { items: rows };
+    });
+  });
+
   /** Vincula um documento do candidato à participação e define se é visível ao cliente. */
   app.put('/api/applications/:id/documents/:documentId', async (req) => {
     if (!isAlpha(requireUser(req))) throw forbidden();

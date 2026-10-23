@@ -71,10 +71,17 @@ export const admissionSelect = `full_name as "fullName", to_char(birth_date, 'YY
 
 type Q = { query: <R = unknown>(sql: string, params?: unknown[]) => Promise<{ rows: R[]; rowCount: number | null }> };
 
+/**
+ * Participação "a" que libera o formulário: aprovada pelo cliente, ou aprovada
+ * na triagem da Alpha Select e ainda em avaliação (sem recusa ou desistência).
+ */
+export const admissionEligibleSql = `(a.decision = 'aprovado' or (a.decision = 'pendente' and exists (
+  select 1 from application_evaluations e where e.application_id = a.id and e.triage_status = 'aprovado_interno')))`;
+
 /** Cadastro aprovado em algum processo (o mais recente), entre os cadastros do mesmo e-mail. */
 export async function approvedCandidate(db: Q, ids: string[]) {
   const r = await db.query<{ candidate_id: string }>(
-    `select a.candidate_id from applications a where a.candidate_id = any($1::uuid[]) and a.decision = 'aprovado'
+    `select a.candidate_id from applications a where a.candidate_id = any($1::uuid[]) and ${admissionEligibleSql}
       order by a.updated_at desc limit 1`,
     [ids],
   );
@@ -103,7 +110,7 @@ export async function sendAdmissionInvite(deps: Deps, candidateId: string, opts:
         to: cand.email,
         subject,
         text:
-          `Olá, ${cand.full_name.split(' ')[0]}.\n\nVocê foi aprovado(a) no processo seletivo. Para seguirmos, preencha seus dados ` +
+          `Olá, ${cand.full_name.split(' ')[0]}.\n\nVocê foi aprovado(a) em nossa seleção. Para seguirmos, preencha seus dados ` +
           `pessoais no link abaixo (vale por 7 dias):\n\n${link}\n\nSe o link expirar, peça um novo em ${deps.config.APP_URL.replace(/\/$/, '')}/meus-dados ` +
           'ou fale com a Alpha Select.\n\nAlpha Select Consultoria de Recursos Humanos',
       });
@@ -134,7 +141,7 @@ export function registerAdmissionRoutes(app: FastifyInstance, deps: Deps) {
     return asUser(deps, req, async (db) => {
       const c = await db.query<{ email: string | null }>('select email::text as email from candidates where id = $1', [id]);
       if (!c.rows[0]) throw notFound('Candidato não encontrado.');
-      const approved = await db.query("select 1 from applications where candidate_id = $1 and decision = 'aprovado' limit 1", [id]);
+      const approved = await db.query(`select 1 from applications a where a.candidate_id = $1 and ${admissionEligibleSql} limit 1`, [id]);
       const { rows } = await db.query(`select ${admissionSelect} from candidate_admission_data where candidate_id = $1`, [id]);
       if (rows[0]) await audit(db, req, 'candidate.admission_viewed', 'candidate', id);
       return { approved: !!approved.rowCount, hasEmail: !!c.rows[0].email, data: rows[0] ?? null };
@@ -148,8 +155,8 @@ export function registerAdmissionRoutes(app: FastifyInstance, deps: Deps) {
     await asUser(deps, req, async (db) => {
       const c = await db.query('select 1 from candidates where id = $1', [id]);
       if (!c.rowCount) throw notFound('Candidato não encontrado.');
-      const approved = await db.query("select 1 from applications where candidate_id = $1 and decision = 'aprovado' limit 1", [id]);
-      if (!approved.rowCount) throw new AppError(409, 'conflict', 'O formulário fica disponível depois da aprovação no processo seletivo.');
+      const approved = await db.query(`select 1 from applications a where a.candidate_id = $1 and ${admissionEligibleSql} limit 1`, [id]);
+      if (!approved.rowCount) throw new AppError(409, 'conflict', 'O formulário fica disponível depois da aprovação na triagem ou no processo seletivo.');
       await audit(db, req, 'candidate.admission_link', 'candidate', id);
     });
     const r = await sendAdmissionInvite(deps, id, { send: true });

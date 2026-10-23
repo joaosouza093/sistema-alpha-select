@@ -418,10 +418,10 @@ function AdmissionPanel({ candidateId }: { candidateId: string }) {
       <div className="card-header"><h2>Dados pessoais para admissão</h2></div>
       <div className="card-body stack">
         {!approved ? (
-          <p className="muted" style={{ margin: 0 }}>O formulário é liberado ao candidato depois da aprovação em um processo seletivo.</p>
+          <p className="muted" style={{ margin: 0 }}>O formulário é liberado ao candidato quando ele é aprovado na triagem da Alpha Select (ou aprovado pelo cliente).</p>
         ) : !d ? (
           <>
-            <p style={{ margin: 0 }}>Candidato aprovado. Aguardando o preenchimento dos dados pessoais.</p>
+            <p style={{ margin: 0 }}>Candidato aprovado. Aguardando o preenchimento dos dados pessoais (o e-mail com o link sai na aprovação).</p>
             {hasEmail ? (
               <div className="row">
                 <Button size="sm" loading={busy} onClick={makeLink}>Gerar link do formulário</Button>

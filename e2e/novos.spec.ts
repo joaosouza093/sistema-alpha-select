@@ -65,7 +65,7 @@ test.describe('telas novas', () => {
     await expect(page.getByRole('heading', { name: 'Financeiro por empresa' })).toHaveCount(0);
   });
 
-  test('cobrança com boleto anexado aparece no Financeiro do gestor da empresa', async ({ page }) => {
+  test('cobrança com boleto anexado aparece no Financeiro dos usuários da empresa', async ({ page }) => {
     const c = creds();
     await login(page, c.admin);
     await page.getByRole('link', { name: 'Cobranças' }).click();
@@ -88,10 +88,11 @@ test.describe('telas novas', () => {
     const row = page.getByRole('row', { name: new RegExp(desc) });
     await expect(row).toBeVisible();
     await expect(row.getByRole('link', { name: 'Boleto' })).toHaveAttribute('href', /\/api\/billing\/files\/.+\/content/);
-    // Usuário comum da empresa não tem o menu Financeiro.
+    // O RH interno da empresa também vê o Financeiro.
     await page.getByRole('button', { name: 'Sair' }).click();
     await login(page, c.rhAlfa);
-    await expect(page.getByRole('link', { name: 'Financeiro' })).toHaveCount(0);
+    await page.getByRole('link', { name: 'Financeiro' }).click();
+    await expect(page.getByRole('row', { name: new RegExp(desc) })).toBeVisible();
   });
 
   test('verificação em duas etapas: ativar com QR e entrar com o código', async ({ page }) => {
@@ -311,5 +312,71 @@ test.describe('telas novas', () => {
     await page.getByRole('tab', { name: /Documentos/ }).click();
     await expect(page.getByLabel('Tipo').locator('option', { hasText: 'Antecedentes criminais' })).toHaveCount(1);
     await expect(page.getByLabel('Tipo').locator('option', { hasText: 'Processos' })).toHaveCount(1);
+  });
+  test('envio ao cliente: a Alpha escolhe os documentos do cadastro que vão junto', async ({ page }) => {
+    const c = creds();
+    await login(page, c.admin);
+    const cand = await apiCall<{ id: string }>(page, 'POST', '/api/candidates', {
+      fullName: `Pessoa Envio ${randomBytes(2).toString('hex')}`, email: `envio.${c.suffix}.${randomBytes(3).toString('hex')}@exemplo.invalid`, confirmDuplicate: true,
+    });
+    for (const kind of ['curriculo', 'antecedentes_criminais']) {
+      await page.evaluate(async ({ id, kind }) => {
+        const me = await (await fetch('/api/auth/me')).json();
+        const fd = new FormData();
+        fd.append('kind', kind);
+        fd.append('file', new File(['%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n'], `${kind}.pdf`, { type: 'application/pdf' }));
+        const r = await fetch(`/api/candidates/${id}/documents`, { method: 'POST', body: fd, headers: { 'X-CSRF-Token': me.csrfToken } });
+        if (!r.ok) throw new Error(await r.text());
+      }, { id: cand.id, kind });
+    }
+    const procs = await apiCall<{ items: { id: string }[] }>(page, 'GET', '/api/processes?status=em_andamento');
+    const app = await apiCall<{ id: string }>(page, 'POST', '/api/applications', { candidateId: cand.id, processId: procs.items[0]!.id });
+    await apiCall(page, 'PUT', `/api/applications/${app.id}/evaluation`, { expectedVersion: null, triageStatus: 'aprovado_interno', ratings: [], reason: null, notes: null });
+
+    await page.goto(`/participacoes/${app.id}?aba=triagem`);
+    await page.getByRole('button', { name: 'Enviar ao cliente' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByLabel(/^Currículo: curriculo\.pdf/)).toBeChecked();
+    await expect(dialog.getByLabel(/^Antecedentes criminais: antecedentes_criminais\.pdf/)).not.toBeChecked();
+    await dialog.getByLabel(/^Antecedentes criminais/).check();
+    await dialog.getByRole('button', { name: 'Enviar', exact: true }).click();
+    await expect(page.getByText(/enviado\(s\) ao cliente/)).toBeVisible();
+    const docs = await apiCall<{ items: { sharedWithClient: boolean }[] }>(page, 'GET', `/api/applications/${app.id}/candidate-documents`);
+    expect(docs.items.map((d) => d.sharedWithClient)).toEqual([true, true]);
+  });
+
+  test('candidato com cadastro se candidata a outra vaga sem preencher tudo de novo', async ({ page }) => {
+    const url = ownerUrl();
+    test.skip(!url, 'sem acesso ao banco de desenvolvimento');
+    const c = creds();
+    await login(page, c.admin);
+    const email = `rapida.${c.suffix}.${randomBytes(3).toString('hex')}@exemplo.invalid`;
+    await apiCall(page, 'POST', '/api/candidates', { fullName: 'Pessoa Já Cadastrada', email, confirmDuplicate: true });
+    const jobs = await apiCall<{ items: { slug: string; title: string }[] }>(page, 'GET', '/api/public/jobs');
+    test.skip(!jobs.items.length, 'sem vaga publicada');
+    const job = jobs.items[0]!;
+
+    const visitor = await page.context().browser()!.newPage();
+    await visitor.goto(`/vagas/${job.slug}`);
+    await visitor.getByRole('button', { name: 'Usar meu cadastro' }).click();
+    await visitor.getByLabel('E-mail do cadastro').fill(email);
+    await visitor.getByRole('button', { name: 'Receber link' }).click();
+    await expect(visitor.getByText(/Abra o link do e-mail/)).toBeVisible();
+
+    const token = randomBytes(32).toString('base64url');
+    const db = new pg.Client({ connectionString: url! });
+    await db.connect();
+    await db.query(
+      `insert into candidate_access_tokens (token_hash, email, purpose, expires_at) values ($1, $2, 'acesso', now() + interval '1 hour')`,
+      [createHash('sha256').update(token).digest(), email],
+    );
+    await db.end();
+    await visitor.goto(`/meus-dados#token=${token}&vaga=${job.slug}`);
+    const form = visitor.getByRole('form', { name: `Candidatura para ${job.title}` });
+    for (const group of await form.getByRole('group').all()) await group.getByLabel('Sim').check();
+    await form.getByLabel(/Li o aviso de privacidade/).check();
+    await form.getByRole('button', { name: 'Enviar candidatura' }).click();
+    await expect(visitor.getByText(/Candidatura enviada para a vaga/)).toBeVisible();
+    await expect(visitor.getByText('Candidatura enviada', { exact: true }).first()).toBeVisible();
   });
 });
