@@ -12,15 +12,11 @@ $$;
 revoke all on function app.is_client_of(uuid) from public;
 grant execute on function app.is_client_of(uuid) to alpha_app;
 
-drop policy charges_client_read on charges;
-create policy charges_client_read on charges for select to alpha_app using (app.is_client_of(company_id));
+alter policy charges_client_read on charges using (app.is_client_of(company_id));
 
-drop policy contracts_read on contracts;
-create policy contracts_read on contracts for select to alpha_app
-  using (app.is_admin() or app.is_client_of(company_id));
+alter policy contracts_read on contracts using (app.is_admin() or app.is_client_of(company_id));
 
-drop policy billing_files_read on billing_files;
-create policy billing_files_read on billing_files for select to alpha_app
+alter policy billing_files_read on billing_files
   using (
     app.is_admin()
     or exists (select 1 from charges c where c.id = charge_id and app.is_client_of(c.company_id))
